@@ -17,7 +17,7 @@ from .netservice import NetworkAdapter
 
 from .bsll import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -25,7 +25,6 @@ _log = ModuleLogger(globals())
 #   _Packetize
 #
 
-@bacpypes_debugging
 def _Packetize(data):
     if _debug: _Packetize._debug("_Packetize %r", data)
 
@@ -53,11 +52,12 @@ def _Packetize(data):
 
     return packet_slice
 
+bacpypes_debugging(_Packetize)
+
 #
 #   _StreamToPacket
 #
 
-@bacpypes_debugging
 class _StreamToPacket(StreamToPacket):
 
     def __init__(self):
@@ -68,11 +68,12 @@ class _StreamToPacket(StreamToPacket):
         if _debug: _StreamToPacket._debug("indication %r", pdu)
         self.request(pdu)
 
+bacpypes_debugging(_StreamToPacket)
+
 #
 #   UserInformation
 #
 
-@bacpypes_debugging
 class UserInformation(DebugContents):
 
     _debug_contents = ('username', 'password*', 'service', 'proxyNetwork')
@@ -97,11 +98,12 @@ class UserInformation(DebugContents):
         # proxy service can map to a network
         self.proxyNetwork = kwargs.get('proxyNetwork', None)
 
+bacpypes_debugging(UserInformation)
+
 #
 #   ConnectionState
 #
 
-@bacpypes_debugging
 class ConnectionState(DebugContents):
 
     NOT_AUTHENTICATED   = 0     # no authentication attempted
@@ -131,11 +133,12 @@ class ConnectionState(DebugContents):
         # reference to adapter used by proxy server service
         self.proxyAdapter = None
 
+bacpypes_debugging(ConnectionState)
+
 #
 #   ServiceAdapter
 #
 
-@bacpypes_debugging
 class ServiceAdapter:
 
     _authentication_required = False
@@ -212,11 +215,12 @@ class ServiceAdapter:
     def service_confirmation(self, conn, pdu):
         raise NotImplementedError("service_confirmation must be overridden")
 
+bacpypes_debugging(ServiceAdapter)
+
 #
 #   NetworkServiceAdapter
 #
 
-@bacpypes_debugging
 class NetworkServiceAdapter(ServiceAdapter, NetworkAdapter):
 
     def __init__(self, mux, sap, net, cid=None):
@@ -224,11 +228,12 @@ class NetworkServiceAdapter(ServiceAdapter, NetworkAdapter):
         ServiceAdapter.__init__(self, mux)
         NetworkAdapter.__init__(self, sap, net, cid)
 
+bacpypes_debugging(NetworkServiceAdapter)
+
 #
 #   TCPServerMultiplexer
 #
 
-@bacpypes_debugging
 class TCPServerMultiplexer(Client):
 
     def __init__(self, addr=None):
@@ -574,11 +579,12 @@ class TCPServerMultiplexer(Client):
         response.pduDestination = bslpdu.pduSource
         self.request(response)
 
+bacpypes_debugging(TCPServerMultiplexer)
+
 #
 #   TCPClientMultiplexer
 #
 
-@bacpypes_debugging
 class TCPClientMultiplexer(Client):
 
     def __init__(self):
@@ -792,11 +798,12 @@ class TCPClientMultiplexer(Client):
         if _debug: TCPClientMultiplexer._debug("    - response: %r", response)
         self.request(response)
 
+bacpypes_debugging(TCPClientMultiplexer)
+
 #
 #   TCPMultiplexerASE
 #
 
-@bacpypes_debugging
 class TCPMultiplexerASE(ApplicationServiceElement):
 
     def __init__(self, mux):
@@ -841,11 +848,12 @@ class TCPMultiplexerASE(ApplicationServiceElement):
             # remove it from the multiplexer
             del self.multiplexer.connections[addr]
 
+bacpypes_debugging(TCPMultiplexerASE)
+
 #
 #   DeviceToDeviceServerService
 #
 
-@bacpypes_debugging
 class DeviceToDeviceServerService(NetworkServiceAdapter):
 
     serviceID = DEVICE_TO_DEVICE_SERVICE_ID
@@ -883,11 +891,12 @@ class DeviceToDeviceServerService(NetworkServiceAdapter):
         # send it to the service access point for processing
         self.adapterSAP.process_npdu(self, npdu)
 
+bacpypes_debugging(DeviceToDeviceServerService)
+
 #
 #   DeviceToDeviceClientService
 #
 
-@bacpypes_debugging
 class DeviceToDeviceClientService(NetworkServiceAdapter):
 
     serviceID = DEVICE_TO_DEVICE_SERVICE_ID
@@ -975,11 +984,12 @@ class DeviceToDeviceClientService(NetworkServiceAdapter):
         # send it to the service access point for processing
         self.adapterSAP.process_npdu(self, npdu)
 
+bacpypes_debugging(DeviceToDeviceClientService)
+
 #
 #   RouterToRouterService
 #
 
-@bacpypes_debugging
 class RouterToRouterService(NetworkServiceAdapter):
 
     serviceID = ROUTER_TO_ROUTER_SERVICE_ID
@@ -1092,11 +1102,12 @@ class RouterToRouterService(NetworkServiceAdapter):
         # send it to the service access point for processing
         self.adapterSAP.process_npdu(self, npdu)
 
+bacpypes_debugging(RouterToRouterService)
+
 #
 #   ProxyServiceNetworkAdapter
 #
 
-@bacpypes_debugging
 class ProxyServiceNetworkAdapter(NetworkAdapter):
 
     def __init__(self, conn, sap, net, cid=None):
@@ -1150,11 +1161,12 @@ class ProxyServiceNetworkAdapter(NetworkAdapter):
         # send it to the service access point for processing
         self.adapterSAP.process_npdu(self, npdu)
 
+bacpypes_debugging(ProxyServiceNetworkAdapter)
+
 #
 #   ProxyServerService
 #
 
-@bacpypes_debugging
 class ProxyServerService(ServiceAdapter):
 
     serviceID = PROXY_SERVICE_ID
@@ -1196,11 +1208,12 @@ class ProxyServerService(ServiceAdapter):
         # forward along
         conn.proxyAdapter.service_confirmation(bslpdu)
 
+bacpypes_debugging(ProxyServerService)
+
 #
 #   ProxyClientService
 #
 
-@bacpypes_debugging
 class ProxyClientService(ServiceAdapter, Client):
 
     serviceID = PROXY_SERVICE_ID
@@ -1311,3 +1324,5 @@ class ProxyClientService(ServiceAdapter, Client):
         else:
             # send it
             self.service_request(request)
+
+bacpypes_debugging(ProxyClientService)

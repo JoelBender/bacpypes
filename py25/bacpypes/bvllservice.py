@@ -19,7 +19,7 @@ from .comm import Client, Server, bind, \
 
 from .bvll import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -49,7 +49,6 @@ class _MultiplexServer(Server):
 #   UDPMultiplexer
 #
 
-@bacpypes_debugging
 class UDPMultiplexer:
 
     def __init__(self, addr=None, noBroadcast=False):
@@ -150,11 +149,12 @@ class UDPMultiplexer:
         else:
             UDPMultiplexer._warning("unsupported message")
 
+bacpypes_debugging(UDPMultiplexer)
+
 #
 #   BTR
 #
 
-@bacpypes_debugging
 class BTR(Client, Server, DebugContents):
 
     _debug_contents = ('peers+',)
@@ -236,11 +236,12 @@ class BTR(Client, Server, DebugContents):
         # now delete the peer
         del self.peers[peerAddr]
 
+bacpypes_debugging(BTR)
+
 #
 #   AnnexJCodec
 #
 
-@bacpypes_debugging
 class AnnexJCodec(Client, Server):
 
     def __init__(self, cid=None, sid=None):
@@ -276,11 +277,12 @@ class AnnexJCodec(Client, Server):
         # send it upstream
         self.response(rpdu)
 
+bacpypes_debugging(AnnexJCodec)
+
 #
 #   BIPSAP
 #
 
-@bacpypes_debugging
 class BIPSAP(ServiceAccessPoint):
 
     def __init__(self, sap=None):
@@ -300,11 +302,12 @@ class BIPSAP(ServiceAccessPoint):
         # this is a response from the ASE, send this downstream
         self.request(pdu)
 
+bacpypes_debugging(BIPSAP)
+
 #
 #   BIPSimple
 #
 
-@bacpypes_debugging
 class BIPSimple(BIPSAP, Client, Server):
 
     def __init__(self, sapID=None, cid=None, sid=None):
@@ -381,11 +384,12 @@ class BIPSimple(BIPSAP, Client, Server):
         else:
             BIPSimple._warning("invalid pdu type: %s", type(pdu))
 
+bacpypes_debugging(BIPSimple)
+
 #
 #   BIPForeign
 #
 
-@bacpypes_debugging
 class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
     _debug_contents = ('registrationStatus', 'bbmdAddress', 'bbmdTimeToLive')
@@ -537,11 +541,12 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         # send it downstream
         self.request(pdu)
 
+bacpypes_debugging(BIPForeign)
+
 #
 #   BIPBBMD
 #
 
-@bacpypes_debugging
 class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
 
     _debug_contents = ('bbmdAddress', 'bbmdBDT+', 'bbmdFDT+')
@@ -859,11 +864,12 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
         else:
             pass
 
+bacpypes_debugging(BIPBBMD)
+
 #
 #   BVLLServiceElement
 #
 
-@bacpypes_debugging
 class BVLLServiceElement(ApplicationServiceElement):
 
     def __init__(self, aseID=None):
@@ -890,3 +896,4 @@ class BVLLServiceElement(ApplicationServiceElement):
         else:
             BVLLServiceElement._warning("no handler for %s", fn)
 
+bacpypes_debugging(BVLLServiceElement)

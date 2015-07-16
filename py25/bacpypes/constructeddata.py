@@ -31,7 +31,6 @@ class Element:
 #   Sequence
 #
 
-@bacpypes_debugging
 class Sequence(object):
 
     sequenceElements = []
@@ -334,6 +333,8 @@ class Sequence(object):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(Sequence)
+
 #
 #   SequenceOf
 #
@@ -341,7 +342,6 @@ class Sequence(object):
 _sequence_of_map = {}
 _sequence_of_classes = {}
 
-@bacpypes_debugging
 def SequenceOf(klass):
     """Function to return a class that can encode and decode a list of
     some other type."""
@@ -363,7 +363,6 @@ def SequenceOf(klass):
         raise TypeError("sequences of arrays disallowed")
 
     # define a generic class for lists
-    @bacpypes_debugging
     class _SequenceOf:
 
         subtype = None
@@ -467,6 +466,8 @@ def SequenceOf(klass):
             # return what we built
             return mapped_value
 
+    bacpypes_debugging(_SequenceOf)
+
     # constrain it to a list of a specific type of item
     setattr(_SequenceOf, 'subtype', klass)
     _SequenceOf.__name__ = 'SequenceOf' + klass.__name__
@@ -478,6 +479,8 @@ def SequenceOf(klass):
 
     # return this new type
     return _SequenceOf
+
+bacpypes_debugging(SequenceOf)
 
 #
 #   Array
@@ -514,7 +517,6 @@ def ArrayOf(klass):
         raise TypeError("arrays of SequenceOf disallowed")
 
     # define a generic class for arrays
-    @bacpypes_debugging
     class ArrayOf(Array):
 
         subtype = None
@@ -732,6 +734,8 @@ def ArrayOf(klass):
             # return what we built
             return mapped_value
 
+    bacpypes_debugging(ArrayOf)
+
     # constrain it to a list of a specific type of item
     setattr(ArrayOf, 'subtype', klass)
     ArrayOf.__name__ = 'ArrayOf' + klass.__name__
@@ -747,7 +751,6 @@ def ArrayOf(klass):
 #   Choice
 #
 
-@bacpypes_debugging
 class Choice(object):
 
     choiceElements = []
@@ -965,11 +968,12 @@ class Choice(object):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(Choice)
+
 #
 #   Any
 #
 
-@bacpypes_debugging
 class Any:
 
     def __init__(self, *args):
@@ -1126,11 +1130,12 @@ class Any:
         # return what we built
         return rslt_list
 
+bacpypes_debugging(Any)
+
 #
 #   AnyAtomic
 #
 
-@bacpypes_debugging
 class AnyAtomic:
 
     def __init__(self, arg=None):
@@ -1174,3 +1179,4 @@ class AnyAtomic:
 
         return '<' + desc + ' instance at 0x%08x' % (id(self),) + '>'
 
+bacpypes_debugging(AnyAtomic)

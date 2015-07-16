@@ -105,7 +105,6 @@ class OneShotDeleteTask(_Task):
 #   OneShotFunction
 #
 
-@bacpypes_debugging
 def OneShotFunction(fn, *args, **kwargs):
     class OneShotFunctionTask(OneShotDeleteTask):
         def process_task(self):
@@ -115,6 +114,8 @@ def OneShotFunction(fn, *args, **kwargs):
     task.install_task()
 
     return task
+
+bacpypes_debugging(OneShotFunction)
 
 #
 #   FunctionTask
@@ -172,7 +173,6 @@ class RecurringTask(_Task):
 #   RecurringFunctionTask
 #
 
-@bacpypes_debugging
 def RecurringFunctionTask(interval, fn, *args, **kwargs):
     if _debug: RecurringFunctionTask._debug("RecurringFunctionTask %r %r %r", fn, args, kwargs)
 
@@ -189,11 +189,12 @@ def RecurringFunctionTask(interval, fn, *args, **kwargs):
 
     return task
 
+bacpypes_debugging(RecurringFunctionTask)
+
 #
 #   recurring_function
 #
 
-@bacpypes_debugging
 def recurring_function(interval):
     def recurring_function_decorator(fn):
         class _RecurringFunctionTask(RecurringTask):
@@ -208,6 +209,8 @@ def recurring_function(interval):
         return task
 
     return recurring_function_decorator
+
+bacpypes_debugging(recurring_function)
 
 #
 #   TaskManager

@@ -52,7 +52,6 @@ def strftimestamp(ts):
 #   decode_ethernet
 #
 
-@bacpypes_debugging
 def decode_ethernet(s):
     if _debug: decode_ethernet._debug("decode_ethernet %s...", _hexify(s[:14]))
 
@@ -64,11 +63,12 @@ def decode_ethernet(s):
 
     return d
 
+bacpypes_debugging(decode_ethernet)
+
 #
 #   decode_vlan
 #
 
-@bacpypes_debugging
 def decode_vlan(s):
     if _debug: decode_vlan._debug("decode_vlan %s...", _hexify(s[:4]))
 
@@ -82,11 +82,12 @@ def decode_vlan(s):
 
     return d
 
+bacpypes_debugging(decode_vlan)
+
 #
 #   decode_ip
 #
 
-@bacpypes_debugging
 def decode_ip(s):
     if _debug: decode_ip._debug("decode_ip %r", _hexify(s[:20]))
 
@@ -111,11 +112,12 @@ def decode_ip(s):
 
     return d
 
+bacpypes_debugging(decode_ip)
+
 #
 #   decode_udp
 #
 
-@bacpypes_debugging
 def decode_udp(s):
     if _debug: decode_udp._debug("decode_udp %s...", _hexify(s[:8]))
 
@@ -128,11 +130,12 @@ def decode_udp(s):
 
     return d
 
+bacpypes_debugging(decode_udp)
+
 #
 #   decode_packet
 #
 
-@bacpypes_debugging
 def decode_packet(data):
     """decode the data, return some kind of PDU."""
     if _debug: decode_packet._debug("decode_packet %r", data)
@@ -342,11 +345,12 @@ def decode_packet(data):
         # success
         return npdu
 
+bacpypes_debugging(decode_packet)
+
 #
 #   decode_file
 #
 
-@bacpypes_debugging
 def decode_file(fname):
     """Given the name of a pcap file, open it, decode the contents and yield each packet."""
     if _debug: decode_file._debug("decode_file %r", fname)
@@ -379,11 +383,12 @@ def decode_file(fname):
 
         i += 1
 
+bacpypes_debugging(decode_file)
+
 #
 #   Tracer
 #
 
-@bacpypes_debugging
 class Tracer(DebugContents):
 
     def __init__(self, initialState=None):
@@ -404,11 +409,12 @@ class Tracer(DebugContents):
     def Start(self, pkt):
         if _debug: Tracer._debug("Start %r", pkt)
 
+bacpypes_debugging(Tracer)
+
 #
 #   trace
 #
 
-@bacpypes_debugging
 def trace(fname, tracers):
     if _debug: trace._debug("trace %r %r", fname, tracers)
 
@@ -424,6 +430,8 @@ def trace(fname, tracers):
             # if there is no current state, make a new one
             if not tracer.currentState:
                 currentTracers[i] = tracers[i]()
+
+bacpypes_debugging(trace)
 
 #
 #   __main__

@@ -12,7 +12,7 @@ from .primitivedata import *
 from .constructeddata import *
 from .basetypes import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -72,7 +72,6 @@ def decode_max_apdu_response(arg):
 #   APCI
 #
 
-@bacpypes_debugging
 class APCI(PCI, DebugContents):
 
     _debug_contents = ('apduType', 'apduSeg', 'apduMor', 'apduSA', 'apduSrv'
@@ -320,6 +319,8 @@ class APCI(PCI, DebugContents):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(APCI)
+
 #
 #   APDU
 #
@@ -357,6 +358,8 @@ class APDU(APCI, PDUData):
 
         # return what we built/updated
         return use_dict
+
+bacpypes_debugging(APDU)
 
 #------------------------------
 
@@ -404,7 +407,6 @@ class _APDU(APDU):
 #   ConfirmedRequestPDU
 #
 
-@bacpypes_debugging
 class ConfirmedRequestPDU(_APDU):
     pduType = 0
 
@@ -416,13 +418,13 @@ class ConfirmedRequestPDU(_APDU):
         self.apduService = choice
         self.pduExpectingReply = 1
 
+bacpypes_debugging(ConfirmedRequestPDU)
 register_apdu_type(ConfirmedRequestPDU)
 
 #
 #   UnconfirmedRequestPDU
 #
 
-@bacpypes_debugging
 class UnconfirmedRequestPDU(_APDU):
     pduType = 1
 
@@ -433,13 +435,13 @@ class UnconfirmedRequestPDU(_APDU):
         self.apduType = UnconfirmedRequestPDU.pduType
         self.apduService = choice
 
+bacpypes_debugging(UnconfirmedRequestPDU)
 register_apdu_type(UnconfirmedRequestPDU)
 
 #
 #   SimpleAckPDU
 #
 
-@bacpypes_debugging
 class SimpleAckPDU(_APDU):
     pduType = 2
 
@@ -456,13 +458,13 @@ class SimpleAckPDU(_APDU):
             self.apduService = context.apduService
             self.set_context(context)
 
+bacpypes_debugging(SimpleAckPDU)
 register_apdu_type(SimpleAckPDU)
 
 #
 #   ComplexAckPDU
 #
 
-@bacpypes_debugging
 class ComplexAckPDU(_APDU):
     pduType = 3
 
@@ -479,13 +481,13 @@ class ComplexAckPDU(_APDU):
             self.apduService = context.apduService
             self.set_context(context)
 
+bacpypes_debugging(ComplexAckPDU)
 register_apdu_type(ComplexAckPDU)
 
 #
 #   SegmentAckPDU
 #
 
-@bacpypes_debugging
 class SegmentAckPDU(_APDU):
     pduType = 4
 
@@ -511,13 +513,13 @@ class SegmentAckPDU(_APDU):
         self.apduSeq = sequenceNumber
         self.apduWin = windowSize
 
+bacpypes_debugging(SegmentAckPDU)
 register_apdu_type(SegmentAckPDU)
 
 #
 #   ErrorPDU
 #
 
-@bacpypes_debugging
 class ErrorPDU(_APDU):
     pduType = 5
 
@@ -534,6 +536,7 @@ class ErrorPDU(_APDU):
             self.apduService = context.apduService
             self.set_context(context)
 
+bacpypes_debugging(ErrorPDU)
 register_apdu_type(ErrorPDU)
 
 #
@@ -557,7 +560,6 @@ class RejectReason(Enumerated):
 
 expand_enumerations(RejectReason)
 
-@bacpypes_debugging
 class RejectPDU(_APDU):
     pduType = 6
 
@@ -575,6 +577,7 @@ class RejectPDU(_APDU):
         if context is not None:
             self.set_context(context)
 
+bacpypes_debugging(RejectPDU)
 register_apdu_type(RejectPDU)
 
 #
@@ -603,7 +606,6 @@ class AbortReason(Enumerated):
 
 expand_enumerations(AbortReason)
 
-@bacpypes_debugging
 class AbortPDU(_APDU):
     pduType = 7
 
@@ -629,6 +631,7 @@ class AbortPDU(_APDU):
             reason = str(self.apduAbortRejectReason) + '?'
         return reason
 
+bacpypes_debugging(AbortPDU)
 register_apdu_type(AbortPDU)
 
 #------------------------------
@@ -637,7 +640,6 @@ register_apdu_type(AbortPDU)
 #   APCISequence
 #
 
-@bacpypes_debugging
 class APCISequence(APCI, Sequence):
 
     def __init__(self, *args, **kwargs):
@@ -690,11 +692,12 @@ class APCISequence(APCI, Sequence):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(APCISequence)
+
 #
 #   ConfirmedRequestSequence
 #
 
-@bacpypes_debugging
 class ConfirmedRequestSequence(APCISequence, ConfirmedRequestPDU):
 
     serviceChoice = None
@@ -703,11 +706,12 @@ class ConfirmedRequestSequence(APCISequence, ConfirmedRequestPDU):
         if _debug: ConfirmedRequestSequence._debug("__init__ %r %r", args, kwargs)
         super(ConfirmedRequestSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
 
+bacpypes_debugging(ConfirmedRequestSequence)
+
 #
 #   ComplexAckSequence
 #
 
-@bacpypes_debugging
 class ComplexAckSequence(APCISequence, ComplexAckPDU):
 
     serviceChoice = None
@@ -716,11 +720,12 @@ class ComplexAckSequence(APCISequence, ComplexAckPDU):
         if _debug: ComplexAckSequence._debug("__init__ %r %r", args, kwargs)
         super(ComplexAckSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
 
+bacpypes_debugging(ComplexAckSequence)
+
 #
 #   UnconfirmedRequestSequence
 #
 
-@bacpypes_debugging
 class UnconfirmedRequestSequence(APCISequence, UnconfirmedRequestPDU):
 
     serviceChoice = None
@@ -729,11 +734,12 @@ class UnconfirmedRequestSequence(APCISequence, UnconfirmedRequestPDU):
         if _debug: UnconfirmedRequestSequence._debug("__init__ %r %r", args, kwargs)
         super(UnconfirmedRequestSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
 
+bacpypes_debugging(UnconfirmedRequestSequence)
+
 #
 #   ErrorSequence
 #
 
-@bacpypes_debugging
 class ErrorSequence(APCISequence, ErrorPDU):
 
     serviceChoice = None
@@ -741,6 +747,8 @@ class ErrorSequence(APCISequence, ErrorPDU):
     def __init__(self, *args, **kwargs):
         if _debug: ErrorSequence._debug("__init__ %r %r", args, kwargs)
         super(ErrorSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
+
+bacpypes_debugging(ErrorSequence)
 
 #------------------------------
 

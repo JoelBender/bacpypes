@@ -63,7 +63,6 @@ def ConsoleLogHandler(loggerRef='', level=logging.DEBUG, color=None):
 #   ArgumentParser
 #
 
-@bacpypes_debugging
 class ArgumentParser(argparse.ArgumentParser):
 
     """
@@ -134,11 +133,12 @@ class ArgumentParser(argparse.ArgumentParser):
         # return what was parsed
         return result_args
 
+bacpypes_debugging(ArgumentParser)
+
 #
 #   ConfigArgumentParser
 #
 
-@bacpypes_debugging
 class ConfigArgumentParser(ArgumentParser):
 
     """
@@ -185,3 +185,4 @@ class ConfigArgumentParser(ArgumentParser):
         # return what was parsed
         return result_args
 
+bacpypes_debugging(ConfigArgumentParser)

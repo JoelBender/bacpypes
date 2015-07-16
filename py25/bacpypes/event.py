@@ -21,7 +21,6 @@ _log = ModuleLogger(globals())
 #   break the asyncore.loop().
 #
 
-@bacpypes_debugging
 class WaitableEvent(asyncore.file_dispatcher, Logging):
 
     def __init__(self):
@@ -78,3 +77,5 @@ class WaitableEvent(asyncore.file_dispatcher, Logging):
         if _debug: WaitableEvent._debug("clear")
         if self.isSet():
             os.read(self._read_fd, 1)
+
+bacpypes_debugging(WaitableEvent)

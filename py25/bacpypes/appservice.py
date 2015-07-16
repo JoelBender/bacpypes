@@ -14,7 +14,7 @@ from .task import OneShotTask
 
 from .apdu import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -61,7 +61,6 @@ SEGMENTED_CONFIRMATION = 5
 COMPLETED = 6
 ABORTED = 7
 
-@bacpypes_debugging
 class SSM(OneShotTask, DebugContents):
 
     transactionLabels = ['IDLE'
@@ -246,11 +245,12 @@ class SSM(OneShotTask, DebugContents):
                 self.sentAllSegments = True
                 break
 
+bacpypes_debugging(SSM)
+
 #
 #   ClientSSM - Client Segmentation State Machine
 #
 
-@bacpypes_debugging
 class ClientSSM(SSM):
 
     def __init__(self, sap):
@@ -649,6 +649,8 @@ class ClientSSM(SSM):
         abort = self.abort(AbortReason.noResponse)
         self.response(abort)
 
+bacpypes_debugging(ClientSSM)
+
 #
 #   ServerSSM - Server Segmentation State Machine
 #
@@ -1018,11 +1020,12 @@ class ServerSSM(SSM):
             # give up
             self.set_state(ABORTED)
 
+bacpypes_debugging(ServerSSM)
+
 #
 #   StateMachineAccessPoint
 #
 
-@bacpypes_debugging
 class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
 
     def __init__(self, device, sap=None, cid=None):
@@ -1229,6 +1232,8 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
         else:
             raise RuntimeError("invalid APDU (10)")
 
+bacpypes_debugging(StateMachineAccessPoint)
+
 #
 #   ApplicationServiceAccessPoint
 #
@@ -1383,3 +1388,4 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
         # forward the encoded packet
         self.response(xpdu)
 
+bacpypes_debugging(ApplicationServiceAccessPoint)

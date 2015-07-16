@@ -29,7 +29,6 @@ sleeptime = 0.0
 
 SPIN = 1.0
 
-@bacpypes_debugging
 def run(spin=SPIN):
     if _debug: run._debug("run spin=%r", spin)
     global running, taskManager, deferredFns, sleeptime
@@ -92,6 +91,8 @@ def run(spin=SPIN):
             if _debug: run._exception("an error has occurred: %s", err)
 
     running = False
+
+bacpypes_debugging(run)
 
 #
 #   run_once

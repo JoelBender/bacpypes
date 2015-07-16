@@ -9,7 +9,7 @@ from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -23,7 +23,6 @@ def register_bvlpdu_type(klass):
 #   BVLCI
 #
 
-@bacpypes_debugging
 class BVLCI(PCI, DebugContents):
 
     _debug_contents = ('bvlciType', 'bvlciFunction', 'bvlciLength')
@@ -103,11 +102,12 @@ class BVLCI(PCI, DebugContents):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(BVLCI)
+
 #
 #   BVLPDU
 #
 
-@bacpypes_debugging
 class BVLPDU(BVLCI, PDUData):
 
     def __init__(self, *args, **kwargs):
@@ -140,11 +140,12 @@ class BVLPDU(BVLCI, PDUData):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(BVLPDU)
+
 #
 #   key_value_contents
 #
 
-@bacpypes_debugging
 def key_value_contents(use_dict=None, as_class=dict, key_values=()):
     """Return the contents of an object as a dict."""
     if _debug: key_value_contents._debug("key_value_contents use_dict=%r as_class=%r key_values=%r", use_dict, as_class, key_values)
@@ -162,6 +163,8 @@ def key_value_contents(use_dict=None, as_class=dict, key_values=()):
 
     # return what we built/updated
     return use_dict
+
+bacpypes_debugging(key_value_contents)
 
 #------------------------------
 

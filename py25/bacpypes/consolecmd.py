@@ -37,7 +37,6 @@ def console_interrupt(*args):
 #   ConsoleCmd
 #
 
-@bacpypes_debugging
 class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
     def __init__(self, prompt="> ", allow_exec=False, stdin=None, stdout=None):
@@ -306,3 +305,5 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
             exec(line) in self._locals, self._globals
         except Exception as err:
             self.stdout.write("%s : %s\n" % (err.__class__, err))
+
+bacpypes_debugging(ConsoleCmd)

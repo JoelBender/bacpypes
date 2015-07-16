@@ -29,7 +29,6 @@ REBIND_SLEEP_INTERVAL = 2.0
 #   PickleActorMixIn
 #
 
-@bacpypes_debugging
 class PickleActorMixIn:
 
     def __init__(self, *args):
@@ -80,6 +79,8 @@ class PickleActorMixIn:
         else:
             self.pickleBuffer = ''
 
+bacpypes_debugging(PickleActorMixIn)
+
 #
 #   TCPClient
 #
@@ -89,7 +90,6 @@ class PickleActorMixIn:
 #   protocol stack they are accessed as servers.
 #
 
-@bacpypes_debugging
 class TCPClient(asyncore.dispatcher):
 
     def __init__(self, peer):
@@ -178,6 +178,8 @@ class TCPClient(asyncore.dispatcher):
 
         self.request += pdu.pduData
 
+bacpypes_debugging(TCPClient)
+
 #
 #   TCPClientActor
 #
@@ -185,7 +187,6 @@ class TCPClient(asyncore.dispatcher):
 #   each connection.
 #
 
-@bacpypes_debugging
 class TCPClientActor(TCPClient):
 
     def __init__(self, director, peer):
@@ -274,6 +275,8 @@ class TCPClientActor(TCPClient):
         # close up shop, all done
         self.handle_close()
 
+bacpypes_debugging(TCPClientActor)
+
 #
 #   TCPPickleClientActor
 #
@@ -291,7 +294,6 @@ class TCPPickleClientActor(PickleActorMixIn, TCPClientActor):
 #   so one is provided by the client actor.
 #
 
-@bacpypes_debugging
 class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
 
     _debug_contents = ('timeout', 'actorClass', 'clients', 'reconnect')
@@ -385,11 +387,12 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
         # send the message
         client.indication(pdu)
 
+bacpypes_debugging(TCPClientDirector)
+
 #
 #   TCPServer
 #
 
-@bacpypes_debugging
 class TCPServer(asyncore.dispatcher):
 
     def __init__(self, sock, peer):
@@ -470,11 +473,12 @@ class TCPServer(asyncore.dispatcher):
 
         self.request += pdu.pduData
 
+bacpypes_debugging(TCPServer)
+
 #
 #   TCPServerActor
 #
 
-@bacpypes_debugging
 class TCPServerActor(TCPServer):
 
     def __init__(self, director, sock, peer):
@@ -564,6 +568,8 @@ class TCPServerActor(TCPServer):
         # close up shop, all done
         self.handle_close()
 
+bacpypes_debugging(TCPServerActor)
+
 #
 #   TCPPickleServerActor
 #
@@ -575,7 +581,6 @@ class TCPPickleServerActor(PickleActorMixIn, TCPServerActor):
 #   TCPServerDirector
 #
 
-@bacpypes_debugging
 class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugContents):
 
     _debug_contents = ('port', 'timeout', 'actorClass', 'servers')
@@ -696,11 +701,12 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
         # pass the indication to the actor
         server.indication(pdu)
 
+bacpypes_debugging(TCPServerDirector)
+
 #
 #   StreamToPacket
 #
 
-@bacpypes_debugging
 class StreamToPacket(Client, Server):
 
     def __init__(self, fn, cid=None, sid=None):
@@ -758,11 +764,12 @@ class StreamToPacket(Client, Server):
         for packet in self.packetize(pdu, self.upstreamBuffer):
             self.response(packet)
 
+bacpypes_debugging(StreamToPacket)
+
 #
 #   StreamToPacketSAP
 #
 
-@bacpypes_debugging
 class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
 
     def __init__(self, stp, aseID=None, sapID=None):
@@ -790,3 +797,4 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
         if self.serviceElement:
             self.sap_request(addPeer=addPeer, delPeer=delPeer)
 
+bacpypes_debugging(StreamToPacketSAP)

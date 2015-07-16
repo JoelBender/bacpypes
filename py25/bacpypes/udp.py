@@ -29,7 +29,6 @@ _log = ModuleLogger(globals())
 #   each peer.
 #
 
-@bacpypes_debugging
 class UDPActor:
 
     def __init__(self, director, peer):
@@ -78,11 +77,12 @@ class UDPActor:
         # process this as a response from the director
         self.director.response(pdu)
 
+bacpypes_debugging(UDPActor)
+
 #
 #   UDPPickleActor
 #
 
-@bacpypes_debugging
 class UDPPickleActor(UDPActor):
 
     def __init__(self, *args):
@@ -111,11 +111,12 @@ class UDPPickleActor(UDPActor):
         # continue as usual
         UDPActor.response(self, pdu)
 
+bacpypes_debugging(UDPPickleActor)
+
 #
 #   UDPDirector
 #
 
-@bacpypes_debugging
 class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
     def __init__(self, address, timeout=0, reuse=False, actorClass=UDPActor, sid=None, sapID=None):
@@ -256,3 +257,5 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
         # send the message
         peer.response(pdu)
+
+bacpypes_debugging(UDPDirector)

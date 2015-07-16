@@ -11,7 +11,7 @@ from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -63,7 +63,6 @@ AUTHENTICATION_HASH             = 13    # specified hash function not supported
 #   BSLCI
 #
 
-@bacpypes_debugging
 class BSLCI(PCI, DebugContents):
 
     _debug_contents = ('bslciType', 'bslciFunction', 'bslciLength')
@@ -137,6 +136,8 @@ class BSLCI(PCI, DebugContents):
 
         if (self.bslciLength != len(pdu.pduData) + 4):
             raise DecodingError("invalid BSLCI length")
+
+bacpypes_debugging(BSLCI)
 
 #
 #   BSLPDU
