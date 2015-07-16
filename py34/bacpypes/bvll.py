@@ -9,7 +9,7 @@ from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 

@@ -19,7 +19,7 @@ from .comm import Client, Server, bind, \
 
 from .bvll import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 

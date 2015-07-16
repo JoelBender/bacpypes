@@ -17,7 +17,7 @@ from .netservice import NetworkAdapter
 
 from .bsll import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 

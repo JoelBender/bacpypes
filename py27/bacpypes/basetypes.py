@@ -10,7 +10,7 @@ from .debugging import ModuleLogger
 from .primitivedata import *
 from .constructeddata import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 

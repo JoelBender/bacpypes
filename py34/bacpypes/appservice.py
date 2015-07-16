@@ -14,7 +14,7 @@ from .task import OneShotTask
 
 from .apdu import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -653,6 +653,7 @@ class ClientSSM(SSM):
 #   ServerSSM - Server Segmentation State Machine
 #
 
+@bacpypes_debugging
 class ServerSSM(SSM):
 
     def __init__(self, sap):
@@ -1233,6 +1234,7 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
 #   ApplicationServiceAccessPoint
 #
 
+@bacpypes_debugging
 class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoint):
 
     def __init__(self, aseID=None, sapID=None):
@@ -1382,4 +1384,3 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
 
         # forward the encoded packet
         self.response(xpdu)
-

@@ -12,7 +12,7 @@ from .primitivedata import *
 from .constructeddata import *
 from .basetypes import *
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
