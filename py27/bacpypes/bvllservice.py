@@ -138,7 +138,7 @@ class UDPMultiplexer:
             return
 
         # extract the first octet
-        msg_type = struct.unpack('b', pdu.pduData[:1])
+        msg_type = struct.unpack('b', pdu.pduData[:1])[0]
 
         # check for the message type
         if msg_type == 0x01:
