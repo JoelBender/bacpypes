@@ -16,7 +16,7 @@ from .npdu import Address, DecodingError, DisconnectConnectionToNetwork, \
     EstablishConnectionToNetwork, GlobalBroadcast, IAmRouterToNetwork, \
     ICouldBeRouterToNetwork, InitializeRoutingTable, InitializeRoutingTableAck, \
     LocalBroadcast, LocalStation, NPCI, NPDU, NetworkNumberIs, \
-    PCI, PDU, PDUData, RejectMessageToNetwork, RemoteBroadcast, RemoteStation, \    
+    PCI, PDU, PDUData, RejectMessageToNetwork, RemoteBroadcast, RemoteStation, \
     RouterAvailableToNetwork, RouterBusyToNetwork, RoutingTableEntry, \
     WhatIsNetworkNumber, WhoIsRouterToNetwork
 from .apdu import APDU as _APDU
