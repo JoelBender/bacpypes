@@ -482,7 +482,6 @@ class Object(Logging):
 #   Standard Object Types
 #
 
-@register_object_type
 class AccessCredentialObject(Object):
     objectType = 'accessCredential'
     properties = \
@@ -513,7 +512,8 @@ class AccessCredentialObject(Object):
 #       , OptionalProperty('occupancyExemption', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccessCredentialObject)
+
 class AccessDoorObject(Object):
     objectType = 'accessDoor'
     properties = \
@@ -550,7 +550,8 @@ class AccessDoorObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccessDoorObject)
+
 class AccessPointObject(Object):
     objectType = 'accessPoint'
     properties = \
@@ -602,7 +603,8 @@ class AccessPointObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccessPointObject)
+
 class AccessRightsObject(Object):
     objectType = 'accessRights'
     properties = \
@@ -616,7 +618,8 @@ class AccessRightsObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccessRightsObject)
+
 class AccessUserObject(Object):
     objectType = 'accessUser'
     properties = \
@@ -632,7 +635,8 @@ class AccessUserObject(Object):
         , ReadableProperty('credentials', SequenceOf(DeviceObjectReference))
        ]
 
-@register_object_type
+register_object_type(AccessUserObject)
+
 class AccessZoneObject(Object):
     objectType = 'accessZone'
     properties = \
@@ -672,7 +676,8 @@ class AccessZoneObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccessZoneObject)
+
 class AccumulatorObject(Object):
     objectType = 'accumulator'
     properties = \
@@ -711,7 +716,8 @@ class AccumulatorObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AccumulatorObject)
+
 class AlertEnrollmentObject(Object):
     objectType = 'alertEnrollment'
     properties = \
@@ -729,7 +735,8 @@ class AlertEnrollmentObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AlertEnrollmentObject)
+
 class AnalogInputObject(Object):
     objectType = 'analogInput'
     properties = \
@@ -764,7 +771,8 @@ class AnalogInputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AnalogInputObject)
+
 class AnalogOutputObject(Object):
     objectType = 'analogOutput'
     properties = \
@@ -800,7 +808,8 @@ class AnalogOutputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AnalogOutputObject)
+
 class AnalogValueObject(Object):
     objectType = 'analogValue'
     properties = \
@@ -835,7 +844,8 @@ class AnalogValueObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(AnalogValueObject)
+
 class AveragingObject(Object):
     objectType = 'averaging'
     properties = \
@@ -852,7 +862,8 @@ class AveragingObject(Object):
         , WritableProperty('windowSamples', Unsigned)
         ]
 
-@register_object_type
+register_object_type(AveragingObject)
+
 class BinaryInputObject(Object):
     objectType = 'binaryInput'
     properties = \
@@ -886,7 +897,8 @@ class BinaryInputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(BinaryInputObject)
+
 class BinaryOutputObject(Object):
     objectType = 'binaryOutput'
     properties = \
@@ -924,7 +936,8 @@ class BinaryOutputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(BinaryOutputObject)
+
 class BinaryValueObject(Object):
     objectType = 'binaryValue'
     properties = \
@@ -960,7 +973,8 @@ class BinaryValueObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(BinaryValueObject)
+
 class BitStringValueObject(Object):
     objectType = 'bitstringValue'
     properties = \
@@ -989,7 +1003,8 @@ class BitStringValueObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(BitStringValueObject)
+
 class CalendarObject(Object):
     objectType = 'calendar'
     properties = \
@@ -997,7 +1012,8 @@ class CalendarObject(Object):
         , ReadableProperty('dateList', SequenceOf(CalendarEntry))
         ]
 
-@register_object_type
+register_object_type(CalendarObject)
+
 class ChannelObject(Object):
     objectType = 'channel'
     properties = \
@@ -1024,7 +1040,8 @@ class ChannelObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(ChannelObject)
+
 class CharacterStringValueObject(Object):
     objectType = 'characterstringValue'
     properties = \
@@ -1052,7 +1069,8 @@ class CharacterStringValueObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(CharacterStringValueObject)
+
 class CommandObject(Object):
     objectType = 'command'
     properties = \
@@ -1063,7 +1081,8 @@ class CommandObject(Object):
         , OptionalProperty('actionText', ArrayOf(CharacterString))
         ]
 
-@register_object_type
+register_object_type(CommandObject)
+
 class CredentialDataInputObject(Object):
     objectType = 'credentialDataInput'
     properties = \
@@ -1085,7 +1104,8 @@ class CredentialDataInputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(CredentialDataInputObject)
+
 class DatePatternValueObject(Object):
     objectType = 'datePatternValue'
     properties = \
@@ -1098,7 +1118,8 @@ class DatePatternValueObject(Object):
         , OptionalProperty('relinquishDefault', Date)
         ]
 
-@register_object_type
+register_object_type(DatePatternValueObject)
+
 class DateValueObject(Object):
     objectType = 'dateValue'
     properties = \
@@ -1111,7 +1132,8 @@ class DateValueObject(Object):
         , OptionalProperty('relinquishDefault', Date)
         ]
 
-@register_object_type
+register_object_type(DateValueObject)
+
 class DateTimePatternValueObject(Object):
     objectType = 'datetimePatternValue'
     properties = \
@@ -1125,7 +1147,8 @@ class DateTimePatternValueObject(Object):
         , OptionalProperty('isUtc', Boolean)
         ]
 
-@register_object_type
+register_object_type(DateTimePatternValueObject)
+
 class DateTimeValueObject(Object):
     objectType = 'datetimeValue'
     properties = \
@@ -1139,7 +1162,8 @@ class DateTimeValueObject(Object):
         , OptionalProperty('isUtc', Boolean)
         ]
 
-@register_object_type
+register_object_type(DateTimeValueObject)
+
 class DeviceObject(Object):
     objectType = 'device'
     properties = \
@@ -1194,7 +1218,8 @@ class DeviceObject(Object):
         , OptionalProperty('intervalOffset', Unsigned)
         ]
 
-@register_object_type
+register_object_type(DeviceObject)
+
 class EventEnrollmentObject(Object):
     objectType = 'eventEnrollment'
     properties = \
@@ -1220,6 +1245,8 @@ class EventEnrollmentObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
+register_object_type(EventEnrollmentObject)
+
 #-----
 
 class EventLogRecordLogDatum(Choice):
@@ -1235,7 +1262,6 @@ class EventLogRecord(Sequence):
         , Element('logDatum', EventLogRecordLogDatum, 1)
         ]
 
-@register_object_type
 class EventLogObject(Object):
     objectType = 'eventLog'
     properties = \
@@ -1265,9 +1291,10 @@ class EventLogObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         ]
 
+register_object_type(EventLogObject)
+
 #-----
 
-@register_object_type
 class FileObject(Object):
     objectType = 'file'
     properties = \
@@ -1280,9 +1307,10 @@ class FileObject(Object):
         , OptionalProperty('recordCount', Unsigned)
         ]
 
+register_object_type(FileObject)
+
 #-----
 
-@register_object_type
 class GlobalGroupObject(Object):
     objectType = 'globalGroup'
     properties = \
@@ -1315,7 +1343,8 @@ class GlobalGroupObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(GlobalGroupObject)
+
 class GroupObject(Object):
     objectType = 'group'
     properties = \
@@ -1323,7 +1352,8 @@ class GroupObject(Object):
         , ReadableProperty('presentValue', SequenceOf(ReadAccessResult))
         ]
 
-@register_object_type
+register_object_type(GroupObject)
+
 class IntegerValueObject(Object):
     objectType = 'integerValue'
     properties = \
@@ -1358,7 +1388,8 @@ class IntegerValueObject(Object):
         , OptionalProperty('resolution', Integer)
         ]
 
-@register_object_type
+register_object_type(IntegerValueObject)
+
 class LargeAnalogValueObject(Object):
     objectType = 'largeAnalogValue'
     properties = \
@@ -1393,7 +1424,8 @@ class LargeAnalogValueObject(Object):
         , OptionalProperty('resolution', Double)
         ]
 
-@register_object_type
+register_object_type(LargeAnalogValueObject)
+
 class LifeSafetyPointObject(Object):
     objectType = 'lifeSafetyPoint'
     properties = \
@@ -1431,7 +1463,8 @@ class LifeSafetyPointObject(Object):
         , OptionalProperty('memberOf', SequenceOf(DeviceObjectReference))
         ]
 
-@register_object_type
+register_object_type(LifeSafetyPointObject)
+
 class LifeSafetyZoneObject(Object):
     objectType = 'lifeSafetyZone'
     properties = \
@@ -1467,7 +1500,8 @@ class LifeSafetyZoneObject(Object):
         , OptionalProperty('memberOf', SequenceOf(DeviceObjectReference))
         ]
 
-@register_object_type
+register_object_type(LifeSafetyZoneObject)
+
 class LightingOutputObject(Object):
     objectType = 'lightingOutput'
     properties = \
@@ -1497,7 +1531,8 @@ class LightingOutputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(LightingOutputObject)
+
 class LoadControlObject(Object):
     objectType = 'loadControl'
     properties = \
@@ -1531,7 +1566,8 @@ class LoadControlObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(LoadControlObject)
+
 class LoopObject(Object):
     objectType = 'loop'
     properties = \
@@ -1577,7 +1613,8 @@ class LoopObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(LoopObject)
+
 class MultiStateInputObject(Object):
     objectType = 'multiStateInput'
     properties = \
@@ -1606,7 +1643,8 @@ class MultiStateInputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(MultiStateInputObject)
+
 class MultiStateOutputObject(Object):
     objectType = 'multiStateOutput'
     properties = \
@@ -1636,7 +1674,8 @@ class MultiStateOutputObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(MultiStateOutputObject)
+
 class MultiStateValueObject(Object):
     objectType = 'multiStateValue'
     properties = \
@@ -1666,7 +1705,8 @@ class MultiStateValueObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(MultiStateValueObject)
+
 class NetworkSecurityObject(Object):
     objectType = 'networkSecurity'
     properties = \
@@ -1683,7 +1723,8 @@ class NetworkSecurityObject(Object):
         , WritableProperty('doNotHide', Boolean)
         ]
 
-@register_object_type
+register_object_type(NetworkSecurityObject)
+
 class NotificationClassObject(Object):
     objectType = 'notificationClass'
     properties = \
@@ -1693,7 +1734,8 @@ class NotificationClassObject(Object):
         , ReadableProperty('recipientList', SequenceOf(Destination))
         ]
 
-@register_object_type
+register_object_type(NotificationClassObject)
+
 class NotificationForwarderObject(Object):
     objectType = 'notificationForwarder'
     properties = \
@@ -1708,7 +1750,8 @@ class NotificationForwarderObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(NotificationForwarderObject)
+
 class OctetStringValueObject(Object):
     objectType = 'octetstringValue'
     properties = \
@@ -1721,7 +1764,8 @@ class OctetStringValueObject(Object):
         , OptionalProperty('relinquishDefault', OctetString)
         ]
 
-@register_object_type
+register_object_type(OctetStringValueObject)
+
 class PositiveIntegerValueObject(Object):
     objectType = 'positiveIntegerValue'
     properties = \
@@ -1756,7 +1800,8 @@ class PositiveIntegerValueObject(Object):
         , OptionalProperty('resolution', Unsigned)
         ]
 
-@register_object_type
+register_object_type(PositiveIntegerValueObject)
+
 class ProgramObject(Object):
     objectType = 'program'
     properties = \
@@ -1780,7 +1825,8 @@ class ProgramObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(ProgramObject)
+
 class PulseConverterObject(Object):
     objectType = 'pulseConverter'
     properties = \
@@ -1818,7 +1864,8 @@ class PulseConverterObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(PulseConverterObject)
+
 class ScheduleObject(Object):
     objectType = 'schedule'
     properties = \
@@ -1844,7 +1891,8 @@ class ScheduleObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(ScheduleObject)
+
 class StructuredViewObject(Object):
     objectType = 'structuredView'
     properties = \
@@ -1854,7 +1902,8 @@ class StructuredViewObject(Object):
         , OptionalProperty('subordinateAnnotations', ArrayOf(CharacterString))
         ]
 
-@register_object_type
+register_object_type(StructuredViewObject)
+
 class TimePatternValueObject(Object):
     objectType = 'timePatternValue'
     properties = \
@@ -1867,7 +1916,8 @@ class TimePatternValueObject(Object):
         , OptionalProperty('relinquishDefault', Time)
         ]
 
-@register_object_type
+register_object_type(TimePatternValueObject)
+
 class TimeValueObject(Object):
     objectType = 'timeValue'
     properties = \
@@ -1880,7 +1930,8 @@ class TimeValueObject(Object):
         , OptionalProperty('relinquishDefault', Time)
         ]
 
-@register_object_type
+register_object_type(TimeValueObject)
+
 class TrendLogObject(Object):
     objectType = 'trendLog'
     properties = \
@@ -1922,7 +1973,8 @@ class TrendLogObject(Object):
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
-@register_object_type
+register_object_type(TrendLogObject)
+
 class TrendLogMultipleObject(Object):
     objectType = 'trendLogMultiple'
     properties = \
@@ -1958,3 +2010,5 @@ class TrendLogMultipleObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
+
+register_object_type(TrendLogMultipleObject)
