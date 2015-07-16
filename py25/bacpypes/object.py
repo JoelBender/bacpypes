@@ -1958,4 +1958,3 @@ class TrendLogMultipleObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
-

@@ -508,9 +508,9 @@ class AccessCredentialObject(Object):
         , OptionalProperty('extendedTimeEnable', Boolean)
         , OptionalProperty('authorizationExemptions', SequenceOf(AuthorizationException))
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
-#       , OptionalProperty('masterExemption', Boolean)
-#       , OptionalProperty('passbackExemption', Boolean)
-#       , OptionalProperty('occupancyExemption', Boolean)
+        , OptionalProperty('masterExemption', Boolean)
+        , OptionalProperty('passbackExemption', Boolean)
+        , OptionalProperty('occupancyExemption', Boolean)
         ]
 
 @register_object_type
@@ -1958,4 +1958,3 @@ class TrendLogMultipleObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
-
