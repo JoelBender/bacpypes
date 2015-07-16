@@ -10,7 +10,7 @@ import cPickle as pickle
 from time import time as _time, sleep as _sleep
 from StringIO import StringIO
 
-from .errors import *
+from .errors import ConfigurationError, DecodingError, EncodingError, ExecutionError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .core import deferred
@@ -137,7 +137,7 @@ class TCPClient(asyncore.dispatcher):
                 # sent the data upstream
                 deferred(self.response, PDU(msg))
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 111):
                 deferred(TCPClient._error, "connection to %r refused", self.peer)
             else:
@@ -156,7 +156,7 @@ class TCPClient(asyncore.dispatcher):
             self.socketError = None
 
             self.request = self.request[sent:]
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 111):
                 deferred(TCPClient._error, "connection to %r refused", self.peer)
             else:
@@ -428,7 +428,7 @@ class TCPServer(asyncore.dispatcher):
             else:
                 deferred(self.response, PDU(msg))
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 111):
                 deferred(TCPServer._error, "connection to %r refused", self.peer)
             else:
@@ -447,7 +447,7 @@ class TCPServer(asyncore.dispatcher):
             self.socketError = None
 
             self.request = self.request[sent:]
-        except socket.error as why:
+        except socket.error, why:
             if (why.args[0] == 111):
                 deferred(TCPServer._error, "connection to %r refused", self.peer)
             else:
@@ -619,7 +619,7 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
             try:
                 self.bind(address)
                 break
-            except socket.error as err:
+            except socket.error, err:
                 hadBindErrors = True
                 TCPServerDirector._warning('bind error %r, sleep and try again', err)
                 _sleep(REBIND_SLEEP_INTERVAL)

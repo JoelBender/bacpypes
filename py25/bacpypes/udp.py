@@ -196,9 +196,9 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
             # send the PDU up to the client
             deferred(self._response, PDU(msg, source=addr))
 
-        except socket.timeout as err:
+        except socket.timeout, err:
             deferred(UDPDirector._error, "handle_read socket timeout: %s", err)
-        except OSError as err:
+        except OSError, err:
             if err.args[0] == 11:
                 pass
             else:
@@ -218,7 +218,7 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
             sent = self.socket.sendto(pdu.pduData, pdu.pduDestination)
             if _debug: deferred(UDPDirector._debug, "    - sent %d octets to %s", sent, pdu.pduDestination)
 
-        except OSError as err:
+        except OSError, err:
             deferred(UDPDirector._error, "handle_write socket error: %s", err)
 
     def handle_close(self):

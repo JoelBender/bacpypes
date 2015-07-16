@@ -6,13 +6,11 @@ Application Layer
 
 from time import time as _time
 
-from .errors import *
+from .errors import ConfigurationError, DecodingError, EncodingError, ExecutionError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .comm import Client, ServiceAccessPoint, ApplicationServiceElement
 from .task import OneShotTask
-
-from .apdu import *
 
 # some debugging
 _debug = 0

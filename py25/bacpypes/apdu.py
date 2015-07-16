@@ -7,10 +7,10 @@ Application Layer Protocol Data Units
 from .errors import DecodingError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
-from .pdu import *
-from .primitivedata import *
-from .constructeddata import *
-from .basetypes import *
+from .pdu import Address, GlobalBroadcast, LocalBroadcast, LocalStation, ModuleLogger, PCI, PDU, PDUData, RemoteBroadcast, RemoteStation
+from .primitivedata import Address, ApplicationTag, Atomic, BitString, Boolean, CharacterString, ClosingTag, ContextTag, Date, DecodingError, Double, Enumerated, GlobalBroadcast, Integer, LocalBroadcast, LocalStation, ModuleLogger, Null, ObjectIdentifier, ObjectType, OctetString, OpeningTag, PCI, PDU, PDUData, Real, RemoteBroadcast, RemoteStation, Tag, TagList, Time, Unsigned, expand_enumerations
+from .constructeddata import Address, Any, AnyAtomic, ApplicationTag, Array, ArrayOf, Atomic, BitString, Boolean, CharacterString, Choice, ClosingTag, ContextTag, Date, DecodingError, Double, Element, Enumerated, GlobalBroadcast, Integer, LocalBroadcast, LocalStation, ModuleLogger, Null, ObjectIdentifier, ObjectType, OctetString, OpeningTag, PCI, PDU, PDUData, Real, RemoteBroadcast, RemoteStation, Sequence, SequenceOf, Tag, TagList, Time, Unsigned
+from .basetypes import AccessAuthenticationFactorDisable, AccessCredentialDisable, AccessCredentialDisableReason, AccessEvent, AccessPassbackMode, AccessRule, AccessRuleLocationSpecifier, AccessRuleTimeRangeSpecifier, AccessThreatLevel, AccessUserType, AccessZoneOccupancyState, AccumulatorRecord, AccumulatorRecordAccumulatorStatus, Action, ActionCommand, ActionList, Address, AddressBinding, Any, AnyAtomic, ApplicationTag, Array, ArrayOf, AssignedAccessRights, Atomic, AuthenticationFactor, AuthenticationFactorFormat, AuthenticationFactorType, AuthenticationPolicy, AuthenticationPolicyPolicy, AuthenticationStatus, AuthorizationException, AuthorizationMode, BackupState, BinaryPV, BitString, Boolean, COVSubscription, CalendarEntry, ChannelValue, CharacterString, Choice, ClientCOV, ClosingTag, ContextTag, CredentialAuthenticationFactor, DailySchedule, Date, DateRange, DateTime, DaysOfWeek, DecodingError, Destination, DeviceAddress, DeviceObjectPropertyReference, DeviceObjectPropertyValue, DeviceObjectReference, DeviceStatus, DoorAlarmState, DoorSecuredStatus, DoorStatus, DoorValue, Double, Element, EngineeringUnits, Enumerated, ErrorClass, ErrorCode, ErrorType, EventNotificationSubscription, EventParameter, EventParameterAccessEvent, EventParameterAccessEventAccessEvent, EventParameterBufferReady, EventParameterChangeOfBitstring, EventParameterChangeOfCharacterString, EventParameterChangeOfLifeSafety, EventParameterChangeOfState, EventParameterChangeOfStatusFlags, EventParameterChangeOfValue, EventParameterChangeOfValueCOVCriteria, EventParameterCommandFailure, EventParameterDoubleOutOfRange, EventParameterExtended, EventParameterExtendedParameters, EventParameterFloatingLimit, EventParameterOutOfRange, EventParameterSignedOutOfRange, EventParameterUnsignedOutOfRange, EventParameterUnsignedRange, EventState, EventTransitionBits, EventType, FaultParameter, FaultParameterCharacterString, FaultParameterExtended, FaultParameterExtendedParameters, FaultParameterLifeSafety, FaultParameterState, FaultParameterStatusFlags, FaultType, FileAccessMethod, GlobalBroadcast, Integer, KeyIdentifier, LifeSafetyMode, LifeSafetyOperation, LifeSafetyState, LightingCommand, LightingInProgress, LightingOperation, LightingTransition, LimitEnable, LocalBroadcast, LocalStation, LockStatus, LogData, LogDataLogData, LogMultipleRecord, LogRecord, LogRecordLogDatum, LogStatus, LoggingType, Maintenance, ModuleLogger, NetworkSecurityPolicy, NodeType, NotificationParameters, NotificationParametersAccessEventType, NotificationParametersBufferReady, NotificationParametersChangeOfBitstring, NotificationParametersChangeOfCharacterStringType, NotificationParametersChangeOfLifeSafety, NotificationParametersChangeOfState, NotificationParametersChangeOfStatusFlagsType, NotificationParametersChangeOfValue, NotificationParametersChangeOfValueNewValue, NotificationParametersCommandFailure, NotificationParametersComplexEventType, NotificationParametersDoubleOutOfRangeType, NotificationParametersExtended, NotificationParametersExtendedParametersType, NotificationParametersFloatingLimit, NotificationParametersOutOfRange, NotificationParametersSignedOutOfRangeType, NotificationParametersUnsignedOutOfRangeType, NotificationParametersUnsignedRange, NotifyType, Null, ObjectIdentifier, ObjectPropertyReference, ObjectPropertyValue, ObjectType, ObjectTypesSupported, OctetString, OpeningTag, OptionalCharacterString, PCI, PDU, PDUData, Polarity, PortPermission, Prescale, PriorityArray, PriorityValue, ProcessIdSelection, ProgramError, ProgramRequest, ProgramState, PropertyAccessResult, PropertyAccessResultAccessResult, PropertyIdentifier, PropertyReference, PropertyStates, PropertyValue, Real, Recipient, RecipientProcess, Reliability, RemoteBroadcast, RemoteStation, RestartReason, ResultFlags, Scale, SecurityKeySet, SecurityLevel, SecurityPolicy, Segmentation, Sequence, SequenceOf, ServicesSupported, SetpointReference, ShedLevel, ShedState, SilencedState, SpecialEvent, SpecialEventPeriod, StatusFlags, Tag, TagList, Time, TimeStamp, TimeValue, Unsigned, VTClass, VTSession, WeekNDay, WriteStatus
 
 # some debugging
 _debug = 0
@@ -704,7 +704,7 @@ class ConfirmedRequestSequence(APCISequence, ConfirmedRequestPDU):
 
     def __init__(self, *args, **kwargs):
         if _debug: ConfirmedRequestSequence._debug("__init__ %r %r", args, kwargs)
-        super(ConfirmedRequestSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
+        super(ConfirmedRequestSequence, self).__init__(*args, **dict(choice=self.serviceChoice, **kwargs))
 
 bacpypes_debugging(ConfirmedRequestSequence)
 
@@ -718,7 +718,7 @@ class ComplexAckSequence(APCISequence, ComplexAckPDU):
 
     def __init__(self, *args, **kwargs):
         if _debug: ComplexAckSequence._debug("__init__ %r %r", args, kwargs)
-        super(ComplexAckSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
+        super(ComplexAckSequence, self).__init__(*args, **dict(choice=self.serviceChoice, **kwargs))
 
 bacpypes_debugging(ComplexAckSequence)
 
@@ -732,7 +732,7 @@ class UnconfirmedRequestSequence(APCISequence, UnconfirmedRequestPDU):
 
     def __init__(self, *args, **kwargs):
         if _debug: UnconfirmedRequestSequence._debug("__init__ %r %r", args, kwargs)
-        super(UnconfirmedRequestSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
+        super(UnconfirmedRequestSequence, self).__init__(*args, **dict(choice=self.serviceChoice, **kwargs))
 
 bacpypes_debugging(UnconfirmedRequestSequence)
 
@@ -746,7 +746,7 @@ class ErrorSequence(APCISequence, ErrorPDU):
 
     def __init__(self, *args, **kwargs):
         if _debug: ErrorSequence._debug("__init__ %r %r", args, kwargs)
-        super(ErrorSequence, self).__init__(*args, choice=self.serviceChoice, **kwargs)
+        super(ErrorSequence, self).__init__(*args, **dict(choice=self.serviceChoice, **kwargs))
 
 bacpypes_debugging(ErrorSequence)
 

@@ -11,7 +11,7 @@ import re
 from .debugging import ModuleLogger, btox
 
 from .errors import DecodingError
-from .pdu import *
+from .pdu import Address, GlobalBroadcast, LocalBroadcast, LocalStation, ModuleLogger, PCI, PDU, PDUData, RemoteBroadcast, RemoteStation
 
 # some debugging
 _debug = 0
@@ -66,7 +66,7 @@ class Tag(object):
             else:
                 raise ValueError("invalid Tag ctor arguments")
 
-    def set(self, tclass, tnum, tlvt=0, tdata=b''):
+    def set(self, tclass, tnum, tlvt=0, tdata=''):
         """set the values of the tag."""
         if isinstance(tdata, bytearray):
             tdata = bytes(tdata)
@@ -165,7 +165,7 @@ class Tag(object):
         # application tagged boolean has no more data
         if (self.tagClass == Tag.applicationTagClass) and (self.tagNumber == Tag.booleanAppTag):
             # tagLVT contains value
-            self.tagData = b''
+            self.tagData = ''
         else:
             # tagLVT contains length
             self.tagData = pdu.get_data(self.tagLVT)
@@ -188,7 +188,7 @@ class Tag(object):
 
         # context booleans have value in data
         if (dataType == Tag.booleanAppTag):
-            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('b', self.tagData)[0], b'')
+            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('b', self.tagData)[0], '')
         else:
             return ApplicationTag(dataType, self.tagData)
 
@@ -486,7 +486,7 @@ class Null(Atomic):
             raise TypeError("invalid constructor datatype")
 
     def encode(self, tag):
-        tag.set_app_data(Tag.nullAppTag, b'')
+        tag.set_app_data(Tag.nullAppTag, '')
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.nullAppTag):
@@ -524,7 +524,7 @@ class Boolean(Atomic):
             raise TypeError("invalid constructor datatype")
 
     def encode(self, tag):
-        tag.set(Tag.applicationTagClass, Tag.booleanAppTag, int(self.value), b'')
+        tag.set(Tag.applicationTagClass, Tag.booleanAppTag, int(self.value), '')
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.booleanAppTag):
