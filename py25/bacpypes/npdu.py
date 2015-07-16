@@ -24,7 +24,6 @@ def register_npdu_type(klass):
 #  NPCI
 #
 
-@bacpypes_debugging
 class NPCI(PCI, DebugContents):
 
     _debug_contents = ('npduVersion', 'npduControl', 'npduDADR', 'npduSADR'
@@ -221,7 +220,7 @@ class NPCI(PCI, DebugContents):
             if self.npduDADR.addrType == Address.remoteStationAddr:
                 use_dict.__setitem__('dnet', self.npduDADR.addrNet)
                 use_dict.__setitem__('dlen', self.npduDADR.addrLen)
-                use_dict.__setitem__('dadr', btox(self.npduDADR.addrAddr or b''))
+                use_dict.__setitem__('dadr', btox(self.npduDADR.addrAddr or ''))
             elif self.npduDADR.addrType == Address.remoteBroadcastAddr:
                 use_dict.__setitem__('dnet', self.npduDADR.addrNet)
                 use_dict.__setitem__('dlen', 0)
@@ -235,7 +234,7 @@ class NPCI(PCI, DebugContents):
         if self.npduSADR is not None:
             use_dict.__setitem__('snet', self.npduSADR.addrNet)
             use_dict.__setitem__('slen', self.npduSADR.addrLen)
-            use_dict.__setitem__('sadr', btox(self.npduSADR.addrAddr or b''))
+            use_dict.__setitem__('sadr', btox(self.npduSADR.addrAddr or ''))
 
         # hop count
         if self.npduHopCount is not None:
@@ -250,11 +249,12 @@ class NPCI(PCI, DebugContents):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(NPCI)
+
 #
 #   NPDU
 #
 
-@bacpypes_debugging
 class NPDU(NPCI, PDUData):
 
     def __init__(self, *args, **kwargs):
@@ -286,11 +286,12 @@ class NPDU(NPCI, PDUData):
         # return what we built/updated
         return use_dict
 
+bacpypes_debugging(NPDU)
+
 #
 #   key_value_contents
 #
 
-@bacpypes_debugging
 def key_value_contents(use_dict=None, as_class=dict, key_values=()):
     """Return the contents of an object as a dict."""
     if _debug: key_value_contents._debug("key_value_contents use_dict=%r as_class=%r key_values=%r", use_dict, as_class, key_values)
@@ -308,6 +309,8 @@ def key_value_contents(use_dict=None, as_class=dict, key_values=()):
 
     # return what we built/updated
     return use_dict
+
+bacpypes_debugging(key_value_contents)
 
 #------------------------------
 

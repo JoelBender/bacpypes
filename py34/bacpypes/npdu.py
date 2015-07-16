@@ -7,9 +7,10 @@ NPDU
 from .errors import DecodingError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging, btox
 
-from .pdu import *
+from .pdu import Address, LocalStation, LocalBroadcast, RemoteStation, RemoteBroadcast, \
+    GlobalBroadcast, PCI, PDU, PDUData
 
-# some debuging
+# some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
@@ -253,6 +254,7 @@ class NPCI(PCI, DebugContents):
 #   NPDU
 #
 
+@bacpypes_debugging
 class NPDU(NPCI, PDUData):
 
     def __init__(self, *args, **kwargs):

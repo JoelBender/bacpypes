@@ -16,7 +16,7 @@ from .npdu import Address, DecodingError, DisconnectConnectionToNetwork, \
     EstablishConnectionToNetwork, GlobalBroadcast, IAmRouterToNetwork, \
     ICouldBeRouterToNetwork, InitializeRoutingTable, InitializeRoutingTableAck, \
     LocalBroadcast, LocalStation, NPCI, NPDU, NetworkNumberIs, \
-    PCI, PDU, PDUData, RejectMessageToNetwork, RemoteBroadcast, RemoteStation, \    
+    PCI, PDU, PDUData, RejectMessageToNetwork, RemoteBroadcast, RemoteStation, \
     RouterAvailableToNetwork, RouterBusyToNetwork, RoutingTableEntry, \
     WhatIsNetworkNumber, WhoIsRouterToNetwork
 from .apdu import APDU as _APDU
@@ -63,7 +63,6 @@ class RouterReference(DebugContents):
 #   NetworkAdapter
 #
 
-@bacpypes_debugging
 class NetworkAdapter(Client, DebugContents):
 
     _debug_contents = ('adapterSAP-', 'adapterNet')
@@ -99,11 +98,12 @@ class NetworkAdapter(Client, DebugContents):
     def DisconnectConnectionToNetwork(self, net):
         pass
 
+bacpypes_debugging(NetworkAdapter)
+
 #
 #   NetworkServiceAccessPoint
 #
 
-@bacpypes_debugging
 class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
     _debug_contents = ('adapters++', 'routers++', 'networks+'
@@ -575,11 +575,12 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         # tell the adapter to process the NPDU
         adapter.process_npdu(xpdu)
 
+bacpypes_debugging(NetworkServiceAccessPoint)
+
 #
 #   NetworkServiceElement
 #
 
-@bacpypes_debugging
 class NetworkServiceElement(ApplicationServiceElement):
 
     def __init__(self, eid=None):
@@ -753,3 +754,4 @@ class NetworkServiceElement(ApplicationServiceElement):
         # reference the service access point
         # sap = self.elementService
 
+bacpypes_debugging(NetworkServiceElement)
