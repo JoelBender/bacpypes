@@ -26,4 +26,4 @@ class TestSomething(unittest.TestCase):
     def tearDown(self):
         if _debug: TestSomething._debug("tearDown")
 
-bacpypes_debugging(TestSomethign)
+bacpypes_debugging(TestSomething)
