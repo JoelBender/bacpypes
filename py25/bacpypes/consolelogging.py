@@ -6,7 +6,13 @@ Console Logging
 
 import sys
 import logging
-import argparse
+
+try:
+    from argparse import ArgumentParser as _ArgumentParser
+    _argparse_success = True
+except:
+    class _ArgumentParser: pass
+    _argparse_success = False
 
 from .debugging import bacpypes_debugging, LoggingFormatter, ModuleLogger
 
@@ -63,7 +69,7 @@ def ConsoleLogHandler(loggerRef='', level=logging.DEBUG, color=None):
 #   ArgumentParser
 #
 
-class ArgumentParser(argparse.ArgumentParser):
+class ArgumentParser(_ArgumentParser):
 
     """
     ArgumentParser extends the one with the same name from the argparse module
@@ -77,7 +83,11 @@ class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, **kwargs):
         """Follow normal initialization and add BACpypes arguments."""
         if _debug: ArgumentParser._debug("__init__")
-        argparse.ArgumentParser.__init__(self, **kwargs)
+
+        if not _argparse_success:
+            raise ImportError("No module named argparse, install via pip or easy_install: https://pypi.python.org/pypi/argparse\n")
+
+        _ArgumentParser.__init__(self, **kwargs)
 
         # add a way to get a list of the debugging hooks
         self.add_argument("--buggers",
@@ -101,7 +111,7 @@ class ArgumentParser(argparse.ArgumentParser):
         if _debug: ArgumentParser._debug("parse_args")
 
         # pass along to the parent class
-        result_args = argparse.ArgumentParser.parse_args(self, *args, **kwargs)
+        result_args = _ArgumentParser.parse_args(self, *args, **kwargs)
 
         # check to dump labels
         if result_args.buggers:
