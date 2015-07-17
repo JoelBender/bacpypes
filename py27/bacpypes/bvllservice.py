@@ -8,16 +8,19 @@ import struct
 from time import time as _time
 
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
-from .errors import *
 
-from . import udp
-
+from .udp import UDPDirector
 from .task import OneShotTask, RecurringTask
-
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .bvll import *
+from .pdu import Address, LocalBroadcast, LocalStation, PDU
+from .bvll import BVLPDU, DeleteForeignDeviceTableEntry, \
+    DistributeBroadcastToNetwork, FDTEntry, ForwardedNPDU, \
+    OriginalBroadcastNPDU, OriginalUnicastNPDU, \
+    ReadBroadcastDistributionTable, ReadBroadcastDistributionTableAck, \
+    ReadForeignDeviceTable, ReadForeignDeviceTableAck, RegisterForeignDevice, \
+    Result, WriteBroadcastDistributionTable, bvl_pdu_types
 
 # some debugging
 _debug = 0
@@ -83,13 +86,13 @@ class UDPMultiplexer:
 
         # create and bind the direct address
         self.direct = _MultiplexClient(self)
-        self.directPort = udp.UDPDirector(self.addrTuple)
+        self.directPort = UDPDirector(self.addrTuple)
         bind(self.direct, self.directPort)
 
         # create and bind the broadcast address
         if specialBroadcast and (not noBroadcast):
             self.broadcast = _MultiplexClient(self)
-            self.broadcastPort = udp.UDPDirector(self.addrBroadcastTuple, reuse=True)
+            self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
             bind(self.direct, self.broadcastPort)
         else:
             self.broadcast = None

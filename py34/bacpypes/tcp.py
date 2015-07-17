@@ -10,7 +10,6 @@ import pickle
 from time import time as _time, sleep as _sleep
 from io import StringIO
 
-from .errors import *
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .core import deferred

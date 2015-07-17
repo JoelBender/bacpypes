@@ -5,13 +5,14 @@ Primitive Data
 """
 
 import sys
+import struct
 import time
 import re
 
 from .debugging import ModuleLogger, btox
 
 from .errors import DecodingError
-from .pdu import Address, GlobalBroadcast, LocalBroadcast, LocalStation, ModuleLogger, PCI, PDU, PDUData, RemoteBroadcast, RemoteStation
+from .pdu import PDUData
 
 # some debugging
 _debug = 0
@@ -1126,7 +1127,7 @@ class Date(Atomic):
             self.value = arg
         elif isinstance(arg, str):
             date_match = Date._date_regex.match(arg)
-            if not tup_match:
+            if not date_match:
                 raise ValueError("invalid date pattern")
             date_groups = date_match.groups()
 
@@ -1146,7 +1147,7 @@ class Date(Atomic):
             tup_list[2] -= 1900
 
             # day-of-week madness
-            dow = tup_groups[3]
+            dow = date_groups[3]
             if dow is None:
                 tup_list.append(0)
             elif (dow == '*'):
@@ -1239,9 +1240,9 @@ class Time(Atomic):
             pass
         elif isinstance(arg,Tag):
             self.decode(arg)
-        elif isinstance(arg, types.TupleType):
+        elif isinstance(arg, tuple):
             self.value = arg
-        elif isinstance(arg, types.StringTypes):
+        elif isinstance(arg, str):
             tup_match = Time._time_regex.match(arg)
             if not tup_match:
                 raise ValueError("invalid time pattern")

@@ -5,13 +5,14 @@ Primitive Data
 """
 
 import sys
+import struct
 import time
 import re
 
 from .debugging import ModuleLogger, btox
 
 from .errors import DecodingError
-from .pdu import *
+from .pdu import PDUData
 
 # some debugging
 _debug = 0
@@ -1122,7 +1123,7 @@ class Date(Atomic):
             self.value = arg
         elif isinstance(arg, str):
             date_match = Date._date_regex.match(arg)
-            if not tup_match:
+            if not date_match:
                 raise ValueError("invalid date pattern")
             date_groups = date_match.groups()
 
@@ -1142,7 +1143,7 @@ class Date(Atomic):
             tup_list[2] -= 1900
 
             # day-of-week madness
-            dow = tup_groups[3]
+            dow = date_groups[3]
             if dow is None:
                 tup_list.append(0)
             elif (dow == '*'):
@@ -1237,6 +1238,25 @@ class Time(Atomic):
             self.decode(arg)
         elif isinstance(arg, tuple):
             self.value = arg
+        elif isinstance(arg, str):
+            tup_match = Time._time_regex.match(arg)
+            if not tup_match:
+                raise ValueError("invalid time pattern")
+
+            tup_list = []
+            for s in tup_match:
+                if s == '*':
+                    tup_list.append(255)
+                elif s in None:
+                    tup_list.append(0)
+                else:
+                    tup_list.append(int(s))
+
+            # fix the hundredths if necessary
+            if (tup_list[3] > 0) and (tup_list[3] < 10):
+                tup_list[3] = tup_list[3] * 10
+
+            self.value = tuple(tup_list)
         elif isinstance(arg, Time):
             self.value = arg.value
         else:

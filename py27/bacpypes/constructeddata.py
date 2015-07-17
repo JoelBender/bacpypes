@@ -9,7 +9,8 @@ import sys
 from .errors import DecodingError
 from .debugging import ModuleLogger, bacpypes_debugging
 
-from .primitivedata import *
+from .primitivedata import Atomic, ClosingTag, OpeningTag, Tag, TagList, \
+    Unsigned
 
 # some debugging
 _debug = 0

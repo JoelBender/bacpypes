@@ -506,7 +506,7 @@ class PDU(PCI, PDUData):
         super(PDU, self).__init__(*args, **kwargs)
 
     def __str__(self):
-        return '<%s %s -> %s : %s>' % (self.__class__.__name__, self.pduSource, self.pduDestination, _str_to_hex(self.pduData,'.'))
+        return '<%s %s -> %s : %s>' % (self.__class__.__name__, self.pduSource, self.pduDestination, btox(self.pduData,'.'))
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""

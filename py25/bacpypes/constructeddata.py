@@ -9,7 +9,8 @@ import sys
 from .errors import DecodingError
 from .debugging import ModuleLogger, bacpypes_debugging
 
-from .primitivedata import Address, ApplicationTag, Atomic, BitString, Boolean, CharacterString, ClosingTag, ContextTag, Date, DecodingError, Double, Enumerated, GlobalBroadcast, Integer, LocalBroadcast, LocalStation, ModuleLogger, Null, ObjectIdentifier, ObjectType, OctetString, OpeningTag, PCI, PDU, PDUData, Real, RemoteBroadcast, RemoteStation, Tag, TagList, Time, Unsigned
+from .primitivedata import Atomic, ClosingTag, OpeningTag, Tag, TagList, \
+    Unsigned
 
 # some debugging
 _debug = 0

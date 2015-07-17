@@ -7,8 +7,8 @@ NPDU
 from .errors import DecodingError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging, btox
 
-from .pdu import Address, LocalStation, LocalBroadcast, RemoteStation, RemoteBroadcast, \
-    GlobalBroadcast, PCI, PDU, PDUData
+from .pdu import Address, RemoteStation, RemoteBroadcast, GlobalBroadcast, \
+    PCI, PDUData
 
 # some debugging
 _debug = 0
@@ -205,7 +205,7 @@ class NPCI(PCI, DebugContents):
 
     def npci_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
-        if _debug: npci._debug("npci_contents use_dict=%r as_class=%r", use_dict, as_class)
+        if _debug: NPCI._debug("npci_contents use_dict=%r as_class=%r", use_dict, as_class)
 
         # make/extend the dictionary of content
         if use_dict is None:
@@ -273,7 +273,7 @@ class NPDU(NPCI, PDUData):
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
-        if _debug: NPDU._debug("dict_contents use_dict=%r as_class=%r key_values=%r", use_dict, as_class, key_values)
+        if _debug: NPDU._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
 
         # make/extend the dictionary of content
         if use_dict is None:

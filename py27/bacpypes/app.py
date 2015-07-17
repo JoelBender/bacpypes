@@ -9,8 +9,8 @@ from .comm import ApplicationServiceElement, bind
 
 from .pdu import Address
 
-from .primitivedata import *
-from .constructeddata import *
+from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
+from .constructeddata import Any, Array, ArrayOf
 
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement

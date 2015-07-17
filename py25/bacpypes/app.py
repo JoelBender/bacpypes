@@ -9,8 +9,8 @@ from .comm import ApplicationServiceElement, bind
 
 from .pdu import Address
 
-from .primitivedata import Address, ApplicationTag, Atomic, BitString, Boolean, CharacterString, ClosingTag, ContextTag, Date, DecodingError, Double, Enumerated, GlobalBroadcast, Integer, LocalBroadcast, LocalStation, ModuleLogger, Null, ObjectIdentifier, ObjectType, OctetString, OpeningTag, PCI, PDU, PDUData, Real, RemoteBroadcast, RemoteStation, Tag, TagList, Time, Unsigned
-from .constructeddata import Address, Any, AnyAtomic, ApplicationTag, Array, ArrayOf, Atomic, BitString, Boolean, CharacterString, Choice, ClosingTag, ContextTag, Date, DecodingError, Double, Element, Enumerated, GlobalBroadcast, Integer, LocalBroadcast, LocalStation, ModuleLogger, Null, ObjectIdentifier, ObjectType, OctetString, OpeningTag, PCI, PDU, PDUData, Real, RemoteBroadcast, RemoteStation, Sequence, SequenceOf, Tag, TagList, Time, Unsigned
+from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
+from .constructeddata import Any, Array, ArrayOf
 
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement

@@ -7,7 +7,7 @@ BACnet Virtual Link Layer Module
 from .errors import EncodingError, DecodingError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
-from .pdu import *
+from .pdu import Address, PCI, PDUData, unpack_ip_addr
 
 # some debugging
 _debug = 0
@@ -127,7 +127,7 @@ class BVLPDU(BVLCI, PDUData):
 
     def dict_contents(self, use_dict=None, as_class=dict, key_values=()):
         """Return the contents of an object as a dict."""
-        if _debug: NPDU._debug("dict_contents use_dict=%r as_class=%r key_values=%r", use_dict, as_class, key_values)
+        if _debug: BVLPDU._debug("dict_contents use_dict=%r as_class=%r key_values=%r", use_dict, as_class, key_values)
 
         # make/extend the dictionary of content
         if use_dict is None:

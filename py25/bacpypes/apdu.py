@@ -7,7 +7,7 @@ Application Layer Protocol Data Units
 from .errors import DecodingError
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
-from .pdu import PCI, PDUData, NPDU
+from .pdu import PCI, PDUData
 from .primitivedata import Boolean, CharacterString, Enumerated, Integer, \
     ObjectIdentifier, ObjectType, OctetString, Real, TagList, Unsigned, \
     expand_enumerations
@@ -352,7 +352,7 @@ class APDU(APCI, PDUData):
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
-        if _debug: NPDU._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
+        if _debug: APDU._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
 
         # make/extend the dictionary of content
         if use_dict is None:

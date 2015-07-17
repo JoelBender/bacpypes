@@ -12,13 +12,8 @@ from .errors import ConfigurationError
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .npdu import Address, DecodingError, DisconnectConnectionToNetwork, \
-    EstablishConnectionToNetwork, GlobalBroadcast, IAmRouterToNetwork, \
-    ICouldBeRouterToNetwork, InitializeRoutingTable, InitializeRoutingTableAck, \
-    LocalBroadcast, LocalStation, NPCI, NPDU, NetworkNumberIs, \
-    PCI, PDU, PDUData, RejectMessageToNetwork, RemoteBroadcast, RemoteStation, \
-    RouterAvailableToNetwork, RouterBusyToNetwork, RoutingTableEntry, \
-    WhatIsNetworkNumber, WhoIsRouterToNetwork
+from .pdu import Address, LocalBroadcast, LocalStation, PDU, RemoteStation
+from .npdu import IAmRouterToNetwork, NPDU, WhoIsRouterToNetwork, npdu_types
 from .apdu import APDU as _APDU
 
 # some debugging
