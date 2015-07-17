@@ -49,7 +49,7 @@ class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
         deferred(ConsoleClient._debug, "confirmation %r", pdu)
         try:
             sys.stdout.write(pdu.pduData)
-        except Exception as err:
+        except Exception, err:
             ConsoleClient._exception("Confirmation sys.stdout.write exception: %r", err)
 
 #
@@ -79,5 +79,5 @@ class ConsoleServer(asyncore.file_dispatcher, Server, Logging):
         deferred(ConsoleServer._debug, "Indication %r", pdu)
         try:
             sys.stdout.write(pdu.pduData)
-        except Exception as err:
+        except Exception, err:
             ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)

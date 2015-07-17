@@ -1260,7 +1260,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("confirmed request decoding error: %r", err)
                 return
 
@@ -1273,7 +1273,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("unconfirmed request decoding error: %r", err)
                 return
 
@@ -1294,7 +1294,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 xpdu = ConfirmedRequestPDU()
                 apdu.encode(xpdu)
                 apdu._xpdu = xpdu
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("confirmed request encoding error: %r", err)
                 return
 
@@ -1303,7 +1303,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 xpdu = UnconfirmedRequestPDU()
                 apdu.encode(xpdu)
                 apdu._xpdu = xpdu
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("unconfirmed request encoding error: %r", err)
                 return
 
@@ -1331,7 +1331,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("unconfirmed request decoding error: %r", err)
                 return
 
@@ -1344,7 +1344,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("error PDU decoding error: %r", err)
                 xpdu = Error(errorClass=0, errorCode=0)
 

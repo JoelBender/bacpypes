@@ -229,7 +229,7 @@ class Application(ApplicationServiceElement, Logging):
         try:
             helperFn(apdu)
 
-        except ExecutionError as err:
+        except ExecutionError, err:
             if _debug: Application._debug("    - execution error: %r", err)
 
             # send back an error
@@ -237,7 +237,7 @@ class Application(ApplicationServiceElement, Logging):
                 resp = Error(errorClass=err.errorClass, errorCode=err.errorCode, context=apdu)
                 self.response(resp)
 
-        except Exception as err:
+        except Exception, err:
             Application._exception("exception: %r", err)
 
             # send back an error

@@ -219,7 +219,7 @@ def decode_packet(data):
             elif atype not in (DistributeBroadcastToNetwork, OriginalUnicastNPDU, OriginalBroadcastNPDU):
                 return pdu
 
-        except Exception as err:
+        except Exception, err:
             if _debug: decode_packet._debug("    - decoding Error: %r", err)
             return xpdu
 
@@ -232,7 +232,7 @@ def decode_packet(data):
     try:
         npdu = NPDU()
         npdu.decode(pdu)
-    except Exception as err:
+    except Exception, err:
         if _debug: decode_packet._debug("    - decoding Error: %r", err)
         return None
 
@@ -245,7 +245,7 @@ def decode_packet(data):
             xpdu = APDU()
             xpdu.decode(npdu)
             apdu = xpdu
-        except Exception as err:
+        except Exception, err:
             if _debug: decode_packet._debug("    - decoding Error: %r", err)
             return npdu
 
@@ -270,7 +270,7 @@ def decode_packet(data):
             xpdu = apdu
             apdu = atype()
             apdu.decode(xpdu)
-        except Exception as err:
+        except Exception, err:
             if _debug: decode_packet._debug("    - decoding Error: %r", err)
             return xpdu
 
@@ -318,7 +318,7 @@ def decode_packet(data):
                 xpdu = apdu
                 apdu = atype()
                 apdu.decode(xpdu)
-        except Exception as err:
+        except Exception, err:
             if _debug: decode_packet._debug("    - decoding error: %r", err)
             return xpdu
 
@@ -338,7 +338,7 @@ def decode_packet(data):
             xpdu = npdu
             npdu = ntype()
             npdu.decode(xpdu)
-        except Exception as err:
+        except Exception, err:
             if _debug: decode_packet._debug("    - decoding error: %r", err)
             return xpdu
 
@@ -456,7 +456,7 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         pass
-    except Exception as err:
+    except Exception, err:
         _log.exception("an error has occurred: %s", err)
     finally:
         _log.debug("finally")

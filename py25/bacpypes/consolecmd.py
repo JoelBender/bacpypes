@@ -86,7 +86,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         # let the real command run, trapping errors
         try:
             rslt = cmd.Cmd.onecmd(self, cmdString)
-        except Exception as err:
+        except Exception, err:
             ConsoleCmd._exception("exception: %r", err)
 
         # return what the command returned
@@ -258,7 +258,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
         try:
             readline.read_history_file(sys.argv[0] + ".history")
-        except Exception as err:
+        except Exception, err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
 
@@ -268,7 +268,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         """
         try:
             readline.write_history_file(sys.argv[0]+".history")
-        except Exception as err:
+        except Exception, err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
 
@@ -303,7 +303,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
         try:
             exec(line) in self._locals, self._globals
-        except Exception as err:
+        except Exception, err:
             self.stdout.write("%s : %s\n" % (err.__class__, err))
 
 bacpypes_debugging(ConsoleCmd)
