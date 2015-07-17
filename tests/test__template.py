@@ -27,17 +27,18 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
-@bacpypes_debugging
 def setUpModule():
     if _debug: setUpModule._debug("setUpModule")
 
+bacpypes_debugging(setUpModule)
 
-@bacpypes_debugging
+
 def tearDownModule():
     if _debug: tearDownModule._debug("tearDownModule")
 
+bacpypes_debugging(tearDownModule)
 
-@bacpypes_debugging
+
 class TestCaseTemplate(unittest.TestCase):
 
     @classmethod
@@ -59,3 +60,5 @@ class TestCaseTemplate(unittest.TestCase):
 
     def tearDown(self):
         if _debug: TestCaseTemplate._debug("tearDown")
+
+bacpypes_debugging(TestCaseTemplate)

@@ -26,7 +26,6 @@ test_options = None
 #
 
 
-@bacpypes_debugging
 def setUpPackage():
     global test_options
 
@@ -45,12 +44,15 @@ def setUpPackage():
     if _debug: setUpPackage._debug("setUpPackage")
     if _debug: setUpPackage._debug("    - test_options: %r", test_options)
 
+bacpypes_debugging(setUpPackage)
+
 
 #
 #   tearDownPackage
 #
 
 
-@bacpypes_debugging
 def tearDownPackage():
     if _debug: tearDownPackage._debug("tearDownPackage")
+
+bacpypes_debugging(tearDownPackage)

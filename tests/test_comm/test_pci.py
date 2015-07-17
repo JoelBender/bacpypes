@@ -16,17 +16,18 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
-@bacpypes_debugging
 def setUpModule():
     if _debug: setUpModule._debug("setUpModule")
 
+bacpypes_debugging(setUpModule)
 
-@bacpypes_debugging
+
 def tearDownModule():
     if _debug: tearDownModule._debug("tearDownModule")
 
+bacpypes_debugging(tearDownModule)
 
-@bacpypes_debugging
+
 class TestPCI(unittest.TestCase):
 
     @classmethod
@@ -49,3 +50,4 @@ class TestPCI(unittest.TestCase):
     def test_something_else(self):
         if _debug: TestPCI._debug("test_something_else")
 
+bacpypes_debugging(TestPCI)
