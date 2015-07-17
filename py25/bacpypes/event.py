@@ -71,7 +71,7 @@ class WaitableEvent(asyncore.file_dispatcher, Logging):
     def set(self):
         if _debug: WaitableEvent._debug("set")
         if not self.isSet():
-            os.write(self._write_fd, b'1')
+            os.write(self._write_fd, '1')
 
     def clear(self):
         if _debug: WaitableEvent._debug("clear")
