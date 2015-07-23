@@ -375,14 +375,12 @@ class Echo(Client, Server):
     def confirmation(self, *args, **kwargs):
         if _debug: Echo._debug("confirmation %r %r", args, kwargs)
 
-        if self.serverPeer:
-            self.request(*args, **kwargs)
+        self.request(*args, **kwargs)
 
     def indication(self, *args, **kwargs):
         if _debug: Echo._debug("indication %r %r", args, kwargs)
 
-        if self.clientPeer:
-            self.response(*args, **kwargs)
+        self.response(*args, **kwargs)
 
 #
 #   ServiceAccessPoint
