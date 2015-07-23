@@ -171,7 +171,7 @@ class ServiceAdapter:
         elif (self.serviceID == LANE_SERVICE_ID):
             mux.laneService = self
         else:
-            raise RuntimeError("invalid service ID: {0}".format(self.serviceID))
+            raise RuntimeError("invalid service ID: %r" % (self.serviceID,))
 
     def authentication_required(self, addr):
         """Return True iff authentication is required for connection requests from the address."""

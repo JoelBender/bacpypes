@@ -44,7 +44,7 @@ class CurrentDateProperty(Property):
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
         if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
+            raise TypeError("%r is unsubscriptable" % (self.identifier,))
 
         # get the value
         now = Date()
@@ -66,7 +66,7 @@ class CurrentTimeProperty(Property):
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
         if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
+            raise TypeError("%r is unsubscriptable" % (self.identifier,))
 
         # get the value
         now = Time()
@@ -169,9 +169,9 @@ class Application(ApplicationServiceElement, Logging):
 
         # make sure it hasn't already been defined
         if object_name in self.objectName:
-            raise RuntimeError("already an object with name {0!r}".format(object_name))
+            raise RuntimeError("already an object with name %r" % (object_name,))
         if object_identifier in self.objectIdentifier:
-            raise RuntimeError("already an object with identifier {0!r}".format(object_identifier))
+            raise RuntimeError("already an object with identifier %r" % (object_identifier,))
 
         # now put it in local dictionaries
         self.objectName[object_name] = obj
@@ -308,11 +308,11 @@ class Application(ApplicationServiceElement, Logging):
                     elif issubclass(datatype.subtype, Atomic):
                         value = datatype.subtype(value)
                     elif not isinstance(value, datatype.subtype):
-                        raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                            .format(datatype.subtype.__name__, type(value).__name__))
+                        raise TypeError("invalid result datatype, expecting %r and got %r" \
+                            % (datatype.subtype.__name__, type(value).__name__))
                 elif not isinstance(value, datatype):
-                    raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                        .format(datatype.__name__, type(value).__name__))
+                    raise TypeError("invalid result datatype, expecting %r and got %r" \
+                        % (datatype.__name__, type(value).__name__))
                 if _debug: Application._debug("    - encodeable value: %r", value)
 
                 # this is a ReadProperty ack

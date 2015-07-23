@@ -255,14 +255,14 @@ class Client:
         self.clientPeer = None
         if cid is not None:
             if cid in client_map:
-                raise ConfigurationError("already a client {!r}".format(cid))
+                raise ConfigurationError("already a client %r" % (cid,))
             client_map[cid] = self
 
             # automatically bind
             if cid in server_map:
                 server = server_map[cid]
                 if server.serverPeer:
-                    raise ConfigurationError("server {!r} already bound".format(cid))
+                    raise ConfigurationError("server %r already bound" % (cid,))
 
                 bind(self, server)
 
@@ -289,14 +289,14 @@ class Server:
         self.serverPeer = None
         if sid is not None:
             if sid in server_map:
-                raise RuntimeError("already a server {!r}".format(sid))
+                raise RuntimeError("already a server %r" % (sid,))
             server_map[sid] = self
 
             # automatically bind
             if sid in client_map:
                 client = client_map[sid]
                 if client.clientPeer:
-                    raise ConfigurationError("client {!r} already bound".format(sid))
+                    raise ConfigurationError("client %r already bound" % (sid,))
 
                 bind(client, self)
 
@@ -326,13 +326,13 @@ class Debug(Client, Server):
         self.label = label
 
     def confirmation(self, *args, **kwargs):
-        print("Debug({!s}).confirmation".format(self.label))
+        print("Debug(%s).confirmation" % (self.label,))
         for i, arg in enumerate(args):
-            print("    - args[{!d}]: {!r}".format(i, arg))
+            print("    - args[%d]: %r" % (i, arg))
             if hasattr(arg, 'debug_contents'):
                 arg.debug_contents(2)
         for key, value in kwargs.items():
-            print("    - kwargs[{!r}]: {!r}".format(key, value))
+            print("    - kwargs[%s]: %r" % (key, value))
             if hasattr(value, 'debug_contents'):
                 value.debug_contents(2)
 
@@ -340,13 +340,13 @@ class Debug(Client, Server):
             self.response(*args, **kwargs)
 
     def indication(self, *args, **kwargs):
-        print("Debug({!s}).indication".format(self.label))
+        print("Debug(%s).indication" % (self.label,))
         for i, arg in enumerate(args):
-            print("    - args[{!d}]: {!r}".format(i, arg))
+            print("    - args[%d]: %r" % (i, arg))
             if hasattr(arg, 'debug_contents'):
                 arg.debug_contents(2)
         for key, value in kwargs.items():
-            print("    - kwargs[{!r}]: {!r}".format(key, value))
+            print("    - kwargs[%s]: %r" % (key, value))
             if hasattr(value, 'debug_contents'):
                 value.debug_contents(2)
 
@@ -399,14 +399,14 @@ class ServiceAccessPoint:
 
         if sapID is not None:
             if sapID in service_map:
-                raise ConfigurationError("already a service access point {!r}".format(sapID))
+                raise ConfigurationError("already a service access point %r" % (sapID,))
             service_map[sapID] = self
 
             # automatically bind
             if sapID in element_map:
                 element = element_map[sapID]
                 if element.elementService:
-                    raise ConfigurationError("application service element {!r} already bound".format(sapID))
+                    raise ConfigurationError("application service element %r already bound" % (sapID,))
 
                 bind(element, self)
 
@@ -446,14 +446,14 @@ class ApplicationServiceElement:
 
         if aseID is not None:
             if aseID in element_map:
-                raise ConfigurationError("already an application service element {!r}".format(aseID))
+                raise ConfigurationError("already an application service element %r" % (aseID,))
             element_map[aseID] = self
 
             # automatically bind
             if aseID in service_map:
                 service = service_map[aseID]
                 if service.serviceElement:
-                    raise ConfigurationError("service access point {!r} already bound".format(aseID))
+                    raise ConfigurationError("service access point %r already bound" % (aseID,))
 
                 bind(self, service)
 
@@ -500,14 +500,14 @@ class NullServiceElement(ApplicationServiceElement):
 class DebugServiceElement(ApplicationServiceElement):
 
     def indication(self, *args, **kwargs):
-        print("DebugServiceElement({!s}).indication".format(self.elementID))
-        print("    - args: {!r}".format(args))
-        print("    - kwargs: {!r}".format(kwargs))
+        print("DebugServiceElement(%s).indication" % (self.elementID,))
+        print("    - args: %r" % (args,))
+        print("    - kwargs: %r" % (kwargs,))
 
     def confirmation(self, *args, **kwargs):
-        print("DebugServiceElement({!s}).confirmation".format(self.elementID))
-        print("    - args: {!r}".format(args))
-        print("    - kwargs: {!r}".format(kwargs))
+        print("DebugServiceElement(%s).confirmation" % (self.elementID,))
+        print("    - args: %r" % (args,))
+        print("    - kwargs: %r" % (kwargs,))
 
 #
 #   bind
@@ -526,11 +526,11 @@ def bind(*args):
                 continue
 
             if not cid in server_map:
-                raise RuntimeError("unmatched server {!r}".format(cid))
+                raise RuntimeError("unmatched server %r" % (cid,))
             server = server_map[cid]
 
             if server.serverPeer:
-                raise RuntimeError("server already bound %r".format(cid))
+                raise RuntimeError("server already bound %r" % (cid,))
 
             bind(client, server)
 
@@ -540,9 +540,9 @@ def bind(*args):
                 continue
 
             if not sid in client_map:
-                raise RuntimeError("unmatched client {!r}".format(sid))
+                raise RuntimeError("unmatched client %r" % (sid,))
             else:
-                raise RuntimeError("mistery unbound server {!r}".format(sid))
+                raise RuntimeError("mistery unbound server %r" % (sid,))
 
         # find unbound application service elements and bind them
         for eid, element in element_map.items():
@@ -551,11 +551,11 @@ def bind(*args):
                 continue
 
             if not eid in service_map:
-                raise RuntimeError("unmatched element {!r}".format(cid))
+                raise RuntimeError("unmatched element %r" % (cid,))
             service = service_map[eid]
 
             if server.serverPeer:
-                raise RuntimeError("service already bound {!r}".format(cid))
+                raise RuntimeError("service already bound %r" % (cid,))
 
             bind(element, service)
 
@@ -565,9 +565,9 @@ def bind(*args):
                 continue
 
             if not sid in element_map:
-                raise RuntimeError("unmatched service {!r}".format(sid))
+                raise RuntimeError("unmatched service %r" % (sid,))
             else:
-                raise RuntimeError("mistery unbound service {!r}".format(sid))
+                raise RuntimeError("mistery unbound service %r" % (sid,))
 
     # go through the argument pairs
     for i in xrange(len(args)-1):

@@ -136,7 +136,7 @@ class APCI(PCI, DebugContents):
             stype += ',' + str(self.apduInvokeID)
 
         # put it together
-        return "<{0}({1}) instance at {2}>".format(sname, stype, hex(id(self)))
+        return "<%s(%s) instance at %s>" % (sname, stype, hex(id(self)))
 
     def encode(self, pdu):
         """encode the contents of the APCI into the PDU."""
@@ -407,7 +407,7 @@ class _APDU(APDU):
             stype += ',' + str(self.apduInvokeID)
 
         # put it together
-        return "<{0}({1}) instance at {2}>".format(sname, stype, hex(id(self)))
+        return "<%s(%s) instance at %s>" % (sname, stype, hex(id(self)))
 
 #
 #   ConfirmedRequestPDU
