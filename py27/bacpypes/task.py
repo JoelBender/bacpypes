@@ -74,7 +74,11 @@ class _Task(DebugContents, Logging):
     def suspend_task(self):
         global _task_manager
 
-        _task_manager.suspend_task(self)
+        # pass along to the task manager
+        if not _task_manager:
+            _unscheduled_tasks.remove(self)
+        else:
+            _task_manager.suspend_task(self)
 
     def resume_task(self):
         global _task_manager
