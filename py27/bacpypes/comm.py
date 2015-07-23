@@ -324,7 +324,7 @@ class Debug(Client, Server):
     def confirmation(self, *args, **kwargs):
         print("Debug({!s}).confirmation".format(self.label))
         for i, arg in enumerate(args):
-            print("    - args[{!d}]: {!r}".format(i, arg))
+            print("    - args[{:d}]: {!r}".format(i, arg))
             if hasattr(arg, 'debug_contents'):
                 arg.debug_contents(2)
         for key, value in kwargs.items():
@@ -338,7 +338,7 @@ class Debug(Client, Server):
     def indication(self, *args, **kwargs):
         print("Debug({!s}).indication".format(self.label))
         for i, arg in enumerate(args):
-            print("    - args[{!d}]: {!r}".format(i, arg))
+            print("    - args[{:d}]: {!r}".format(i, arg))
             if hasattr(arg, 'debug_contents'):
                 arg.debug_contents(2)
         for key, value in kwargs.items():
