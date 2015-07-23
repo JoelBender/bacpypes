@@ -267,6 +267,8 @@ class Client:
                 bind(self, server)
 
     def request(self, *args, **kwargs):
+        if _debug: Client._debug("request %r %r", args, kwargs)
+
         if not self.clientPeer:
             raise ConfigurationError("unbound client")
         self.clientPeer.indication(*args, **kwargs)
@@ -304,6 +306,8 @@ class Server:
         raise NotImplementedError("indication must be overridden")
 
     def response(self, *args, **kwargs):
+        if _debug: Server._debug("response %r %r", args, kwargs)
+
         if not self.serverPeer:
             raise ConfigurationError("unbound server")
         self.serverPeer.confirmation(*args, **kwargs)
@@ -370,14 +374,12 @@ class Echo(Client, Server):
     def confirmation(self, *args, **kwargs):
         if _debug: Echo._debug("confirmation %r %r", args, kwargs)
 
-        if self.serverPeer:
-            self.request(*args, **kwargs)
+        self.request(*args, **kwargs)
 
     def indication(self, *args, **kwargs):
         if _debug: Echo._debug("indication %r %r", args, kwargs)
 
-        if self.clientPeer:
-            self.response(*args, **kwargs)
+        self.response(*args, **kwargs)
 
 bacpypes_debugging(Echo)
 
