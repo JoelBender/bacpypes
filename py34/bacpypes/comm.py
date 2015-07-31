@@ -574,7 +574,7 @@ def bind(*args):
                 raise RuntimeError("mistery unbound service {!r}".format(sid))
 
     # go through the argument pairs
-    for i in xrange(len(args)-1):
+    for i in range(len(args)-1):
         client = args[i]
         if _debug: bind._debug("    - client: %r", client)
         server = args[i+1]
