@@ -265,7 +265,7 @@ class Address:
         elif self.addrType == Address.localStationAddr:
             rslt = ''
             if self.addrLen == 1:
-                rslt += str(self.addrAddr)
+                rslt += str(self.addrAddr[0])
             else:
                 port = struct.unpack('!H', self.addrAddr[-2:])[0]
                 if (len(self.addrAddr) == 6) and (port >= 47808) and (port <= 47823):
@@ -282,7 +282,7 @@ class Address:
         elif self.addrType == Address.remoteStationAddr:
             rslt = '%d:' % (self.addrNet,)
             if self.addrLen == 1:
-                rslt += str(self.addrAddr)
+                rslt += str(self.addrAddr[0])
             else:
                 port = struct.unpack('!H', self.addrAddr[-2:])[0]
                 if (len(self.addrAddr) == 6) and (port >= 47808) and (port <= 47823):
