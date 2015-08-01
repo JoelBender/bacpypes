@@ -141,7 +141,7 @@ class UDPMultiplexer:
             return
 
         # extract the first octet
-        msg_type = (pdu.pduData)[0]
+        msg_type = pdu.pduData[0]
 
         # check for the message type
         if msg_type == 0x01:
