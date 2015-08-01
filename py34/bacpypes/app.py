@@ -108,7 +108,7 @@ class LocalDeviceObject(DeviceObject, Logging):
         # check for registration
         if self.__class__ not in registered_object_types.values():
             if 'vendorIdentifier' not in kwargs:
-                raise RuntimeError("vendorId required to auto-register the LocalDeviceObject class")
+                raise RuntimeError("vendorIdentifier required to auto-register the LocalDeviceObject class")
             register_object_type(self.__class__, vendor_id=kwargs['vendorIdentifier'])
 
         # check for local time
