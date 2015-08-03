@@ -84,7 +84,7 @@ class Address:
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, str):
@@ -134,7 +134,7 @@ class Address:
                 if (addr > 255):
                     raise ValueError("address out of range")
 
-                self.addrAddr = struct.pack('b', addr)
+                self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
 
             elif re.match(r"^\d+:[*]$", addr):
@@ -162,7 +162,7 @@ class Address:
 
                 self.addrType = Address.remoteStationAddr
                 self.addrNet = net
-                self.addrAddr = struct.pack('b', addr)
+                self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
 
             elif re.match(r"^0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
@@ -336,7 +336,7 @@ class LocalStation(Address):
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, (bytes, bytearray)):
@@ -365,7 +365,7 @@ class RemoteStation(Address):
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, (bytes, bytearray)):
