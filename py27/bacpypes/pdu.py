@@ -355,6 +355,8 @@ class LocalStation(Address):
 class RemoteStation(Address):
 
     def __init__(self, net, addr):
+        if not isinstance(net, int):
+            raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
             raise ValueError("network out of range")
 
@@ -395,7 +397,9 @@ class LocalBroadcast(Address):
 
 class RemoteBroadcast(Address):
 
-    def __init__(self,net):
+    def __init__(self, net):
+        if not isinstance(net, int):
+            raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
             raise ValueError("network out of range")
 
