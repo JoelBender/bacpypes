@@ -389,12 +389,22 @@ class StateMachine:
         self.state_subclass = state_subclass
 
         # create the start state
-        if not start_state:
+        if start_state:
+            if start_state.state_machine:
+                raise RuntimeError("start state already bound to a machine")
+            self.states.append(start_state)
+            start_state.state_machine = self
+        else:
             start_state = self.new_state("start")
         self.start_state = start_state
 
         # create the unexpected receive state
-        if not unexpected_receive_state:
+        if unexpected_receive_state:
+            if unexpected_receive_state.state_machine:
+                raise RuntimeError("unexpected receive state already bound to a machine")
+            self.states.append(unexpected_receive_state)
+            unexpected_receive_state.state_machine = self
+        else:
             unexpected_receive_state = self.new_state("unexpected receive").fail()
         self.unexpected_receive_state = unexpected_receive_state
 
