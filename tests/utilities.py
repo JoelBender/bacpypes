@@ -140,12 +140,19 @@ class State:
         self.is_success_state = False
         self.is_fail_state = False
 
-        # list of send and receive transitions
+        # empty lists of send and receive transitions
         self.send_transitions = []
         self.receive_transitions = []
 
         # timeout transition
         self.timeout_transition = None
+
+    def reset(self):
+        """Override this method in a derived class if the state maintains
+        counters or other information.  Called when the associated state
+        machine is reset.
+        """
+        if _debug: State._debug("reset")
 
     def doc(self, doc_string):
         """Change the documentation string (label) for the state.  The state
@@ -437,6 +444,10 @@ class StateMachine:
 
         # we are not starting up
         self._startup_flag = False
+
+        # give all the states a chance to reset
+        for state in self.states:
+            state.reset()
 
     def run(self):
         if _debug: StateMachine._debug("run")
