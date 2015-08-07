@@ -9,92 +9,13 @@ Test Utilities State Machine
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from ..utilities import State, StateMachine
+from ..state_machine import State, StateMachine
+
+from .trapped_classes import TrappedState, TrappedStateMachine
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-
-@bacpypes_debugging
-class TrappedState(State):
-
-    """
-    This class is a simple wrapper around the State class that keeps the
-    latest copy of the pdu parameter in the before_send(), after_send(),
-    before_receive(), after_receive() and unexpected_receive() calls.
-    """
-
-    def __init__(self, *args, **kwargs):
-        if _debug: TrappedState._debug("__init__ %r %r", args, kwargs)
-        super(TrappedState, self).__init__(*args, **kwargs)
-
-        # reset to initialize
-        self.reset()
-
-    def reset(self):
-        if _debug: TrappedState._debug("reset")
-
-        # flush the copies
-        self._before_send_pdu = None
-        self._after_send_pdu = None
-        self._before_receive_pdu = None
-        self._after_receive_pdu = None
-        self._unexpected_receive_pdu = None
-
-        # continue
-        super(TrappedState, self).reset()
-
-    def before_send(self, pdu):
-        """Called before each PDU about to be sent."""
-        if _debug: TrappedState._debug("before_send %r", pdu)
-
-        # keep a copy
-        self._before_send_pdu = pdu
-
-        # continue
-        super(TrappedState, self).before_send(pdu)
-
-    def after_send(self, pdu):
-        """Called after each PDU sent."""
-        if _debug: TrappedState._debug("after_send %r", pdu)
-
-        # keep a copy
-        self._after_send_pdu = pdu
-
-        # continue
-        super(TrappedState, self).after_send(pdu)
-
-    def before_receive(self, pdu):
-        """Called with each PDU received before matching."""
-        if _debug: TrappedState._debug("before_receive %r", pdu)
-
-        # keep a copy
-        self._before_receive_pdu = pdu
-
-        # continue
-        super(TrappedState, self).before_receive(pdu)
-
-    def after_receive(self, pdu):
-        """Called with PDU received after match."""
-        if _debug: TrappedState._debug("after_receive %r", pdu)
-
-        # keep a copy
-        self._after_receive_pdu = pdu
-
-        # continue
-        super(TrappedState, self).after_receive(pdu)
-
-    def unexpected_receive(self, pdu):
-        """Called with PDU that did not match.  Unless this is trapped by the
-        state, the default behaviour is to fail."""
-        if _debug: TrappedState._debug("unexpected_receive %r", pdu)
-
-        # keep a copy
-        self._unexpected_receive_pdu = pdu
-
-        # continue
-        super(TrappedState, self).unexpected_receive(pdu)
 
 
 @bacpypes_debugging
@@ -143,5 +64,225 @@ class TestState(unittest.TestCase):
 @bacpypes_debugging
 class TestStateMachine(unittest.TestCase):
 
-    def test_state_machine(self):
-        if _debug: TestStateMachine._debug("test_state_machine")
+    def test_state_machine_run(self):
+        if _debug: TestStateMachine._debug("test_state_machine_run")
+
+        # create a state machine
+        tsm = StateMachine()
+
+        # run the machine
+        tsm.run()
+
+        # check for still running in the start state
+        assert tsm.running
+        assert tsm.current_state is tsm.start_state
+
+    def test_state_machine_success(self):
+        if _debug: TestStateMachine._debug("test_state_machine_success")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        assert isinstance(tsm.start_state, TrappedState)
+
+        # make the start state a success
+        tsm.start_state.success()
+
+        # run the machine
+        tsm.run()
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+    def test_state_machine_fail(self):
+        if _debug: TestStateMachine._debug("test_state_machine_fail")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        assert isinstance(tsm.start_state, TrappedState)
+
+        # make the start state a fail
+        tsm.start_state.fail()
+
+        # run the machine
+        tsm.run()
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_fail_state
+
+    def test_state_machine_send(self):
+        if _debug: TestStateMachine._debug("test_state_machine_send")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make pdu object
+        pdu = object()
+
+        # make a send transition from start to success, run the machine
+        tsm.start_state.send(pdu).success()
+        tsm.run()
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+        # check the callbacks
+        assert tsm.start_state.before_send_pdu is pdu
+        assert tsm.start_state.after_send_pdu is pdu
+        assert tsm.before_send_pdu is pdu
+        assert tsm.after_send_pdu is pdu
+
+        # make sure the pdu was sent
+        assert tsm.sent is pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 1
+        assert tsm.transaction_log[0][1] is pdu
+
+    def test_state_machine_receive(self):
+        if _debug: TestStateMachine._debug("test_state_machine_receive")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make pdu object
+        pdu = object()
+
+        # make a receive transition from start to success, run the machine
+        tsm.start_state.receive(pdu).success()
+        tsm.run()
+
+        # check for still running
+        assert tsm.running
+
+        # tell the machine it is receiving the pdu
+        tsm.receive(pdu)
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+        # check the callbacks
+        assert tsm.start_state.before_receive_pdu is pdu
+        assert tsm.start_state.after_receive_pdu is pdu
+        assert tsm.before_receive_pdu is pdu
+        assert tsm.after_receive_pdu is pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 1
+        assert tsm.transaction_log[0][1] is pdu
+
+    def test_state_machine_unexpected(self):
+        if _debug: TestStateMachine._debug("test_state_machine_unexpected")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make pdu object
+        good_pdu = object()
+        bad_pdu = object()
+
+        # make a receive transition from start to success, run the machine
+        tsm.start_state.receive(good_pdu).success()
+        tsm.run()
+
+        # check for still running
+        assert tsm.running
+
+        # give the machine a bad pdu
+        tsm.receive(bad_pdu)
+
+        # check for fail
+        assert not tsm.running
+        assert tsm.current_state.is_fail_state
+        assert tsm.current_state is tsm.unexpected_receive_state
+
+        # check the callback
+        assert tsm.unexpected_receive_pdu is bad_pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 1
+        assert tsm.transaction_log[0][1] is bad_pdu
+
+    def test_state_machine_loop_01(self):
+        if _debug: TestStateMachine._debug("test_state_machine_loop_01")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make pdu object
+        first_pdu = object()
+        second_pdu = object()
+
+        # after sending the first pdu, wait for the second
+        s0 = tsm.start_state
+        s1 = s0.send(first_pdu)
+        s2 = s1.receive(second_pdu)
+        s2.success()
+
+        # run the machine
+        tsm.run()
+
+        # check for still running and waiting
+        assert tsm.running
+        assert tsm.current_state is s1
+
+        # give the machine the second pdu
+        tsm.receive(second_pdu)
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+        # check the callbacks
+        assert s0.before_send_pdu is first_pdu
+        assert s0.after_send_pdu is first_pdu
+        assert s1.before_receive_pdu is second_pdu
+        assert s1.after_receive_pdu is second_pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 2
+        assert tsm.transaction_log[0][1] is first_pdu
+        assert tsm.transaction_log[1][1] is second_pdu
+
+    def test_state_machine_loop_02(self):
+        if _debug: TestStateMachine._debug("test_state_machine_loop_02")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make pdu object
+        first_pdu = object()
+        second_pdu = object()
+
+        # when the first pdu is received, send the second
+        s0 = tsm.start_state
+        s1 = s0.receive(first_pdu)
+        s2 = s1.send(second_pdu)
+        s2.success()
+
+        # run the machine
+        tsm.run()
+
+        # check for still running
+        assert tsm.running
+
+        # give the machine the first pdu
+        tsm.receive(first_pdu)
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+        # check the callbacks
+        assert s0.before_receive_pdu is first_pdu
+        assert s0.after_receive_pdu is first_pdu
+        assert s1.before_send_pdu is second_pdu
+        assert s1.after_send_pdu is second_pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 2
+        assert tsm.transaction_log[0][1] is first_pdu
+        assert tsm.transaction_log[1][1] is second_pdu

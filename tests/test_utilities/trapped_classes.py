@@ -6,10 +6,8 @@ Trapped State Machine Classes
 -----------------------------
 """
 
-import unittest
-
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from ..utilities import State, StateMachine
+from ..state_machine import State, StateMachine
 
 # some debugging
 _debug = 0
