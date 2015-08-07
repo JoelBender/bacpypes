@@ -5,8 +5,12 @@ Testing Task Manager
 --------------------
 """
 
+from heapq import heappop
+
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
+
+from bacpypes.core import run_once
 from bacpypes.task import TaskManager as _TaskManager
 
 # some debugging
@@ -31,7 +35,8 @@ class TaskManager(_TaskManager):
         _TaskManager.__init__(self)
 
         # initialize the time
-        self._time = None
+        self.current_time = None
+        self.time_limit = None
 
         # a little error checking
         if test_task_manager:
@@ -44,7 +49,7 @@ class TaskManager(_TaskManager):
         if _debug: TaskManager._debug("get_time")
 
         # return the fake time
-        return self._time
+        return self.current_time
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
@@ -66,11 +71,19 @@ class TaskManager(_TaskManager):
         and return how long it will be until the next one should be
         processed."""
         if _debug: TaskManager._debug("get_next_task")
+        if _debug: TaskManager._debug("    - self: %r", self)
+        if _debug: TaskManager._debug("    - self.tasks: %r", self.tasks)
 
         task = None
         delta = None
 
-        if self.tasks:
+        if (self.time_limit is not None) and (self.current_time > self.time_limit):
+            if _debug: TaskManager._debug("    - time limit reached")
+
+        elif not self.tasks:
+            if _debug: TaskManager._debug("    - no more tasks")
+
+        else:
             # pull it off the list
             when, task = heappop(self.tasks)
             if _debug: TaskManager._debug("    - when, task: %r, %r", when, task)
@@ -79,13 +92,10 @@ class TaskManager(_TaskManager):
             task.isScheduled = False
 
             # advance the time
-            self.time = when
+            self.current_time = when
 
             # do not wait, time has moved
             delta = 0.0
-
-        else:
-            if _debug: TaskManager._debug("    - no more tasks")
 
         # return the task to run and how long to wait for the next one
         return (task, delta)
@@ -96,15 +106,15 @@ class TaskManager(_TaskManager):
         _TaskManager.process_task(self, task)
 
 #
-#   task_manager_reset
+#   reset_task_manager
 #
 
 @bacpypes_debugging
-def task_manager_reset():
+def reset_task_manager():
     """This function is called to reset the clock before running a set 
     of tests.
     """
-    if _debug: task_manager_reset._debug("task_manager_reset")
+    if _debug: reset_task_manager._debug("reset_task_manager")
     global test_task_manager
 
     # a little error checking
@@ -112,23 +122,27 @@ def task_manager_reset():
         raise RuntimeError("no test task manager")
 
     # begin time at the beginning
-    test_task_manager._time = 0.0
+    test_task_manager.current_time = 0.0
+    test_task_manager.time_limit = None
 
 #
-#   task_manager_run
+#   run_task_manager
 #
 
 @bacpypes_debugging
-def task_manager_run():
+def run_task_manager(time_limit=None):
     """This function is called after a set of tasks have been installed
     and they should all run.
     """
-    if _debug: task_manager_run._debug("task_manager_run")
+    if _debug: run_task_manager._debug("run_task_manager %r", time_limit)
     global test_task_manager
 
     # a little error checking
     if not test_task_manager:
         raise RuntimeError("no test task manager")
+
+    # let the task manager know there is a virtual time limit
+    test_task_manager.time_limit = time_limit
 
     # run until there is nothing left to do
     run_once()

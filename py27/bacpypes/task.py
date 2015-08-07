@@ -171,8 +171,10 @@ class RecurringTask(_Task):
         # set the interval if it hasn't already been set
         if interval is not None:
             self.taskInterval = interval
-        if not self.taskInterval:
+        if self.taskInterval is None:
             raise RuntimeError("interval unset, use ctor or install_task parameter")
+        if self.taskInterval <= 0.0:
+            raise RuntimeError("interval must be greater than zero")
 
         # if there is no task manager, postpone the install
         if not _task_manager:
@@ -263,6 +265,7 @@ class TaskManager(SingletonLogging):
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
+        if _debug: TaskManager._debug("    - self: %r", self)
 
         # if this is already installed, suspend it
         if task.isScheduled:
