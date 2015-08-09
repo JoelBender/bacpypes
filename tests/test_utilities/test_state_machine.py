@@ -10,6 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from ..state_machine import State, StateMachine
+from ..time_machine import reset_time_machine, run_time_machine
 
 from .trapped_classes import TrappedState, TrappedStateMachine
 
@@ -281,6 +282,69 @@ class TestStateMachine(unittest.TestCase):
         assert s0.after_receive_pdu is first_pdu
         assert s1.before_send_pdu is second_pdu
         assert s1.after_send_pdu is second_pdu
+
+        # check the transaction log
+        assert len(tsm.transaction_log) == 2
+        assert tsm.transaction_log[0][1] is first_pdu
+        assert tsm.transaction_log[1][1] is second_pdu
+
+
+@bacpypes_debugging
+class TestStateMachineTimeout1(unittest.TestCase):
+
+    def test_state_machine_timeout(self):
+        if _debug: TestStateMachineTimeout1._debug("test_state_machine_timeout_1")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+
+        # make a timeout transition from start to success
+        tsm.start_state.timeout(1.0).success()
+
+        reset_time_machine()
+        if _debug: TestStateMachineTimeout1._debug("    - time machine reset")
+
+        tsm.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineTimeout1._debug("    - time machine finished")
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+
+@bacpypes_debugging
+class TestStateMachineTimeout2(unittest.TestCase):
+
+    def test_state_machine_timeout(self):
+        if _debug: TestStateMachineTimeout2._debug("test_state_machine_timeout_2")
+
+        # make some pdu's
+        first_pdu = object()
+        second_pdu = object()
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        s0 = tsm.start_state
+
+        # send something, wait, send something, wait, success
+        s1 = s0.send(first_pdu)
+        s2 = s1.timeout(1.0)
+        s3 = s2.send(second_pdu)
+        s4 = s3.timeout(1.0).success()
+
+        reset_time_machine()
+        if _debug: TestStateMachineTimeout2._debug("    - time machine reset")
+
+        tsm.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineTimeout2._debug("    - time machine finished")
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
 
         # check the transaction log
         assert len(tsm.transaction_log) == 2
