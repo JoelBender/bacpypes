@@ -7,6 +7,7 @@ Trapped State Machine Classes
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
+from bacpypes.comm import Client, Server
 from ..state_machine import State, StateMachine
 
 # some debugging
@@ -192,3 +193,82 @@ class TrappedStateMachine(StateMachine):
 
         # must be identical objects
         return pdu is transition_pdu
+
+#
+#   TrappedClient
+#
+
+
+class TrappedClient(Client):
+
+    """
+    TrappedClient
+    ~~~~~~~~~~~~~
+
+    An instance of this class sits at the top of a stack.
+    """
+
+    def __init__(self):
+        if _debug: TrappedClient._debug("__init__")
+        Client.__init__(self)
+
+        # clear out some references
+        self.request_sent = None
+        self.confirmation_received = None
+
+    def request(self, pdu):
+        if _debug: TrappedClient._debug("request %r", pdu)
+
+        # a reference for checking
+        self.request_sent = pdu
+
+        # continue with regular processing
+        Client.request(self, pdu)
+
+    def confirmation(self, pdu):
+        if _debug: TrappedClient._debug("confirmation %r", pdu)
+
+        # a reference for checking
+        self.confirmation_received = pdu
+
+bacpypes_debugging(TrappedClient)
+
+
+#
+#   TrappedServer
+#
+
+
+class TrappedServer(Server):
+
+    """
+    TrappedServer
+    ~~~~~~~~~~~~~
+
+    An instance of this class sits at the bottom of a stack.
+    """
+
+    def __init__(self):
+        if _debug: TrappedServer._debug("__init__")
+        Server.__init__(self)
+
+        # clear out some references
+        self.indication_received = None
+        self.response_sent = None
+
+    def indication(self, pdu):
+        if _debug: TrappedServer._debug("indication %r", pdu)
+
+        # a reference for checking
+        self.indication_received = pdu
+
+    def response(self, pdu):
+        if _debug: TrappedServer._debug("response %r", pdu)
+
+        # a reference for checking
+        self.response_sent = pdu
+
+        # continue with processing
+        Server.response(self, pdu)
+
+bacpypes_debugging(TrappedServer)
