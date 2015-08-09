@@ -70,32 +70,40 @@ class TimeMachine(_TaskManager):
         """get the next task if there's one that should be processed,
         and return how long it will be until the next one should be
         processed."""
-        if _debug: TimeMachine._debug("get_next_task")
-        if _debug: TimeMachine._debug("    - self: %r", self)
+        if _debug: TimeMachine._debug("get_next_task @ %r", self.current_time)
         if _debug: TimeMachine._debug("    - self.tasks: %r", self.tasks)
 
         task = None
         delta = None
 
-        if (self.time_limit is not None) and (self.current_time > self.time_limit):
+        if (self.time_limit is not None) and (self.current_time >= self.time_limit):
             if _debug: TimeMachine._debug("    - time limit reached")
 
         elif not self.tasks:
             if _debug: TimeMachine._debug("    - no more tasks")
 
         else:
-            # pull it off the list
-            when, task = heappop(self.tasks)
-            if _debug: TimeMachine._debug("    - when, task: %r, %r", when, task)
+            # peek at the next task and see when it is supposed to run
+            when, _ = self.tasks[0]
+            if when >= self.time_limit:
+                if _debug: TimeMachine._debug("    - time limit reached")
 
-            # mark that it is no longer scheduled
-            task.isScheduled = False
+                # bump up to the time limit
+                self.current_time = self.time_limit
 
-            # advance the time
-            self.current_time = when
+            else:
+                # pull it off the list
+                when, task = heappop(self.tasks)
+                if _debug: TimeMachine._debug("    - when, task: %r, %s", when, task)
 
-            # do not wait, time has moved
-            delta = 0.0
+                # mark that it is no longer scheduled
+                task.isScheduled = False
+
+                # advance the time
+                self.current_time = when
+
+                # do not wait, time has moved
+                delta = 0.0
 
         # return the task to run and how long to wait for the next one
         return (task, delta)
@@ -130,7 +138,7 @@ def reset_time_machine():
 #
 
 @bacpypes_debugging
-def run_time_machine(time_limit=None):
+def run_time_machine(time_limit):
     """This function is called after a set of tasks have been installed
     and they should all run.
     """
@@ -140,8 +148,10 @@ def run_time_machine(time_limit=None):
     # a little error checking
     if not time_machine:
         raise RuntimeError("no time machine")
+    if time_limit <= 0.0:
+        raise ValueError("time limit required")
 
-    # let the task manager know there is a virtual time limit
+    # pass the limit to the time machine
     time_machine.time_limit = time_limit
 
     # run until there is nothing left to do
