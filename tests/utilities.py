@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
 # use a task manager specific to testing
-from .task_manager import TaskManager
+from .time_machine import TimeMachine
 
 # some debugging
 _debug = 0
@@ -49,8 +49,8 @@ def setUpPackage():
     if _debug: setUpPackage._debug("setUpPackage")
     if _debug: setUpPackage._debug("    - test_options: %r", test_options)
 
-    task_manager = TaskManager()
-    if _debug: setUpPackage._debug("    - task_manager: %r", task_manager)
+    time_machine = TimeMachine()
+    if _debug: setUpPackage._debug("    - time_machine: %r", time_machine)
 
 #
 #   tearDownPackage

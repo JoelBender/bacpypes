@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Testing Task Manager
+Testing Time Machine
 --------------------
 """
 
@@ -17,19 +17,19 @@ from bacpypes.task import TaskManager as _TaskManager
 _debug = 0
 _log = ModuleLogger(globals())
 
-# test task manager
-test_task_manager = None
+# time machine
+time_machine = None
 
 #
-#   TaskManager
+#   TimeMachine
 #
 
 # @bacpypes_debugging - implicit via metaclass
-class TaskManager(_TaskManager):
+class TimeMachine(_TaskManager):
 
     def __init__(self):
-        if _debug: TaskManager._debug("__init__")
-        global test_task_manager
+        if _debug: TimeMachine._debug("__init__")
+        global time_machine
 
         # pass along initialization
         _TaskManager.__init__(self)
@@ -39,30 +39,30 @@ class TaskManager(_TaskManager):
         self.time_limit = None
 
         # a little error checking
-        if test_task_manager:
-            raise RuntimeError("test task manager already created")
+        if time_machine:
+            raise RuntimeError("time machine already created")
 
         # save a reference
-        test_task_manager = self
+        time_machine = self
 
     def get_time(self):
-        if _debug: TaskManager._debug("get_time")
+        if _debug: TimeMachine._debug("get_time")
 
         # return the fake time
         return self.current_time
 
     def install_task(self, task):
-        if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
+        if _debug: TimeMachine._debug("install_task %r @ %r", task, task.taskTime)
 
         _TaskManager.install_task(self, task)
 
     def suspend_task(self, task):
-        if _debug: TaskManager._debug("suspend_task %r", task)
+        if _debug: TimeMachine._debug("suspend_task %r", task)
 
         _TaskManager.suspend_task(self, task)
 
     def resume_task(self, task):
-        if _debug: TaskManager._debug("resume_task %r", task)
+        if _debug: TimeMachine._debug("resume_task %r", task)
 
         _TaskManager.resume_task(self, task)
 
@@ -70,23 +70,23 @@ class TaskManager(_TaskManager):
         """get the next task if there's one that should be processed,
         and return how long it will be until the next one should be
         processed."""
-        if _debug: TaskManager._debug("get_next_task")
-        if _debug: TaskManager._debug("    - self: %r", self)
-        if _debug: TaskManager._debug("    - self.tasks: %r", self.tasks)
+        if _debug: TimeMachine._debug("get_next_task")
+        if _debug: TimeMachine._debug("    - self: %r", self)
+        if _debug: TimeMachine._debug("    - self.tasks: %r", self.tasks)
 
         task = None
         delta = None
 
         if (self.time_limit is not None) and (self.current_time > self.time_limit):
-            if _debug: TaskManager._debug("    - time limit reached")
+            if _debug: TimeMachine._debug("    - time limit reached")
 
         elif not self.tasks:
-            if _debug: TaskManager._debug("    - no more tasks")
+            if _debug: TimeMachine._debug("    - no more tasks")
 
         else:
             # pull it off the list
             when, task = heappop(self.tasks)
-            if _debug: TaskManager._debug("    - when, task: %r, %r", when, task)
+            if _debug: TimeMachine._debug("    - when, task: %r, %r", when, task)
 
             # mark that it is no longer scheduled
             task.isScheduled = False
@@ -101,48 +101,48 @@ class TaskManager(_TaskManager):
         return (task, delta)
 
     def process_task(self, task):
-        if _debug: TaskManager._debug("process_task %r", task)
+        if _debug: TimeMachine._debug("process_task %r", task)
 
         _TaskManager.process_task(self, task)
 
 #
-#   reset_task_manager
+#   reset_time_machine
 #
 
 @bacpypes_debugging
-def reset_task_manager():
+def reset_time_machine():
     """This function is called to reset the clock before running a set 
     of tests.
     """
-    if _debug: reset_task_manager._debug("reset_task_manager")
-    global test_task_manager
+    if _debug: reset_time_machine._debug("reset_time_machine")
+    global time_machine
 
     # a little error checking
-    if not test_task_manager:
-        raise RuntimeError("no test task manager")
+    if not time_machine:
+        raise RuntimeError("no time machine")
 
     # begin time at the beginning
-    test_task_manager.current_time = 0.0
-    test_task_manager.time_limit = None
+    time_machine.current_time = 0.0
+    time_machine.time_limit = None
 
 #
-#   run_task_manager
+#   run_time_machine
 #
 
 @bacpypes_debugging
-def run_task_manager(time_limit=None):
+def run_time_machine(time_limit=None):
     """This function is called after a set of tasks have been installed
     and they should all run.
     """
-    if _debug: run_task_manager._debug("run_task_manager %r", time_limit)
-    global test_task_manager
+    if _debug: run_time_machine._debug("run_time_machine %r", time_limit)
+    global time_machine
 
     # a little error checking
-    if not test_task_manager:
-        raise RuntimeError("no test task manager")
+    if not time_machine:
+        raise RuntimeError("no time machine")
 
     # let the task manager know there is a virtual time limit
-    test_task_manager.time_limit = time_limit
+    time_machine.time_limit = time_limit
 
     # run until there is nothing left to do
     run_once()

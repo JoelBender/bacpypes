@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Test Utilities State Machine
+Test Utilities Time Machine
 ----------------------------
 """
 
@@ -12,14 +12,14 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.task import OneShotTask, FunctionTask, \
     RecurringTask, RecurringFunctionTask
-from ..task_manager import TaskManager, reset_task_manager, run_task_manager
+from ..time_machine import TimeMachine, reset_time_machine, run_time_machine
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
-# reference to test task manager
-test_task_manager = None
+# reference to time machine
+time_machine = None
 
 #
 #   setUpModule
@@ -29,23 +29,23 @@ test_task_manager = None
 @bacpypes_debugging
 def setUpModule():
     if _debug: setUpModule._debug("setUpModule")
-    global test_task_manager
+    global time_machine
 
     # this is a singleton
-    test_task_manager = TaskManager()
+    time_machine = TimeMachine()
 
     # make sure this is the same one referenced by the functions
-    assert test_task_manager is reset_task_manager.__globals__['test_task_manager']
-    assert test_task_manager is run_task_manager.__globals__['test_task_manager']
+    assert time_machine is reset_time_machine.__globals__['time_machine']
+    assert time_machine is run_time_machine.__globals__['time_machine']
 
 
 @bacpypes_debugging
 def tearDownModule():
     if _debug: tearDownModule._debug("tearDownModule")
-    global test_task_manager
+    global time_machine
 
     # all done
-    test_task_manager = None
+    time_machine = None
 
 
 #
@@ -88,20 +88,20 @@ class TestTaskManager(unittest.TestCase):
     def test_manager_exists(self):
         if _debug: TestTaskManager._debug("test_manager_exists")
 
-        # task manager created by setUpPackage
-        assert test_task_manager is not None
+        # time machine created by setUpPackage
+        assert time_machine is not None
 
     def test_empty_run(self):
         if _debug: TestTaskManager._debug("test_empty_run")
 
-        # reset the manager
-        reset_task_manager()
+        # reset the time machine
+        reset_time_machine()
 
         # let it run
-        run_task_manager()
+        run_time_machine()
 
         # no time has passed
-        assert test_task_manager.current_time == 0.0
+        assert time_machine.current_time == 0.0
 
     def test_one_shot_immediate(self):
         if _debug: TestTaskManager._debug("test_one_shot_immediate")
@@ -109,14 +109,14 @@ class TestTaskManager(unittest.TestCase):
         # create a function task
         ft = SampleOneShotTask()
 
-        # reset the manager, install the task, let it run
-        reset_task_manager()
+        # reset the time machine, install the task, let it run
+        reset_time_machine()
         ft.install_task(0.0)
-        run_task_manager()
+        run_time_machine()
 
         # function called, no time has passed
         assert ft.process_task_called == 1
-        assert test_task_manager.current_time == 0.0
+        assert time_machine.current_time == 0.0
 
     def test_function_task_immediate(self):
         if _debug: TestTaskManager._debug("test_function_task_immediate")
@@ -126,14 +126,14 @@ class TestTaskManager(unittest.TestCase):
         ft = FunctionTask(sample_task_function)
         sample_task_function_called = 0
 
-        # reset the manager, install the task, let it run
-        reset_task_manager()
+        # reset the time machine, install the task, let it run
+        reset_time_machine()
         ft.install_task(0.0)
-        run_task_manager()
+        run_time_machine()
 
         # function called, no time has passed
         assert sample_task_function_called == 1
-        assert test_task_manager.current_time == 0.0
+        assert time_machine.current_time == 0.0
 
     def test_function_task_delay(self):
         if _debug: TestTaskManager._debug("test_function_task_delay")
@@ -145,11 +145,11 @@ class TestTaskManager(unittest.TestCase):
         ft = FunctionTask(sample_task_function)
         sample_task_function_called = 0
 
-        # reset the manager, install the task, let it run
-        reset_task_manager()
+        # reset the time machine, install the task, let it run
+        reset_time_machine()
         ft.install_task(sample_delay)
-        run_task_manager()
+        run_time_machine()
 
         # function called, no time has passed
         assert sample_task_function_called == 1
-        assert test_task_manager.current_time == sample_delay
+        assert time_machine.current_time == sample_delay
