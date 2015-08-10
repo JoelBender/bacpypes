@@ -181,7 +181,7 @@ class State:
             if _debug: State._debug("    - waiting: %r", self.timeout_transition.timeout)
 
             # schedule the timeout
-            self.state_machine.state_timeout_task.install_task(delta=self.timeout_transition.timeout)
+            self.state_machine.state_timeout_task.install_task(self.timeout_transition.timeout)
         else:
             if _debug: State._debug("    - no timeout")
 
