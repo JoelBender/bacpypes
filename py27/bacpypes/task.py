@@ -265,7 +265,6 @@ class TaskManager(SingletonLogging):
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
-        if _debug: TaskManager._debug("    - self: %r", self)
 
         # if this is already installed, suspend it
         if task.isScheduled:
