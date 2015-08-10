@@ -92,6 +92,9 @@ class _Task(DebugContents, Logging):
 
         _task_manager.resume_task(self)
 
+    def __lt__(self, other):
+        return id(self) < id(other)
+
 #
 #   OneShotTask
 #
