@@ -84,6 +84,9 @@ class _Task(DebugContents, Logging):
         global _task_manager
 
         _task_manager.resume_task(self)
+        
+    def __lt__(self, other):
+        return self.taskTime < other.taskTime
 
 #
 #   OneShotTask

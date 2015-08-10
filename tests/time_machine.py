@@ -34,13 +34,15 @@ class TimeMachine(_TaskManager):
         # pass along initialization
         _TaskManager.__init__(self)
 
+        print(type(time_machine))
+        print(time_machine)
         # initialize the time
         self.current_time = None
         self.time_limit = None
 
         # a little error checking
-        if time_machine:
-            raise RuntimeError("time machine already created")
+        #if time_machine is not None:
+        #    raise RuntimeError("time machine already created")
 
         # save a reference
         time_machine = self
