@@ -56,18 +56,18 @@ class _SingletonMetaclass(type):
 #   Singleton
 #
 
-class Singleton(object):
+class Singleton(metaclass=_SingletonMetaclass):
 
-    __metaclass__ = _SingletonMetaclass
+    pass
 
 #
 #   _SingletonLoggingMetaclass
 #
 
 class _SingletonLoggingMetaclass(_SingletonMetaclass, debugging._LoggingMetaclass):
+
     pass
 
-class SingletonLogging(object):
+class SingletonLogging(metaclass=_SingletonLoggingMetaclass):
 
-    __metaclass__ = _SingletonLoggingMetaclass
-
+    pass

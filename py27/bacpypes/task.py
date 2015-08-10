@@ -92,6 +92,9 @@ class _Task(DebugContents, Logging):
 
         _task_manager.resume_task(self)
 
+    def __lt__(self, other):
+        return id(self) < id(other)
+
 #
 #   OneShotTask
 #
@@ -265,7 +268,6 @@ class TaskManager(SingletonLogging):
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
-        if _debug: TaskManager._debug("    - self: %r", self)
 
         # if this is already installed, suspend it
         if task.isScheduled:

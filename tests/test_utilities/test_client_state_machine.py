@@ -4,6 +4,9 @@
 """
 Test Utilities Client State Machine
 -----------------------------------
+
+A client state machine sits at the top of a stack and is used to generate
+requests and match responses.
 """
 
 import unittest
@@ -28,26 +31,26 @@ class TestClientStateMachine(unittest.TestCase):
         if _debug: TestClientStateMachine._debug("test_client_state_machine")
 
         # create a client state machine, trapped server, and bind them together
-        tsm = ClientStateMachine()
-        tsrv = TrappedServer()
-        bind(tsm, tsrv)
+        client = ClientStateMachine()
+        server = TrappedServer()
+        bind(client, server)
 
         # make pdu object
         pdu = object()
 
         # make a send transition from start to success, run the machine
-        tsm.start_state.send(pdu).success()
+        client.start_state.send(pdu).success()
 
         # run the machine
-        tsm.run()
+        client.run()
 
         # check for success
-        assert not tsm.running
-        assert tsm.current_state.is_success_state
+        assert not client.running
+        assert client.current_state.is_success_state
 
         # make sure the pdu was sent
-        assert tsrv.indication_received is pdu
+        assert server.indication_received is pdu
 
         # check the transaction log
-        assert len(tsm.transaction_log) == 1
-        assert tsm.transaction_log[0][1] is pdu
+        assert len(client.transaction_log) == 1
+        assert client.transaction_log[0][1] is pdu
