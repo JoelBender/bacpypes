@@ -75,6 +75,11 @@ class TestInteger(unittest.TestCase):
         obj = Integer()
         assert obj.value == 0
 
+        with self.assertRaises(TypeError):
+            Integer("some string")
+        with self.assertRaises(TypeError):
+            Integer(1.0)
+
     def test_integer_int(self):
         if _debug: TestInteger._debug("test_integer_int")
 
@@ -85,6 +90,25 @@ class TestInteger(unittest.TestCase):
         obj = Integer(-1)
         assert obj.value == -1
         assert str(obj) == "Integer(-1)"
+
+    def test_integer_tag(self):
+        if _debug: TestInteger._debug("test_integer_tag")
+
+        tag = Tag(Tag.applicationTagClass, Tag.integerAppTag, 1, xtob('01'))
+        obj = Integer(tag)
+        assert obj.value == 1
+
+        tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
+        with self.assertRaises(ValueError):
+            Integer(tag)
+
+        tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
+        with self.assertRaises(ValueError):
+            Integer(tag)
+
+        tag = Tag(Tag.openingTagClass, 0)
+        with self.assertRaises(ValueError):
+            Integer(tag)
 
     def test_integer_integer(self):
         if _debug: TestInteger._debug("test_integer_integer")
