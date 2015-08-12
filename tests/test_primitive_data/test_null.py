@@ -51,15 +51,15 @@ def null_decode(tag):
 
 
 @bacpypes_debugging
-def null_endec(value, x):
+def null_endec(v, x):
     """Pass the value to Integer, construct a tag from the hex string,
     and compare results of encode and decoding each other."""
-    if _debug: null_endec._debug("null_endec %r %r", value, x)
+    if _debug: null_endec._debug("null_endec %r %r", v, x)
 
     tag = null_tag(x)
     if _debug: null_endec._debug("    - tag: %r, %r", tag, tag.tagData)
 
-    obj = Null(value)
+    obj = Null(v)
     if _debug: null_endec._debug("    - obj: %r, %r", obj, obj.value)
 
     assert null_encode(obj) == tag

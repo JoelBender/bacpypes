@@ -51,15 +51,15 @@ def integer_decode(tag):
 
 
 @bacpypes_debugging
-def integer_endec(value, x):
+def integer_endec(v, x):
     """Pass the value to Integer, construct a tag from the hex string,
     and compare results of encode and decoding each other."""
-    if _debug: integer_endec._debug("integer_endec %r %r", value, x)
+    if _debug: integer_endec._debug("integer_endec %r %r", v, x)
 
     tag = integer_tag(x)
     if _debug: integer_endec._debug("    - tag: %r, %r", tag, tag.tagData)
 
-    obj = Integer(value)
+    obj = Integer(v)
     if _debug: integer_endec._debug("    - obj: %r, %r", obj, obj.value)
 
     assert integer_encode(obj) == tag
