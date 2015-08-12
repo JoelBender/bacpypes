@@ -8,6 +8,7 @@ Test Primitive Data Real
 
 import unittest
 import struct
+import math
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.primitivedata import Real, Tag
@@ -24,7 +25,7 @@ def real_tag(x):
 
     b = xtob(x)
     tag = Tag(Tag.applicationTagClass, Tag.realAppTag, len(b), b)
-    if _debug: real_endec._debug("    - tag: %r", tag)
+    if _debug: real_tag._debug("    - tag: %r", tag)
 
     return tag
 
@@ -35,7 +36,7 @@ def real_encode(obj):
 
     tag = Tag()
     obj.encode(tag)
-    if _debug: real_endec._debug("    - tag: %r", tag)
+    if _debug: real_encode._debug("    - tag: %r, %r", tag, tag.tagData)
 
     return tag
 
@@ -46,7 +47,7 @@ def real_decode(tag):
     if _debug: real_decode._debug("real_decode %r", tag)
 
     obj = Real(tag)
-    if _debug: real_decode._debug("    - obj: %r", obj)
+    if _debug: real_decode._debug("    - obj: %r, %r", obj, obj.value)
 
     return obj
 
@@ -64,7 +65,14 @@ def real_endec(v, x):
     if _debug: real_endec._debug("    - obj: %r, %r", obj, obj.value)
 
     assert real_encode(obj) == tag
-    assert real_decode(tag) == obj
+    if _debug: real_endec._debug("    - tags match")
+
+    if math.isnan(v):
+        assert math.isnan(real_decode(tag).value)
+        if _debug: real_endec._debug("    - both NaN")
+    else:
+        assert real_decode(tag) == obj
+        if _debug: real_endec._debug("    - objects match")
 
 
 @bacpypes_debugging

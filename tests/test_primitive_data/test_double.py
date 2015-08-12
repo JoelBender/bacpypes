@@ -8,6 +8,7 @@ Test Primitive Data Double
 
 import unittest
 import struct
+import math
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.primitivedata import Double, Tag
@@ -64,8 +65,14 @@ def double_endec(v, x):
     if _debug: double_endec._debug("    - obj: %r, %r", obj, obj.value)
 
     assert double_encode(obj) == tag
-    assert double_decode(tag) == obj
+    if _debug: real_endec._debug("    - tags match")
 
+    if math.isnan(v):
+        assert math.isnan(double_decode(tag).value)
+        if _debug: double_endec._debug("    - both NaN")
+    else:
+        assert double_decode(tag) == obj
+        if _debug: double_endec._debug("    - objects match")
 
 @bacpypes_debugging
 class TestDouble(unittest.TestCase):
