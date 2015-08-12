@@ -109,8 +109,8 @@ class TestUnsigned(unittest.TestCase):
         with self.assertRaises(ValueError):
             Unsigned(tag)
 
-    def test_unsigned_unsigned(self):
-        if _debug: TestUnsigned._debug("test_unsigned_unsigned")
+    def test_unsigned_copy(self):
+        if _debug: TestUnsigned._debug("test_unsigned_copy")
 
         obj1 = Unsigned(12)
         obj2 = Unsigned(obj1)

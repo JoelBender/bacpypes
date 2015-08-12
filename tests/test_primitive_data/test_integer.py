@@ -110,8 +110,8 @@ class TestInteger(unittest.TestCase):
         with self.assertRaises(ValueError):
             Integer(tag)
 
-    def test_integer_integer(self):
-        if _debug: TestInteger._debug("test_integer_integer")
+    def test_integer_copy(self):
+        if _debug: TestInteger._debug("test_integer_copy")
 
         obj1 = Integer(12)
         obj2 = Integer(obj1)

@@ -109,8 +109,8 @@ class TestBoolean(unittest.TestCase):
         with self.assertRaises(ValueError):
             Boolean(tag)
 
-    def test_boolean_boolean(self):
-        if _debug: TestBoolean._debug("test_boolean_boolean")
+    def test_boolean_copy(self):
+        if _debug: TestBoolean._debug("test_boolean_copy")
 
         obj1 = Boolean(True)
         obj2 = Boolean(obj1)

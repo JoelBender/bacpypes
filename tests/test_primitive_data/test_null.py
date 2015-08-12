@@ -93,8 +93,8 @@ class TestNull(unittest.TestCase):
         obj = Null(tag)
         assert obj.value == ()
 
-    def test_null_null(self):
-        if _debug: TestInteger._debug("test_null_null")
+    def test_null_copy(self):
+        if _debug: TestInteger._debug("test_null_copy")
 
         obj1 = Null()
         obj2 = Null(obj1)
