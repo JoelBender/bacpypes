@@ -189,7 +189,7 @@ class Tag(object):
 
         # context booleans have value in data
         if (dataType == Tag.booleanAppTag):
-            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('b', self.tagData)[0], '')
+            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('B', self.tagData)[0], '')
         else:
             return ApplicationTag(dataType, self.tagData)
 
