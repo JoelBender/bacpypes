@@ -9,27 +9,20 @@ is easy, just::
     $ sudo easy_install bacpypes
 
 You will be installing the latest released version.  You can also check out
-the latest version from SourceForge::
+the latest version from GitHub::
 
-    $ svn checkout https://svn.code.sf.net/p/bacpypes/code/trunk bacpypes
+    $ git clone https://github.com/JoelBender/bacpypes.git
 
 And then use the setup utility to install it::
 
-    $ cd bacpypes/trunk/
+    $ cd bacpypes
     $ python setup.py install
 
 If you would like to participate in its development, please join the
-`developers mailing list <https://lists.sourceforge.net/lists/listinfo/bacpypes-developers>`_
-and use the `Trac <https://sourceforge.net/apps/trac/bacpypes>`_ to create 
-tickets and monitor the project development.  There is also a
+`developers mailing list <https://lists.sourceforge.net/lists/listinfo/bacpypes-developers>`_.  There is also a
 `Google+ <https://plus.google.com/100756765082570761221/posts>`_ page that you
 can add to your circles have have release notifications show up in your
 stream.
-
-For an overview of the current project activity, there is a 
-`Trello <https://trello.com/board/bacpypes/4ea6038072bf960d4b036f34>`_ board,
-feel free to become a member and share what you are doing with the
-rest of the BACpypes community.
 
 Welcome aboard!
 
