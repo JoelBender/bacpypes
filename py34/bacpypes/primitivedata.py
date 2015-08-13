@@ -189,7 +189,7 @@ class Tag(object):
 
         # context booleans have value in data
         if (dataType == Tag.booleanAppTag):
-            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('b', self.tagData)[0], b'')
+            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('B', self.tagData)[0], b'')
         else:
             return ApplicationTag(dataType, self.tagData)
 
@@ -451,6 +451,8 @@ class Atomic(object):
     _app_tag = None
 
     def __cmp__(self, other):
+        # sys.stderr.write("__cmp__ %r %r\n" % (self, other))
+
         # hoop jump it
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
@@ -462,6 +464,26 @@ class Atomic(object):
             return 1
         else:
             return 0
+
+    def __lt__(self, other):
+        # sys.stderr.write("__lt__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return (self.value < other.value)
+
+    def __eq__(self, other):
+        sys.stderr.write("__eq__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return self.value == other.value
 
 #
 #   Null
@@ -738,7 +760,7 @@ class OctetString(Atomic):
     _app_tag = Tag.octetStringAppTag
 
     def __init__(self, arg=None):
-        self.value = ''
+        self.value = bytes()
 
         if arg is None:
             pass
