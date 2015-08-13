@@ -5,6 +5,29 @@ Release Notes
 
 This page contains release notes.
 
+Version 0.13.0
+--------------
+
+This is a big release, with no API changes since the 0.12.1 version, but the
+setup now detects which version of Python is running and switches between 
+source directories: *py25*, *py27*, and *py34*.
+
+There is now a *test* directory, so in addition to the *build* and *install*
+options there is *test*, which uses
+`nose <https://nose.readthedocs.org/en/latest/>`_ for running the scripts::
+
+    $ python setup.py test
+
+If you have more than one version of Python installed on your machine you can
+use `tox <https://testrun.org/tox/latest/>`_ to run the tests will all of the
+supported versions (currently limited to Python2.7 and Python3.4 due to
+substantial changes in unittest)::
+
+    $ tox
+
+At some point there will be a documentation page that decribes the changes
+between the distributions, as well as a guide for new applications.
+
 Version 0.12.1
 --------------
 
