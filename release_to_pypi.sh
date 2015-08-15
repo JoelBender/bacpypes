@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # remove everything in the current dist/ directory
-[ -f dist ] && rm -Rfv dist
+[ -d dist ] && rm -Rfv dist
 
 for ver in 2.7 3.4; do
     python$ver setup.py bdist_egg
