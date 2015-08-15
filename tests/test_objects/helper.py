@@ -41,7 +41,7 @@ from bacpypes.errors import ConfigurationError, ExecutionError
 
 
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 
@@ -84,10 +84,10 @@ class TestObjectHelper():
         for each in self.listOfProperties:
             if each[0] == WritableProperty:
                 obj.WriteProperty(each[1],writeValue)
-        assert True
+        #assert True
     
     def object_can_read_property(self, obj):
         if _debug: self._debug("test_object_%s_can_read_property" % obj.objectType)
         for each in self.listOfProperties:
             obj.ReadProperty(each[1])
-        assert True
+        #assert True
