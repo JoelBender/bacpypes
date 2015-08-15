@@ -193,9 +193,9 @@ class Property(Logging):
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
         # if it's atomic assume correct datatype
-        if issubclass(self.datatype, Atomic):
-            if _debug: Property._debug("    - property is atomic, assumed correct type")
-        elif isinstance(value, self.datatype):
+        #if issubclass(self.datatype, Atomic):
+        #    if _debug: Property._debug("    - property is atomic, assumed correct type")
+        if isinstance(value, self.datatype):
             if _debug: Property._debug("    - correct type")
         elif arrayIndex is not None:
             if not issubclass(self.datatype, Array):
