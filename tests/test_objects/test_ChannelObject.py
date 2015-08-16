@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Nose Test Objects AccessCredentialObjects
+Nose Test Objects ChannelObject
 ---------------------
 """
 
@@ -10,7 +10,7 @@ import unittest
 from helper import TestObjectHelper
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.object import AccessDoorObject, WritableProperty, ReadableProperty, OptionalProperty
+from bacpypes.object import ChannelObject, WritableProperty, ReadableProperty, OptionalProperty
 from bacpypes.primitivedata import BitString, Boolean, CharacterString, Date, Double, \
     Enumerated, Integer, Null, ObjectIdentifier, OctetString, Real, Time, \
     Unsigned
@@ -46,7 +46,7 @@ _debug = 1
 _log = ModuleLogger(globals())
 
 @bacpypes_debugging
-class Test_AccessDoorObject(unittest.TestCase, TestObjectHelper):
+class Test_ChannelObject(unittest.TestCase, TestObjectHelper):
     """
     This test will verify that the object created has good number of properties
     Will test that each property is correct datatype
@@ -54,44 +54,34 @@ class Test_AccessDoorObject(unittest.TestCase, TestObjectHelper):
     Will test that all properties can be read
     """
     def setUp(self):
-        if _debug: Test_AccessDoorObject._debug("Test_AccessDoorObject")
-        self.obj = AccessDoorObject()
-        self.objType = 'accessDoor'
+        if _debug: Test_ChannelObject._debug("Test_ChannelObject")
+        self.obj = ChannelObject()
+        self.objType = 'channel'
         self.identifiers = self.build_list_of_identifiers(self.obj.properties)
-        self.numberOfPropertiesRequired = 31
-        self.writeValue = DoorValue(0)
+        self.numberOfPropertiesRequired = 21
+        self.writeValue = 0
         self.listOfProperties = \
-        [ (WritableProperty,'presentValue', DoorValue)
+        [ (WritableProperty,'presentValue', ChannelValue)
+        , (ReadableProperty,'lastPriority', Unsigned)
+        , (ReadableProperty,'writeStatus', WriteStatus)
         , (ReadableProperty,'statusFlags', StatusFlags)
-        , (ReadableProperty,'eventState', EventState)
-        , (ReadableProperty,'reliability', Reliability)
+        , (OptionalProperty,'reliability', Reliability)
         , (ReadableProperty,'outOfService', Boolean)
-        , (ReadableProperty,'priorityArray', PriorityArray)
-        , (ReadableProperty,'relinquishDefault', DoorValue)
-        , (OptionalProperty,'doorStatus', DoorStatus)
-        , (OptionalProperty,'lockStatus', LockStatus)
-        , (OptionalProperty,'securedStatus', DoorSecuredStatus)
-        , (OptionalProperty,'doorMembers', ArrayOf(DeviceObjectReference))
-        , (ReadableProperty,'doorPulseTime', Unsigned)
-        , (ReadableProperty,'doorExtendedPulseTime', Unsigned)
-        , (OptionalProperty,'doorUnlockDelayTime', Unsigned)
-        , (ReadableProperty,'doorOpenTooLongTime', Unsigned)
-        , (OptionalProperty,'doorAlarmState', DoorAlarmState)
-        , (OptionalProperty,'maskedAlarmValues', SequenceOf(DoorAlarmState))
-        , (OptionalProperty,'maintenanceRequired', Maintenance)
-        , (OptionalProperty,'timeDelay', Unsigned)
+        , (WritableProperty,'listOfObjectPropertyReferences', ArrayOf(DeviceObjectPropertyReference))
+        , (OptionalProperty,'executionDelay', ArrayOf(Unsigned))
+        , (OptionalProperty,'allowGroupDelayInhibit', Boolean)
+        , (WritableProperty,'channelNumber', Unsigned)
+        , (WritableProperty,'controlGroups', ArrayOf(Unsigned))
+        , (OptionalProperty,'eventDetectionEnable', Boolean)
         , (OptionalProperty,'notificationClass', Unsigned)
-        , (OptionalProperty,'alarmValues', SequenceOf(DoorAlarmState))
-        , (OptionalProperty,'faultValues', SequenceOf(DoorAlarmState))
         , (OptionalProperty,'eventEnable', EventTransitionBits)
+        , (OptionalProperty,'eventState', EventState)
         , (OptionalProperty,'ackedTransitions', EventTransitionBits)
         , (OptionalProperty,'notifyType', NotifyType)
         , (OptionalProperty,'eventTimeStamps', ArrayOf(TimeStamp))
         , (OptionalProperty,'eventMessageTexts', ArrayOf(CharacterString))
         , (OptionalProperty,'eventMessageTextsConfig', ArrayOf(CharacterString))
-        , (OptionalProperty,'eventDetectionEnable', Boolean)
-        , (OptionalProperty,'eventAlgorithmInhibitRef', ObjectPropertyReference)
-        , (OptionalProperty,'eventAlgorithmInhibit', Boolean)
+        , (OptionalProperty,'reliabilityEvaluationInhibit', Boolean)
         ]
         
     def test_object(self):
@@ -100,6 +90,8 @@ class Test_AccessDoorObject(unittest.TestCase, TestObjectHelper):
         self.object_property_identifiers(self.obj)
         self.object_property_dataType(self.obj)
         self.object_noWritingToReadableProperty(self.obj,self.writeValue)
-        self.object_can_write_to_writableProperty(self.obj,self.writeValue)
+        #TODO Object not completed
+        #self.object_can_write_to_writableProperty(self.obj,self.writeValue)
+        #self.object_cannot_write_wrong_property_to_writableProperty(self.obj)
         self.object_can_read_property(self.obj)
         

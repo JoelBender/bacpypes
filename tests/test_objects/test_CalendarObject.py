@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Nose Test Objects AccessCredentialObjects
+Nose Test Objects CalendarObject
 ---------------------
 """
 
@@ -10,7 +10,7 @@ import unittest
 from helper import TestObjectHelper
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.object import AccessDoorObject, WritableProperty, ReadableProperty, OptionalProperty
+from bacpypes.object import CalendarObject, WritableProperty, ReadableProperty, OptionalProperty
 from bacpypes.primitivedata import BitString, Boolean, CharacterString, Date, Double, \
     Enumerated, Integer, Null, ObjectIdentifier, OctetString, Real, Time, \
     Unsigned
@@ -46,7 +46,7 @@ _debug = 1
 _log = ModuleLogger(globals())
 
 @bacpypes_debugging
-class Test_AccessDoorObject(unittest.TestCase, TestObjectHelper):
+class Test_CalendarObject(unittest.TestCase, TestObjectHelper):
     """
     This test will verify that the object created has good number of properties
     Will test that each property is correct datatype
@@ -54,44 +54,15 @@ class Test_AccessDoorObject(unittest.TestCase, TestObjectHelper):
     Will test that all properties can be read
     """
     def setUp(self):
-        if _debug: Test_AccessDoorObject._debug("Test_AccessDoorObject")
-        self.obj = AccessDoorObject()
-        self.objType = 'accessDoor'
+        if _debug: Test_CalendarObject._debug("Test_CalendarObject")
+        self.obj = CalendarObject()
+        self.objType = 'calendar'
         self.identifiers = self.build_list_of_identifiers(self.obj.properties)
-        self.numberOfPropertiesRequired = 31
-        self.writeValue = DoorValue(0)
+        self.numberOfPropertiesRequired = 2
+        self.writeValue = 0
         self.listOfProperties = \
-        [ (WritableProperty,'presentValue', DoorValue)
-        , (ReadableProperty,'statusFlags', StatusFlags)
-        , (ReadableProperty,'eventState', EventState)
-        , (ReadableProperty,'reliability', Reliability)
-        , (ReadableProperty,'outOfService', Boolean)
-        , (ReadableProperty,'priorityArray', PriorityArray)
-        , (ReadableProperty,'relinquishDefault', DoorValue)
-        , (OptionalProperty,'doorStatus', DoorStatus)
-        , (OptionalProperty,'lockStatus', LockStatus)
-        , (OptionalProperty,'securedStatus', DoorSecuredStatus)
-        , (OptionalProperty,'doorMembers', ArrayOf(DeviceObjectReference))
-        , (ReadableProperty,'doorPulseTime', Unsigned)
-        , (ReadableProperty,'doorExtendedPulseTime', Unsigned)
-        , (OptionalProperty,'doorUnlockDelayTime', Unsigned)
-        , (ReadableProperty,'doorOpenTooLongTime', Unsigned)
-        , (OptionalProperty,'doorAlarmState', DoorAlarmState)
-        , (OptionalProperty,'maskedAlarmValues', SequenceOf(DoorAlarmState))
-        , (OptionalProperty,'maintenanceRequired', Maintenance)
-        , (OptionalProperty,'timeDelay', Unsigned)
-        , (OptionalProperty,'notificationClass', Unsigned)
-        , (OptionalProperty,'alarmValues', SequenceOf(DoorAlarmState))
-        , (OptionalProperty,'faultValues', SequenceOf(DoorAlarmState))
-        , (OptionalProperty,'eventEnable', EventTransitionBits)
-        , (OptionalProperty,'ackedTransitions', EventTransitionBits)
-        , (OptionalProperty,'notifyType', NotifyType)
-        , (OptionalProperty,'eventTimeStamps', ArrayOf(TimeStamp))
-        , (OptionalProperty,'eventMessageTexts', ArrayOf(CharacterString))
-        , (OptionalProperty,'eventMessageTextsConfig', ArrayOf(CharacterString))
-        , (OptionalProperty,'eventDetectionEnable', Boolean)
-        , (OptionalProperty,'eventAlgorithmInhibitRef', ObjectPropertyReference)
-        , (OptionalProperty,'eventAlgorithmInhibit', Boolean)
+        [ (ReadableProperty,'presentValue', Boolean)
+        , (ReadableProperty,'dateList', SequenceOf(CalendarEntry))
         ]
         
     def test_object(self):

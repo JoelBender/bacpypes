@@ -47,6 +47,18 @@ _log = ModuleLogger(globals())
 
 @bacpypes_debugging
 class TestObjectHelper():
+    # A list of write values to use for test purposes
+    # the write function could choose the good value based on the type
+    # the write error function could choose a random value not instance of datatype..
+    # or to be sure test every test values with wrong datatype...
+    writeValues = [
+                -1,
+                0,
+                'Test String',
+                Unsigned(0),
+                DoorValue(0),    
+                ]
+    
     def build_list_of_identifiers(self, properties):
         identifiers = []
         for each in properties:                        
@@ -83,8 +95,25 @@ class TestObjectHelper():
         if _debug: self._debug("test_object_%s_can_write_to_writableProperty" % obj.objectType)
         for each in self.listOfProperties:
             if each[0] == WritableProperty:
-                obj.WriteProperty(each[1],writeValue)
+                actualDatatype = each[2]
+                actualProperty = each[1]
+                for each in TestObjectHelper.writeValues:
+                    if isinstance(each,actualDatatype):
+                        obj.WriteProperty(actualProperty,each)
         #assert True
+    
+    def object_cannot_write_wrong_property_to_writableProperty(self, obj):
+        if _debug: self._debug("test_object_%s_can_write_to_writableProperty" % obj.objectType)
+        with self.assertRaises(ExecutionError):        
+            for each in self.listOfProperties:
+                if each[0] == WritableProperty:
+                    actualDatatype = each[2]
+                    actualProperty = each[1]
+                                    
+                    for each in TestObjectHelper.writeValues:
+                        if not isinstance(each,actualDatatype):
+                            obj.WriteProperty(actualProperty,each)
+        #assert True    
     
     def object_can_read_property(self, obj):
         if _debug: self._debug("test_object_%s_can_read_property" % obj.objectType)

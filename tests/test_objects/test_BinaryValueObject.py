@@ -59,7 +59,7 @@ class Test_BinaryValueObject(unittest.TestCase, TestObjectHelper):
         self.objType = 'binaryValue'
         self.identifiers = self.build_list_of_identifiers(self.obj.properties)
         self.numberOfPropertiesRequired = 30
-        self.writeValue = -1
+        self.writeValue = 0
         self.listOfProperties = \
         [ (WritableProperty,'presentValue', BinaryPV)
         , (ReadableProperty,'statusFlags',StatusFlags)
