@@ -10,7 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.object import AccessCredentialObject, WritableProperty, ReadableProperty, OptionalProperty
-from bacpypes.primitivedata import Unsigned, Integer, Boolean
+from bacpypes.primitivedata import Unsigned, Integer, Boolean, Real
 from bacpypes.constructeddata import AnyAtomic, Array, ArrayOf, Choice, Element, \
     Sequence, SequenceOf
 from bacpypes.basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
@@ -52,9 +52,8 @@ class TestObjectHelper():
     # the write error function could choose a random value not instance of datatype..
     # or to be sure test every test values with wrong datatype...
     writeValues = [
-                -1,
-                0,
                 'Test String',
+                Real(0),
                 Unsigned(0),
                 DoorValue(0),    
                 ]
@@ -100,20 +99,22 @@ class TestObjectHelper():
                 for each in TestObjectHelper.writeValues:
                     if isinstance(each,actualDatatype):
                         obj.WriteProperty(actualProperty,each)
+        #TestObjectHelper.object_cannot_write_wrong_property_to_writableProperty(self,obj)
         #assert True
     
     def object_cannot_write_wrong_property_to_writableProperty(self, obj):
         if _debug: self._debug("test_object_%s_can_write_to_writableProperty" % obj.objectType)
-        with self.assertRaises(ExecutionError):        
+        with self.assertRaises(ValueError):        
             for each in self.listOfProperties:
                 if each[0] == WritableProperty:
                     actualDatatype = each[2]
                     actualProperty = each[1]
-                                    
+                    
                     for each in TestObjectHelper.writeValues:
                         if not isinstance(each,actualDatatype):
+                            if _debug: self._debug("actualDatatype : %s / actualProperty : %s | value : %s" % (actualDatatype,actualProperty, each))                
                             obj.WriteProperty(actualProperty,each)
-        #assert True    
+    #assert True    
     
     def object_can_read_property(self, obj):
         if _debug: self._debug("test_object_%s_can_read_property" % obj.objectType)
