@@ -35,7 +35,7 @@ from bacpypes.basetypes import AccessCredentialDisable, AccessCredentialDisableR
     PropertyIdentifier, Recipient, Reliability, RestartReason, Scale, \
     SecurityKeySet, SecurityLevel, Segmentation, ServicesSupported, \
     SetpointReference, ShedLevel, ShedState, SilencedState, SpecialEvent, \
-    StatusFlags, TimeStamp, VTClass, VTSession, WriteStatus
+    StatusFlags, TimeStamp, VTClass, VTSession, WriteStatus, SecurityLevel
 from bacpypes.errors import ConfigurationError, ExecutionError
 
 
@@ -61,7 +61,8 @@ class TestObjectHelper():
                 ProgramRequest(),
                 LifeSafetyMode(),
                 LightingCommand(),
-                ShedLevel()
+                ShedLevel(),
+                SecurityLevel(0)
                 ]
     
     def build_list_of_identifiers(self, properties):
