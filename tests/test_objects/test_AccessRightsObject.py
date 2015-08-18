@@ -78,5 +78,6 @@ class Test_AccessRightsObject(unittest.TestCase, TestObjectHelper):
         self.object_property_dataType(self.obj)
         self.object_noWritingToReadableProperty(self.obj,self.writeValue)
         self.object_can_write_to_writableProperty(self.obj,self.writeValue)
+        self.object_cannot_write_wrong_property_to_writableProperty(self.obj)
         self.object_can_read_property(self.obj)
         

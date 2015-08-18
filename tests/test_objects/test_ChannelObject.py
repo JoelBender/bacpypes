@@ -90,8 +90,8 @@ class Test_ChannelObject(unittest.TestCase, TestObjectHelper):
         self.object_property_identifiers(self.obj)
         self.object_property_dataType(self.obj)
         self.object_noWritingToReadableProperty(self.obj,self.writeValue)
-        #TODO Object not completed
-        #self.object_can_write_to_writableProperty(self.obj,self.writeValue)
-        #self.object_cannot_write_wrong_property_to_writableProperty(self.obj)
+        #TODO ChannelValue not implmented        
+        self.object_can_write_to_writableProperty(self.obj,self.writeValue)
+        self.object_cannot_write_wrong_property_to_writableProperty(self.obj)
         self.object_can_read_property(self.obj)
         
