@@ -10,7 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.object import AccessCredentialObject, WritableProperty, ReadableProperty, OptionalProperty
-from bacpypes.primitivedata import Unsigned, Integer, Boolean, Real, Date
+from bacpypes.primitivedata import Unsigned, Integer, Boolean, Real, Date, Time
 from bacpypes.constructeddata import AnyAtomic, Array, ArrayOf, Choice, Element, \
     Sequence, SequenceOf
 from bacpypes.basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
@@ -51,6 +51,9 @@ class TestObjectHelper():
     # the write function could choose the good value based on the type
     # the write error function could choose a random value not instance of datatype..
     # or to be sure test every test values with wrong datatype...
+    nsp = NetworkSecurityPolicy(portId=2, securityLevel='plainTrusted')
+    ens = EventNotificationSubscription()
+    dopr = DeviceObjectPropertyReference()
     writeValues = [
                 'Test String',
                 Real(0),
@@ -62,7 +65,16 @@ class TestObjectHelper():
                 LifeSafetyMode(),
                 LightingCommand(),
                 ShedLevel(),
-                SecurityLevel(0)
+                SecurityLevel(0),
+                DateTime(date=Date(year=2015,month=8,day=18), time=Time(hour=10,minute=0)),
+                NetworkSecurityPolicy(portId=2, securityLevel='plainTrusted'),
+                ArrayOf(Integer)( [1, 2, 3, 4] ),
+                ArrayOf(Unsigned)( [1, 2, 3, 4] ),
+                ArrayOf(NetworkSecurityPolicy)([nsp, nsp, nsp, nsp]),
+                AddressBinding(),
+                SequenceOf(EventNotificationSubscription)([ens, ens, ens]),
+                ArrayOf(DeviceObjectPropertyReference)([dopr,dopr,dopr]),
+                ChannelValue()
                 ]
     
     def build_list_of_identifiers(self, properties):
