@@ -128,18 +128,25 @@ class TestObjectHelper():
     
     def object_cannot_write_wrong_property_to_writableProperty(self, obj):
         if _debug: self._debug("test_object_%s_can_write_to_writableProperty" % obj.objectType)
-        try:
-            for each in self.listOfProperties:
-                if each[0] == WritableProperty:
-                    actualDatatype = each[2]
-                    actualProperty = each[1]
-                    
-                    for each in TestObjectHelper.writeValues:
-                        if not isinstance(each,actualDatatype):
-                            if _debug: self._debug("actualDatatype : %s / actualProperty : %s | value : %s" % (actualDatatype,actualProperty, each))                
+        nmbrOfSuccess = 0
+        nmbrOfFailures = 0
+        nmbrOfWritableProperties = 0
+        
+        for each in self.listOfProperties:
+            if each[0] == WritableProperty:
+                nmbrOfWritableProperties += 1
+                actualDatatype = each[2]
+                actualProperty = each[1]
+                for each in TestObjectHelper.writeValues:
+                    if not isinstance(each,actualDatatype):
+                        if _debug: self._debug("actualDatatype : %s / actualProperty : %s | value : %s" % (actualDatatype,actualProperty, each))                
+                        try:                            
                             obj.WriteProperty(actualProperty,each)
-        except (TypeError, ValueError):
-            assert True    
+                            nmbrOfSuccess += 1
+                        except (TypeError, ValueError):
+                            nmbrOfFailures += 1
+        self.assertEqual(nmbrOfSuccess,0)
+        #self.assertEqual(nmbrOfWritableProperties,nmbrOfFailures)
     
     def object_can_read_property(self, obj):
         if _debug: self._debug("test_object_%s_can_read_property" % obj.objectType)
