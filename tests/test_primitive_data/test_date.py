@@ -9,7 +9,7 @@ Test Primitive Data Date
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Date, Tag
+from bacpypes.primitivedata import Date, Tag, DecodingError
 
 # some debugging
 _debug = 0
@@ -140,9 +140,8 @@ class TestDate(unittest.TestCase):
     def test_date_endec(self):
         if _debug: TestDate._debug("test_date_endec")
 
-        ### this should raise a decoding error
-        # with self.assertRaises(IndexError):
-        #    obj = Date(date_tag(''))
+#       with self.assertRaises(DecodingError):
+#           obj = Date(date_tag(''))
 
         date_endec((0, 0, 0, 0), '00000000')
         date_endec((1, 0, 0, 0), '01000000')

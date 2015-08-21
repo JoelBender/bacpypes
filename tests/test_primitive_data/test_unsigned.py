@@ -9,7 +9,7 @@ Test Primitive Data Unsigned
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Unsigned, Tag
+from bacpypes.primitivedata import Unsigned, Tag, DecodingError
 
 # some debugging
 _debug = 0
@@ -119,7 +119,7 @@ class TestUnsigned(unittest.TestCase):
     def test_unsigned_endec(self):
         if _debug: TestUnsigned._debug("test_unsigned_endec")
 
-#       with self.assertRaises(IndexError):
+#       with self.assertRaises(DecodingError):
 #           obj = Unsigned(unsigned_tag(''))
 
         unsigned_endec(0, '00')

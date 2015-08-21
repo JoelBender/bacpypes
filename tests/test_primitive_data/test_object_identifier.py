@@ -9,7 +9,7 @@ Test Primitive Data Object Identifier
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import ObjectIdentifier, Tag
+from bacpypes.primitivedata import ObjectIdentifier, Tag, DecodingError
 
 # some debugging
 _debug = 0
@@ -123,7 +123,7 @@ class TestObjectIdentifier(unittest.TestCase):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_endec")
 
         ### this should raise a DecodingError
-        # with self.assertRaises(IndexError):
+        # with self.assertRaises(DecodingError):
         #     obj = ObjectIdentifier(object_identifier_tag(''))
 
         # test standard types
