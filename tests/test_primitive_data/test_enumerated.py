@@ -122,18 +122,17 @@ class TestEnumerated(unittest.TestCase):
 #       with self.assertRaises(DecodingError):
 #           obj = Enumerated(enumerated_tag(''))
 
-        if 0:
-            enumerated_endec(0, '00')
-            enumerated_endec(1, '01')
-            enumerated_endec(127, '7f')
-            enumerated_endec(128, '80')
-            enumerated_endec(255, 'ff')
+        enumerated_endec(0, '00')
+        enumerated_endec(1, '01')
+        enumerated_endec(127, '7f')
+        enumerated_endec(128, '80')
+        enumerated_endec(255, 'ff')
 
-            enumerated_endec(32767, '7fff')
-            enumerated_endec(32768, '8000')
+        enumerated_endec(32767, '7fff')
+        enumerated_endec(32768, '8000')
 
-            enumerated_endec(8388607, '7fffff')
-            enumerated_endec(8388608, '800000')
+        enumerated_endec(8388607, '7fffff')
+        enumerated_endec(8388608, '800000')
 
-            enumerated_endec(2147483647, '7fffffff')
-            enumerated_endec(2147483648, '80000000')
+        enumerated_endec(2147483647, '7fffffff')
+        enumerated_endec(2147483648, '80000000')
