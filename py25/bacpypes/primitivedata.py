@@ -1051,7 +1051,7 @@ class Enumerated(Atomic):
     def encode(self, tag):
         if isinstance(self.value, int):
             value = long(self.value)
-        if isinstance(self.value, long):
+        elif isinstance(self.value, long):
             value = self.value
         elif isinstance(self.value, str):
             value = self._xlate_table[self.value]
