@@ -16,8 +16,6 @@ from bacpypes.primitivedata import Tag, ApplicationTag, ContextTag, \
     DecodingError
 from bacpypes.pdu import PDUData
 
-from test_integer import integer_tag
-from test_unsigned import unsigned_tag
 
 # some debugging
 _debug = 0
@@ -27,6 +25,16 @@ _log = ModuleLogger(globals())
 def tag_tuple(tag):
     """Simple function to decompose a tag for debugging."""
     return (tag.tagClass, tag.tagNumber, tag.tagLVT, tag.tagData)
+
+
+@bacpypes_debugging
+def IntegerTag(v):
+    """Return an application encoded integer tag with the appropriate value.
+    """
+    obj = Integer(v)
+    tag = Tag()
+    obj.encode(tag)
+    return tag
 
 
 @bacpypes_debugging
@@ -472,7 +480,7 @@ class TestTagList(unittest.TestCase):
     def test_peek(self):
         if _debug: TestTagList._debug("test_peek")
 
-        tag0 = integer_tag('00')
+        tag0 = IntegerTag(0)
         taglist = TagList([tag0])
 
         # peek at the first tag
@@ -495,9 +503,9 @@ class TestTagList(unittest.TestCase):
             ContextTag(0, xtob('00')),
             ContextTag(1, xtob('01')),
             OpeningTag(2),
-            integer_tag('03'),
+            IntegerTag(3),
             OpeningTag(0),
-            integer_tag('04'),
+            IntegerTag(4),
             ClosingTag(0),
             ClosingTag(2),
         ]
@@ -538,8 +546,8 @@ class TestTagList(unittest.TestCase):
         """
         if _debug: TestTagList._debug("test_endec_1")
 
-        tag0 = integer_tag('00')
-        tag1 = integer_tag('01')
+        tag0 = IntegerTag(0x00)
+        tag1 = IntegerTag(0x01)
         taglist = TagList([tag0, tag1])
 
         data = PDUData()
@@ -572,7 +580,7 @@ class TestTagList(unittest.TestCase):
         if _debug: TestTagList._debug("test_endec_2")
 
         tag0 = OpeningTag(0)
-        tag1 = integer_tag('0102')
+        tag1 = IntegerTag(0x0102)
         tag2 = ClosingTag(0)
         taglist = TagList([tag0, tag1, tag2])
 
