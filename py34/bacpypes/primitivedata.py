@@ -797,14 +797,15 @@ class CharacterString(Atomic):
     def __init__(self, arg=None):
         self.value = ''
         self.strEncoding = 0
-        self.strValue = ''
+        self.strValue = b''
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, str):
-            self.strValue = self.value = arg
+            self.value = arg
+            self.strValue = arg.encode('utf-8')
         elif isinstance(arg, CharacterString):
             self.value = arg.value
             self.strEncoding = arg.strEncoding
@@ -814,7 +815,7 @@ class CharacterString(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.characterStringAppTag, (chr(self.strEncoding)+self.strValue.encode('latin-1')))
+        tag.set_app_data(Tag.characterStringAppTag, bytes([self.strEncoding]) + self.strValue)
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
@@ -829,26 +830,18 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf-8')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf-8')
         elif (self.strEncoding == 3):
-            udata = self.strValue.decode('utf_32be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
-            udata = self.strValue.decode('utf_16be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_16be')
         elif (self.strEncoding == 5):
-            udata = self.strValue.decode('latin_1')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('latin_1')
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
+        return "CharacterString(%d," % (self.strEncoding,) + repr(self.value) + ")"
 
 #
 #   BitString
