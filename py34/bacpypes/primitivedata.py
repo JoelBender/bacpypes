@@ -1127,9 +1127,15 @@ def expand_enumerations(klass):
 #
 
 class Date(Atomic):
+    """
+    Date object
+    """
 
     _app_tag = Tag.dateAppTag
-    _date_regex = re.compile(r"^([*]|\d+)[/]([*]|\d+)[/]([*]|\d+)(?:\s([*]|\w+))?$")
+    _date_regex_mmddyyyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{4}$')
+    _date_regex_ddmmyyyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{4}$')
+    _date_regex_mmddyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{2}$')
+    _date_regex_ddmmyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{2}$')
     _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
     DONT_CARE = 255
@@ -1144,8 +1150,22 @@ class Date(Atomic):
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            date_match = Date._date_regex.match(arg)
-            if not date_match:
+            if Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg):
+                #Will be mmddyyyy                
+                pass
+            elif Date._date_regex_ddmmyyyy.match(arg) and not Date._date_regex_mmddyyyy.match(arg) :
+                #will be ddmmyyyy                
+                pass
+            elif Date._date_regex_ddmmyyyy.match(arg) and Date._date_regex_mmddyyyy.match(arg) :
+                #will be ddmmyyyy                
+                pass            
+            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
+                pass
+            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg):
+                pass
+            elif Date._date_regex_mmddyy.match(arg) and Date._date_regex_mmddyy.match(arg):
+                pass
+            else:
                 raise ValueError("invalid date pattern")
             date_groups = date_match.groups()
 
@@ -1154,7 +1174,7 @@ class Date(Atomic):
             for s in date_groups[:3]:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
+                elif s is None:
                     tup_list.append(0)
                 else:
                     tup_list.append(int(s))
@@ -1162,7 +1182,7 @@ class Date(Atomic):
             # clean up the year
             if (tup_list[2] < 100):
                 tup_list[2] += 2000
-            tup_list[2] -= 1900
+            #tup_list[1] -= 1900
 
             # day-of-week madness
             dow = date_groups[3]
