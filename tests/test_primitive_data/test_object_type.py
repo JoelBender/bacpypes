@@ -97,12 +97,12 @@ class TestObjectType(unittest.TestCase):
         # known values are translated into strings
         obj = ObjectType(0)
         assert obj.value == 'analogInput'
-        assert str(obj) == "Enumerated(analogInput)"
+        assert str(obj) == "ObjectType(analogInput)"
 
         # unknown values are kept as integers
         obj = ObjectType(127)
         assert obj.value == 127
-        assert str(obj) == "Enumerated(127)"
+        assert str(obj) == "ObjectType(127)"
 
     def test_object_type_str(self):
         if _debug: TestObjectType._debug("test_object_type_str")
@@ -110,6 +110,30 @@ class TestObjectType(unittest.TestCase):
         # known strings are accepted
         obj = ObjectType('analogInput')
         assert obj.value == 'analogInput'
+
+    def test_extended_object_type_int(self):
+        if _debug: TestObjectType._debug("test_extended_object_type_int")
+
+        # known values are translated into strings
+        obj = MyObjectType(0)
+        assert obj.value == 'analogInput'
+        assert str(obj) == "MyObjectType(analogInput)"
+
+        # unknown values are kept as integers
+        obj = MyObjectType(128)
+        assert obj.value == 'myAnalogInput'
+        assert str(obj) == "MyObjectType(myAnalogInput)"
+
+    def test_extended_object_type_str(self):
+        if _debug: TestObjectType._debug("test_extended_object_type_str")
+
+        # known strings are accepted
+        obj = MyObjectType('myAnalogInput')
+        assert obj.value == 'myAnalogInput'
+
+        # unknown strings are rejected
+        with self.assertRaises(ValueError):
+            MyObjectType('snork')
 
     def test_object_type_tag(self):
         if _debug: TestObjectType._debug("test_object_type_tag")
