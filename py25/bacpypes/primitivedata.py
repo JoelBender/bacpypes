@@ -92,17 +92,13 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
-        # check for special encoding of open and close tags
-        if (self.tagClass == Tag.openingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0E)
-            return
-        if (self.tagClass == Tag.closingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0F)
-            return
-
-        # check for context encoding
+        # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
+        elif (self.tagClass == Tag.openingTagClass):
+            data = 0x0E
+        elif (self.tagClass == Tag.closingTagClass):
+            data = 0x0F
         else:
             data = 0x00
 
