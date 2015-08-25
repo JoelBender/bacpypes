@@ -444,7 +444,8 @@ class TestOpeningTag(unittest.TestCase):
         opening_endec(2, '2E')
         opening_endec(3, '3E')
         opening_endec(14, 'EE')
-#       opening_endec(15, 'FE0F')
+        opening_endec(15, 'FE0F')
+        opening_endec(254, 'FEFE')
 
 
 @bacpypes_debugging
@@ -464,7 +465,8 @@ class TestClosingTag(unittest.TestCase):
         closing_endec(2, '2F')
         closing_endec(3, '3F')
         closing_endec(14, 'EF')
-#       closing_endec(15, 'FE0F')
+        closing_endec(15, 'FF0F')
+        closing_endec(254, 'FFFE')
 
 
 @bacpypes_debugging
