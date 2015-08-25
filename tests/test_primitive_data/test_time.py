@@ -88,9 +88,12 @@ class TestTime(unittest.TestCase):
         assert obj.value == (1, 2, 3, 4)
         assert str(obj) == "Time(01:02:03.04)"
 
-        ### issue-47
-        # obj = Time("01:02:03.04")
-        # assert obj.value == (1, 2, 3, 4)
+        assert Time("1:2").value == (1, 2, 0, 0)
+        assert Time("1:2:3").value == (1, 2, 3, 0)
+        assert Time("1:2:3.4").value == (1, 2, 3, 40)
+        assert Time("1:*").value == (1, 255, 255, 255)
+        assert Time("1:2:*").value == (1, 2, 255, 255)
+        assert Time("1:2:3.*").value == (1, 2, 3, 255)
 
     def test_time_tag(self):
         if _debug: TestTime._debug("test_time_tag")

@@ -1259,11 +1259,15 @@ class Time(Atomic):
                 raise ValueError("invalid time pattern")
 
             tup_list = []
-            for s in tup_match:
+            tup_items = list(tup_match.groups())
+            for s in tup_items:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
+                elif s is None:
+                    if '*' in tup_items:
+                        tup_list.append(255)
+                    else:
+                        tup_list.append(0)
                 else:
                     tup_list.append(int(s))
 
