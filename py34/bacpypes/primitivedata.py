@@ -1406,12 +1406,12 @@ class ObjectIdentifier(Atomic):
                 self.set_long(arg)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
+            elif isinstance(arg, ObjectIdentifier):
+                self.value = arg.value
             else:
                 raise TypeError("invalid constructor datatype")
         elif len(args) == 2:
             self.set_tuple(*args)
-        elif isinstance(arg, ObjectIdentifier):
-            self.value = arg.value
         else:
             raise ValueError("invalid constructor parameters")
 
