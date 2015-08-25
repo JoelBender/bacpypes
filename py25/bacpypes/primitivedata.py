@@ -1080,7 +1080,7 @@ class Enumerated(Atomic):
         self.value = rslt
 
     def __str__(self):
-        return "Enumerated(%s)" % (self.value,)
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 #
 #   expand_enumerations
@@ -1089,13 +1089,17 @@ class Enumerated(Atomic):
 def expand_enumerations(klass):
     # build a value dictionary
     xlateTable = {}
-    for name, value in klass.enumerations.items():
-        # save the results
-        xlateTable[name] = value
-        xlateTable[value] = name
 
-        # save the name in the class
-        setattr(klass, name, value)
+    for c in klass.__mro__:
+        enumerations = getattr(c, 'enumerations', {})
+        if enumerations:
+            for name, value in enumerations.items():
+                # save the results
+                xlateTable[name] = value
+                xlateTable[value] = name
+
+                # save the name in the class
+                setattr(klass, name, value)
 
     # save the dictionary in the class
     setattr(klass, '_xlate_table', xlateTable)
