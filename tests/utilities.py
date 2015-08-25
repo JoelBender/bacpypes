@@ -6,9 +6,13 @@ BACpypes Testing Utilities
 """
 
 import os
+from time import time as _time
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
+
+# use a task manager specific to testing
+from .time_machine import TimeMachine
 
 # some debugging
 _debug = 0
@@ -21,11 +25,12 @@ BACPYPES_TEST_OPTION = ""
 # parsed test options
 test_options = None
 
+
 #
 #   setUpPackage
 #
 
-
+@bacpypes_debugging
 def setUpPackage():
     global test_options
 
@@ -44,15 +49,14 @@ def setUpPackage():
     if _debug: setUpPackage._debug("setUpPackage")
     if _debug: setUpPackage._debug("    - test_options: %r", test_options)
 
-bacpypes_debugging(setUpPackage)
-
+    time_machine = TimeMachine()
+    if _debug: setUpPackage._debug("    - time_machine: %r", time_machine)
 
 #
 #   tearDownPackage
 #
 
 
+@bacpypes_debugging
 def tearDownPackage():
     if _debug: tearDownPackage._debug("tearDownPackage")
-
-bacpypes_debugging(tearDownPackage)

@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name='bacpypes',
-    version="0.13.0",
+    version="0.13.1",
     description="Testing multiple versions of python",
     long_description="This is a long line of text",
     author="Joel Bender",
@@ -47,10 +47,9 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
     ],
     test_suite='nose.collector',
