@@ -92,17 +92,13 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
-        # check for special encoding of open and close tags
-        if (self.tagClass == Tag.openingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0E)
-            return
-        if (self.tagClass == Tag.closingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0F)
-            return
-
-        # check for context encoding
+        # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
+        elif (self.tagClass == Tag.openingTagClass):
+            data = 0x0E
+        elif (self.tagClass == Tag.closingTagClass):
+            data = 0x0F
         else:
             data = 0x00
 
@@ -797,14 +793,15 @@ class CharacterString(Atomic):
     def __init__(self, arg=None):
         self.value = ''
         self.strEncoding = 0
-        self.strValue = ''
+        self.strValue = b''
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, str):
-            self.strValue = self.value = arg
+            self.value = arg
+            self.strValue = arg.encode('utf-8')
         elif isinstance(arg, CharacterString):
             self.value = arg.value
             self.strEncoding = arg.strEncoding
@@ -814,7 +811,7 @@ class CharacterString(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.characterStringAppTag, (chr(self.strEncoding)+self.strValue.encode('latin-1')))
+        tag.set_app_data(Tag.characterStringAppTag, bytes([self.strEncoding]) + self.strValue)
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
@@ -829,26 +826,18 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf-8')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf-8')
         elif (self.strEncoding == 3):
-            udata = self.strValue.decode('utf_32be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
-            udata = self.strValue.decode('utf_16be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_16be')
         elif (self.strEncoding == 5):
-            udata = self.strValue.decode('latin_1')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('latin_1')
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
+        return "CharacterString(%d," % (self.strEncoding,) + repr(self.value) + ")"
 
 #
 #   BitString
@@ -1102,7 +1091,7 @@ class Enumerated(Atomic):
         self.value = rslt
 
     def __str__(self):
-        return "Enumerated(%s)" % (self.value,)
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 #
 #   expand_enumerations
@@ -1111,13 +1100,17 @@ class Enumerated(Atomic):
 def expand_enumerations(klass):
     # build a value dictionary
     xlateTable = {}
-    for name, value in klass.enumerations.items():
-        # save the results
-        xlateTable[name] = value
-        xlateTable[value] = name
 
-        # save the name in the class
-        setattr(klass, name, value)
+    for c in klass.__mro__:
+        enumerations = getattr(c, 'enumerations', {})
+        if enumerations:
+            for name, value in enumerations.items():
+                # save the results
+                xlateTable[name] = value
+                xlateTable[value] = name
+
+                # save the name in the class
+                setattr(klass, name, value)
 
     # save the dictionary in the class
     setattr(klass, '_xlate_table', xlateTable)
@@ -1266,11 +1259,15 @@ class Time(Atomic):
                 raise ValueError("invalid time pattern")
 
             tup_list = []
-            for s in tup_match:
+            tup_items = list(tup_match.groups())
+            for s in tup_items:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
+                elif s is None:
+                    if '*' in tup_items:
+                        tup_list.append(255)
+                    else:
+                        tup_list.append(0)
                 else:
                     tup_list.append(int(s))
 
@@ -1409,12 +1406,12 @@ class ObjectIdentifier(Atomic):
                 self.set_long(arg)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
+            elif isinstance(arg, ObjectIdentifier):
+                self.value = arg.value
             else:
                 raise TypeError("invalid constructor datatype")
         elif len(args) == 2:
             self.set_tuple(*args)
-        elif isinstance(arg, ObjectIdentifier):
-            self.value = arg.value
         else:
             raise ValueError("invalid constructor parameters")
 
