@@ -34,7 +34,6 @@ this_console = None
 #   WhoIsIAmApplication
 #
 
-@bacpypes_debugging
 class WhoIsIAmApplication(BIPSimpleApplication):
 
     def __init__(self, *args):
@@ -85,11 +84,12 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # forward it along
         BIPSimpleApplication.indication(self, apdu)
 
+bacpypes_debugging(WhoIsIAmApplication)
+
 #
 #   WhoIsIAmConsoleCmd
 #
 
-@bacpypes_debugging
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
@@ -139,6 +139,8 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 
         except Exception, e:
             WhoIsIAmConsoleCmd._exception("exception: %r", e)
+
+bacpypes_debugging(WhoIsIAmConsoleCmd)
 
 #
 #   __main__
