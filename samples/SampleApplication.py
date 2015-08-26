@@ -29,7 +29,6 @@ this_application = None
 #   SampleApplication
 #
 
-@bacpypes_debugging
 class SampleApplication(BIPSimpleApplication):
 
     def __init__(self, device, address):
@@ -51,6 +50,8 @@ class SampleApplication(BIPSimpleApplication):
     def confirmation(self, apdu):
         if _debug: SampleApplication._debug("confirmation %r", apdu)
         BIPSimpleApplication.confirmation(self, apdu)
+
+bacpypes_debugging(SampleApplication)
 
 #
 #   __main__
