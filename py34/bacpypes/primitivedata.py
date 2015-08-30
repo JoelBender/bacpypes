@@ -1132,17 +1132,20 @@ class Date(Atomic):
     """
 
     _app_tag = Tag.dateAppTag
-    _date_regex_mmddyyyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{4}$')
-    _date_regex_ddmmyyyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{4}$')
-    _date_regex_mmddyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{2}$')
-    _date_regex_ddmmyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{2}$')
+    _date_regex_mmddyyyy = re.compile(r'([0-1]*\d)[-/]([0-3]*\d)[-/](\d{4}$)')
+    _date_regex_yyyymmdd = re.compile(r'(\d{4})[-/]([0-1]*\d)[-/]([0-3]*\d$)')
+    _date_regex_ddmmyyyy = re.compile(r'([0-3]*\d)[-/]([0-1]*\d)[-/](\d{4}$)')
+    _date_regex_mmddyy = re.compile(r'([0-1]*\d)[-/]([0-3]*\d)[-/](\d{2}$)')
+    _date_regex_ddmmyy = re.compile(r'([0-3]*\d)[-/]([0-1]*\d)[-/](\d{2}$)')
+    _date_regex_dmy = re.compile(r'(\d)[-/](\d)[-/](\d$)')
     _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
     DONT_CARE = 255
 
     def __init__(self, arg=None, year=255, month=255, day=255, dayOfWeek=255):
         self.value = (year, month, day, dayOfWeek)
-
+        date_groups = [0,0,0,None]
+        
         if arg is None:
             pass
         elif isinstance(arg,Tag):
@@ -1150,25 +1153,39 @@ class Date(Atomic):
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            if Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg):
-                #Will be mmddyyyy                
-                pass
+            if (Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg)):
+                #Will be mmddyyyy    
+                month, day, year = Date._date_regex_mmddyyyy.match(arg).groups()
+            
+            elif Date._date_regex_yyyymmdd.match(arg):
+                #will be yyyymmdd  
+                year, month, day = Date._date_regex_yyyymmdd.match(arg).groups()   
+                   
             elif Date._date_regex_ddmmyyyy.match(arg) and not Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy                
-                pass
+                #will be ddmmyyyy  
+                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()             
+                
             elif Date._date_regex_ddmmyyyy.match(arg) and Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy                
-                pass            
-            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
-                pass
-            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg):
-                pass
-            elif Date._date_regex_mmddyy.match(arg) and Date._date_regex_mmddyy.match(arg):
-                pass
+                #will be ddmmyyyy 
+                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()
+                            
+            elif Date._date_regex_ddmmyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
+                day, month, year = Date._date_regex_ddmmyy.match(arg).groups()                
+                
+            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_ddmmyy.match(arg):
+                month, day, year = Date._date_regex_mmddyy.match(arg).groups()                 
+                
+            elif Date._date_regex_ddmmyy.match(arg) and Date._date_regex_mmddyy.match(arg):
+                day, month, year = Date._date_regex_ddmmyy.match(arg).groups() 
+            elif Date._date_regex_dmy.match(arg):
+                day, month, year = Date._date_regex_dmy.match(arg).groups() 
             else:
                 raise ValueError("invalid date pattern")
-            date_groups = date_match.groups()
 
+
+            date_groups[0] = year
+            date_groups[1] = month
+            date_groups[2] = day
             # day/month/year
             tup_list = []
             for s in date_groups[:3]:
@@ -1180,8 +1197,8 @@ class Date(Atomic):
                     tup_list.append(int(s))
 
             # clean up the year
-            if (tup_list[2] < 100):
-                tup_list[2] += 2000
+            if (tup_list[0] < 100):
+                tup_list[0] += 1900
             #tup_list[1] -= 1900
 
             # day-of-week madness
@@ -1251,7 +1268,7 @@ class Date(Atomic):
         if year == 255:
             rslt += "* "
         else:
-            rslt += "%d " % (year + 1900,)
+            rslt += "%d " % (year,)
         if dayOfWeek == 255:
             rslt += "*)"
         else:
