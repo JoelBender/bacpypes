@@ -797,15 +797,14 @@ class CharacterString(Atomic):
     def __init__(self, arg=None):
         self.value = ''
         self.strEncoding = 0
-        self.strValue = b''
+        self.strValue = ''
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, str):
-            self.value = arg
-            self.strValue = arg.encode('utf-8')
+            self.strValue = self.value = arg
         elif isinstance(arg, CharacterString):
             self.value = arg.value
             self.strEncoding = arg.strEncoding
@@ -815,7 +814,7 @@ class CharacterString(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.characterStringAppTag, bytes([self.strEncoding]) + self.strValue)
+        tag.set_app_data(Tag.characterStringAppTag, (chr(self.strEncoding)+self.strValue.encode('latin-1')))
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
@@ -830,18 +829,26 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            self.value = self.strValue.decode('utf-8')
+            udata = self.strValue.decode('utf-8')
+            self.value = str(udata)
+            #self.value = str(udata.encode('ascii', 'backslashreplace'))
         elif (self.strEncoding == 3):
-            self.value = self.strValue.decode('utf_32be')
+            udata = self.strValue.decode('utf_32be')
+            self.value = str(udata)
+            #self.value = str(udata.encode('ascii', 'backslashreplace'))
         elif (self.strEncoding == 4):
-            self.value = self.strValue.decode('utf_16be')
+            udata = self.strValue.decode('utf_16be')
+            self.value = str(udata)
+            #self.value = str(udata.encode('ascii', 'backslashreplace'))
         elif (self.strEncoding == 5):
-            self.value = self.strValue.decode('latin_1')
+            udata = self.strValue.decode('latin_1')
+            self.value = str(udata)
+            #self.value = str(udata.encode('ascii', 'backslashreplace'))
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.value) + ")"
+        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
 
 #
 #   BitString
@@ -1030,7 +1037,7 @@ class Enumerated(Atomic):
     def keylist(self):
         """Return a list of names in order by value."""
         items = self.enumerations.items()
-        items.sort(lambda a, b: cmp(a[1], b[1]))
+        items.sort(lambda a, b: self.cmp(a[1], b[1]))
 
         # last item has highest value
         rslt = [None] * (items[-1][1] + 1)
@@ -1125,17 +1132,21 @@ class Date(Atomic):
     """
 
     _app_tag = Tag.dateAppTag
-    _date_regex_mmddyyyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{4}$')
-    _date_regex_ddmmyyyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{4}$')
-    _date_regex_mmddyy = re.compile(r'[0-1]*\d[-/][0-3]*\d[-/]\d{2}$')
-    _date_regex_ddmmyy = re.compile(r'[0-3]*\d[-/][0-1]*\d[-/]\d{2}$')
+    _date_regex_mmddyyyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{4}$|[*]$)')
+    _date_regex_yyyymmdd = re.compile(r'(\d{4}|[*])[-/]([0-1]*\d|[*])[-/]([0-3]*\d$|[*]$)')
+    _date_regex_ddmmyyyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{4}$|[*]$)')
+    _date_regex_yymmdd = re.compile(r'(\d{2}|[*])[-/]([0-3]*\d|[*])[-/]([0-1]*\d$|[*]$)')
+    _date_regex_mmddyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{2}$|[*]$)')
+    _date_regex_ddmmyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{2}$|[*]$)')
+    _date_regex_dmy = re.compile(r'(\d|[*])[-/](\d|[*])[-/](\d|[*]$)')
     _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
     DONT_CARE = 255
 
     def __init__(self, arg=None, year=255, month=255, day=255, dayOfWeek=255):
         self.value = (year, month, day, dayOfWeek)
-
+        date_groups = [0,0,0,None]
+        
         if arg is None:
             pass
         elif isinstance(arg,Tag):
@@ -1143,25 +1154,43 @@ class Date(Atomic):
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            if Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg):
-                #Will be mmddyyyy                
-                pass
+            if (Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg)):
+                #Will be mmddyyyy    
+                month, day, year = Date._date_regex_mmddyyyy.match(arg).groups()
+            
+            elif Date._date_regex_yyyymmdd.match(arg):
+                #will be yyyymmdd  
+                year, month, day = Date._date_regex_yyyymmdd.match(arg).groups()   
+            
+            elif Date._date_regex_yymmdd.match(arg):
+                #will be ddmmyyyy  
+                year, month, day = Date._date_regex_yymmdd.match(arg).groups()  
+                   
             elif Date._date_regex_ddmmyyyy.match(arg) and not Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy                
-                pass
+                #will be ddmmyyyy  
+                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()             
+                
             elif Date._date_regex_ddmmyyyy.match(arg) and Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy                
-                pass            
-            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
-                pass
-            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_mmddyy.match(arg):
-                pass
-            elif Date._date_regex_mmddyy.match(arg) and Date._date_regex_mmddyy.match(arg):
-                pass
+                #will be ddmmyyyy 
+                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()
+                            
+            elif Date._date_regex_ddmmyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
+                day, month, year = Date._date_regex_ddmmyy.match(arg).groups()                
+                
+            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_ddmmyy.match(arg):
+                month, day, year = Date._date_regex_mmddyy.match(arg).groups()                 
+                
+            elif Date._date_regex_ddmmyy.match(arg) and Date._date_regex_mmddyy.match(arg):
+                day, month, year = Date._date_regex_ddmmyy.match(arg).groups() 
+            elif Date._date_regex_dmy.match(arg):
+                day, month, year = Date._date_regex_dmy.match(arg).groups() 
             else:
                 raise ValueError("invalid date pattern")
-            date_groups = date_match.groups()
 
+
+            date_groups[0] = year
+            date_groups[1] = month
+            date_groups[2] = day
             # day/month/year
             tup_list = []
             for s in date_groups[:3]:
@@ -1173,14 +1202,14 @@ class Date(Atomic):
                     tup_list.append(int(s))
 
             # clean up the year
-            if (tup_list[2] < 100):
-                tup_list[2] += 2000
+            if (tup_list[0] < 100):
+                tup_list[0] += 1900
             #tup_list[1] -= 1900
 
             # day-of-week madness
             dow = date_groups[3]
             if dow is None:
-                tup_list.append(0)
+                tup_list.append(255)
             elif (dow == '*'):
                 tup_list.append(255)
             elif dow.isdigit():
@@ -1192,6 +1221,7 @@ class Date(Atomic):
                 tup_list.append(Date._day_names.index(dow))
 
             self.value = tuple(tup_list)
+            self.CalcDayOfWeek()
         elif isinstance(arg, Date):
             self.value = arg.value
         else:
@@ -1199,20 +1229,22 @@ class Date(Atomic):
 
     def now(self):
         tup = time.localtime()
-
         self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
-
         return self
 
     def CalcDayOfWeek(self):
         """Calculate the correct day of the week."""
         # rip apart the value
         year, month, day, dayOfWeek = self.value
-
+        
         # make sure all the components are defined
         if (year != 255) and (month != 255) and (day != 255):
-            today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
-            dayOfWeek = time.gmtime(today)[6] + 1
+            try:            
+                today = time.mktime( (year, month, day, 0, 0, 0, 0, 0, -1) )
+                dayOfWeek = time.gmtime(today)[6] + 1
+            except OverflowError:
+                # If date before epoch... won't find dow
+                dayOfWeek = 255
 
         # put it back together
         self.value = (year, month, day, dayOfWeek)
@@ -1233,18 +1265,19 @@ class Date(Atomic):
         year, month, day, dayOfWeek = self.value
 
         rslt = "Date("
+        if year == 255:
+            rslt += "*/"
+        else:
+            rslt += "%d/" % (year,)
         if month == 255:
             rslt += "*/"
         else:
             rslt += "%d/" % (month,)
         if day == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (day,)
-        if year == 255:
             rslt += "* "
         else:
-            rslt += "%d " % (year + 1900,)
+            rslt += "%d " % (day,)
+
         if dayOfWeek == 255:
             rslt += "*)"
         else:
