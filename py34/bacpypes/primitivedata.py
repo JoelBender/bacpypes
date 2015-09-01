@@ -1037,7 +1037,7 @@ class Enumerated(Atomic):
     def keylist(self):
         """Return a list of names in order by value."""
         items = self.enumerations.items()
-        items.sort(lambda a, b: cmp(a[1], b[1]))
+        items.sort(lambda a, b: self.cmp(a[1], b[1]))
 
         # last item has highest value
         rslt = [None] * (items[-1][1] + 1)
@@ -1132,12 +1132,13 @@ class Date(Atomic):
     """
 
     _app_tag = Tag.dateAppTag
-    _date_regex_mmddyyyy = re.compile(r'([0-1]*\d)[-/]([0-3]*\d)[-/](\d{4}$)')
-    _date_regex_yyyymmdd = re.compile(r'(\d{4})[-/]([0-1]*\d)[-/]([0-3]*\d$)')
-    _date_regex_ddmmyyyy = re.compile(r'([0-3]*\d)[-/]([0-1]*\d)[-/](\d{4}$)')
-    _date_regex_mmddyy = re.compile(r'([0-1]*\d)[-/]([0-3]*\d)[-/](\d{2}$)')
-    _date_regex_ddmmyy = re.compile(r'([0-3]*\d)[-/]([0-1]*\d)[-/](\d{2}$)')
-    _date_regex_dmy = re.compile(r'(\d)[-/](\d)[-/](\d$)')
+    _date_regex_mmddyyyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{4}$|[*]$)')
+    _date_regex_yyyymmdd = re.compile(r'(\d{4}|[*])[-/]([0-1]*\d|[*])[-/]([0-3]*\d$|[*]$)')
+    _date_regex_ddmmyyyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{4}$|[*]$)')
+    _date_regex_yymmdd = re.compile(r'(\d{2}|[*])[-/]([0-3]*\d|[*])[-/]([0-1]*\d$|[*]$)')
+    _date_regex_mmddyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{2}$|[*]$)')
+    _date_regex_ddmmyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{2}$|[*]$)')
+    _date_regex_dmy = re.compile(r'(\d|[*])[-/](\d|[*])[-/](\d|[*]$)')
     _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
     DONT_CARE = 255
@@ -1160,6 +1161,10 @@ class Date(Atomic):
             elif Date._date_regex_yyyymmdd.match(arg):
                 #will be yyyymmdd  
                 year, month, day = Date._date_regex_yyyymmdd.match(arg).groups()   
+            
+            elif Date._date_regex_yymmdd.match(arg):
+                #will be ddmmyyyy  
+                year, month, day = Date._date_regex_yymmdd.match(arg).groups()  
                    
             elif Date._date_regex_ddmmyyyy.match(arg) and not Date._date_regex_mmddyyyy.match(arg) :
                 #will be ddmmyyyy  
@@ -1204,7 +1209,7 @@ class Date(Atomic):
             # day-of-week madness
             dow = date_groups[3]
             if dow is None:
-                tup_list.append(0)
+                tup_list.append(255)
             elif (dow == '*'):
                 tup_list.append(255)
             elif dow.isdigit():
@@ -1216,6 +1221,7 @@ class Date(Atomic):
                 tup_list.append(Date._day_names.index(dow))
 
             self.value = tuple(tup_list)
+            self.CalcDayOfWeek()
         elif isinstance(arg, Date):
             self.value = arg.value
         else:
@@ -1223,20 +1229,22 @@ class Date(Atomic):
 
     def now(self):
         tup = time.localtime()
-
         self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
-
         return self
 
     def CalcDayOfWeek(self):
         """Calculate the correct day of the week."""
         # rip apart the value
         year, month, day, dayOfWeek = self.value
-
+        
         # make sure all the components are defined
         if (year != 255) and (month != 255) and (day != 255):
-            today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
-            dayOfWeek = time.gmtime(today)[6] + 1
+            try:            
+                today = time.mktime( (year, month, day, 0, 0, 0, 0, 0, -1) )
+                dayOfWeek = time.gmtime(today)[6] + 1
+            except OverflowError:
+                # If date before epoch... won't find dow
+                dayOfWeek = 255
 
         # put it back together
         self.value = (year, month, day, dayOfWeek)
@@ -1257,18 +1265,19 @@ class Date(Atomic):
         year, month, day, dayOfWeek = self.value
 
         rslt = "Date("
+        if year == 255:
+            rslt += "*/"
+        else:
+            rslt += "%d/" % (year,)
         if month == 255:
             rslt += "*/"
         else:
             rslt += "%d/" % (month,)
         if day == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (day,)
-        if year == 255:
             rslt += "* "
         else:
-            rslt += "%d " % (year,)
+            rslt += "%d " % (day,)
+
         if dayOfWeek == 255:
             rslt += "*)"
         else:
