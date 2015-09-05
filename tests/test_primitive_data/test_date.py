@@ -9,7 +9,11 @@ Test Primitive Data Date
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+<<<<<<< HEAD
 from bacpypes.primitivedata import Date, Tag
+=======
+from bacpypes.primitivedata import Date, Tag, DecodingError
+>>>>>>> stage
 
 # some debugging
 _debug = 0
@@ -72,6 +76,7 @@ class TestDate(unittest.TestCase):
     def test_date(self):
         if _debug: TestInteger._debug("test_date")
 
+        # default values is all dont care
         obj = Date()
         assert obj.value == (255, 255, 255, 255)
 
