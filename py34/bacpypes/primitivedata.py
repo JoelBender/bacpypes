@@ -1126,128 +1126,161 @@ def expand_enumerations(klass):
 #   Date
 #
 
+_mm = r'(?P<month>0?\d|1[0-4]|odd|even|255|[*])'
+_dd = r'(?P<day>[0-3]?\d|last|odd|even|255|[*])'
+_yy = r'(?P<year>\d{2}|255|[*])'
+_yyyy = r'(?P<year>\d{4}|255|[*])'
+_dow = r'(?P<dow>[1-7]|mon|tue|wed|thu|fri|sat|sun|255|[*])'
+
+_special_mon = {'*': 255, 'odd': 13, 'even': 14, None: 255}
+_special_mon_inv = {255: '*', 13: 'odd', 14: 'even'}
+
+_special_day = {'*': 255, 'last': 32, 'odd': 33, 'even': 34, None: 255}
+_special_day_inv = {255: '*', 32: 'last', 33: 'odd', 34: 'even'}
+
+_special_dow = {'*': 255, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 7}
+_special_dow_inv = {255: '*', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 7: 'sun'}
+
+def _merge(*args):
+    """Create a composite pattern and compile it."""
+    return re.compile(r'^' + r'[/-]'.join(args) + r'(?:\s+' + _dow + ')?$')
+
+# make a list of compiled patterns
+_date_patterns = [
+    _merge(_yyyy, _mm, _dd),
+    _merge(_mm, _dd, _yyyy),
+    _merge(_dd, _mm, _yyyy),
+    _merge(_yy, _mm, _dd),
+    _merge(_mm, _dd, _yy),
+    _merge(_dd, _mm, _yy),
+    ]
+
+
 class Date(Atomic):
-    """
-    Date object
-    """
 
-    _app_tag = Tag.dateAppTag
-    _date_regex_mmddyyyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{4}$|[*]$)')
-    _date_regex_yyyymmdd = re.compile(r'(\d{4}|[*])[-/]([0-1]*\d|[*])[-/]([0-3]*\d$|[*]$)')
-    _date_regex_ddmmyyyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{4}$|[*]$)')
-    _date_regex_yymmdd = re.compile(r'(\d{2}|[*])[-/]([0-3]*\d|[*])[-/]([0-1]*\d$|[*]$)')
-    _date_regex_mmddyy = re.compile(r'([0-1]*\d|[*])[-/]([0-3]*\d|[*])[-/](\d{2}$|[*]$)')
-    _date_regex_ddmmyy = re.compile(r'([0-3]*\d|[*])[-/]([0-1]*\d|[*])[-/](\d{2}$|[*]$)')
-    _date_regex_dmy = re.compile(r'(\d|[*])[-/](\d|[*])[-/](\d|[*]$)')
-    _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-    DONT_CARE = 255
-
-    def __init__(self, arg=None, year=255, month=255, day=255, dayOfWeek=255):
-        self.value = (year, month, day, dayOfWeek)
-        date_groups = [0,0,0,None]
+    def __init__(self, arg=None, year=255, month=255, day=255, day_of_week=255):
+        self.value = (year, month, day, day_of_week)
         
         if arg is None:
             pass
-        elif isinstance(arg,Tag):
+        elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            if (Date._date_regex_mmddyyyy.match(arg) and not Date._date_regex_ddmmyyyy.match(arg)):
-                #Will be mmddyyyy    
-                month, day, year = Date._date_regex_mmddyyyy.match(arg).groups()
-            
-            elif Date._date_regex_yyyymmdd.match(arg):
-                #will be yyyymmdd  
-                year, month, day = Date._date_regex_yyyymmdd.match(arg).groups()   
-            
-            elif Date._date_regex_yymmdd.match(arg):
-                #will be ddmmyyyy  
-                year, month, day = Date._date_regex_yymmdd.match(arg).groups()  
-                   
-            elif Date._date_regex_ddmmyyyy.match(arg) and not Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy  
-                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()             
-                
-            elif Date._date_regex_ddmmyyyy.match(arg) and Date._date_regex_mmddyyyy.match(arg) :
-                #will be ddmmyyyy 
-                day, month, year = Date._date_regex_ddmmyyyy.match(arg).groups()
-                            
-            elif Date._date_regex_ddmmyy.match(arg) and not Date._date_regex_mmddyy.match(arg) :
-                day, month, year = Date._date_regex_ddmmyy.match(arg).groups()                
-                
-            elif Date._date_regex_mmddyy.match(arg) and not Date._date_regex_ddmmyy.match(arg):
-                month, day, year = Date._date_regex_mmddyy.match(arg).groups()                 
-                
-            elif Date._date_regex_ddmmyy.match(arg) and Date._date_regex_mmddyy.match(arg):
-                day, month, year = Date._date_regex_ddmmyy.match(arg).groups() 
-            elif Date._date_regex_dmy.match(arg):
-                day, month, year = Date._date_regex_dmy.match(arg).groups() 
+            # lower case everything
+            arg = arg.lower()
+
+            # make a list of the contents from matching patterns
+            matches = []
+            for p in _date_patterns:
+                m = p.match(arg)
+                if m:
+                    matches.append(m.groupdict())
+
+            # try to find a good one
+            match = None
+            if not matches:
+                raise ValueError("unmatched")
+
+            # if there is only one, success
+            if len(matches) == 1:
+                match = matches[0]
             else:
-                raise ValueError("invalid date pattern")
-
-
-            date_groups[0] = year
-            date_groups[1] = month
-            date_groups[2] = day
-            # day/month/year
-            tup_list = []
-            for s in date_groups[:3]:
-                if s == '*':
-                    tup_list.append(255)
-                elif s is None:
-                    tup_list.append(0)
+                # check to see if they really are the same
+                for a, b in zip(matches[:-1],matches[1:]):
+                    if a != b:
+                        raise ValueError("ambiguous")
+                        break
                 else:
-                    tup_list.append(int(s))
+                    match = matches[0]
 
-            # clean up the year
-            if (tup_list[0] < 100):
-                tup_list[0] += 1900
-            #tup_list[1] -= 1900
-
-            # day-of-week madness
-            dow = date_groups[3]
-            if dow is None:
-                tup_list.append(255)
-            elif (dow == '*'):
-                tup_list.append(255)
-            elif dow.isdigit():
-                tup_list.append(int(dow))
+            # extract the year and normalize
+            year = match['year']
+            if (year == '*') or (not year):
+                year = 255
             else:
-                dow = dow.title()
-                if dow not in Date._day_names:
-                    raise ValueError("invalid day name")
-                tup_list.append(Date._day_names.index(dow))
+                year = int(year)
+                if (year == 255):
+                    pass
+                elif year < 35:
+                    year += 2000
+                elif year < 100:
+                    year += 1900
 
-            self.value = tuple(tup_list)
-            self.CalcDayOfWeek()
+            # extract the month and normalize
+            month = match['month']
+            if month in _special_mon:
+                month = _special_mon[month]
+            else:
+                month = int(month)
+                if month > 14:
+                    print("invalid month")
+
+            # extract the day and normalize
+            day = match['day']
+            if day in _special_day:
+                day = _special_day[day]
+            else:
+                day = int(day)
+                if day > 34:
+                    print("invalid day")
+
+            # extract the day-of-week and normalize
+            day_of_week = match['dow']
+            if day_of_week in _special_dow:
+                day_of_week = _special_dow[day_of_week]
+            elif not day_of_week:
+                pass
+            else:
+                day_of_week = int(day_of_week)
+
+            # year becomes the correct octet
+            if year != 255:
+                year -= 1900
+
+            # save the value
+            self.value = (year, month, day, day_of_week)
+
+            # calculate the day of the week
+            if not day_of_week:
+                self.CalcDayOfWeek()
+
         elif isinstance(arg, Date):
             self.value = arg.value
+
         else:
             raise TypeError("invalid constructor datatype")
+
+    def CalcDayOfWeek(self):
+        """Calculate the correct day of the week."""
+        # rip apart the value
+        year, month, day, day_of_week = self.value
+
+        # assume the worst
+        day_of_week = 255
+
+        # check for special values
+        if year == 255:
+            pass
+        elif month in _special_mon_inv:
+            pass
+        elif day in _special_day_inv:
+            pass
+        else:
+            try:            
+                today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
+                day_of_week = time.gmtime(today)[6] + 1
+            except OverflowError:
+                pass
+
+        # put it back together
+        self.value = (year, month, day, day_of_week)
 
     def now(self):
         tup = time.localtime()
         self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
         return self
-
-    def CalcDayOfWeek(self):
-        """Calculate the correct day of the week."""
-        # rip apart the value
-        year, month, day, dayOfWeek = self.value
-        
-        # make sure all the components are defined
-        if (year != 255) and (month != 255) and (day != 255):
-            try:            
-                today = time.mktime( (year, month, day, 0, 0, 0, 0, 0, -1) )
-                dayOfWeek = time.gmtime(today)[6] + 1
-            except OverflowError:
-                # If date before epoch... won't find dow
-                dayOfWeek = 255
-
-        # put it back together
-        self.value = (year, month, day, dayOfWeek)
 
     def encode(self, tag):
         # encode the tag
@@ -1261,29 +1294,24 @@ class Date(Atomic):
         self.value = tuple(tag.tagData)
 
     def __str__(self):
+        """String representation of the date."""
         # rip it apart
-        year, month, day, dayOfWeek = self.value
+        year, month, day, day_of_week = self.value
 
-        rslt = "Date("
         if year == 255:
-            rslt += "*/"
+            year = "*"
         else:
-            rslt += "%d/" % (year,)
-        if month == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (month,)
-        if day == 255:
-            rslt += "* "
-        else:
-            rslt += "%d " % (day,)
+            year = str(year + 1900)
 
-        if dayOfWeek == 255:
-            rslt += "*)"
-        else:
-            rslt += Date._day_names[dayOfWeek] + ")"
+        month = _special_mon_inv.get(month, str(month))
+        day = _special_day_inv.get(day, str(day))
+        day_of_week = _special_dow_inv.get(day_of_week, str(day_of_week))
 
-        return rslt
+        return "%s-%s-%s %s" % (year, month, day, day_of_week)
+
+    def __repr__(self):
+        return "<%s(%s) at 0x%x>" % (self.__class__.__name__, str(self), id(self))
+
 
 #
 #   Time
