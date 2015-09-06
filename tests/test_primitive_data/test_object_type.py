@@ -97,12 +97,12 @@ class TestObjectType(unittest.TestCase):
         # known values are translated into strings
         obj = ObjectType(0)
         assert obj.value == 'analogInput'
-        assert str(obj) == "Enumerated(analogInput)"
+        assert str(obj) == "ObjectType(analogInput)"
 
         # unknown values are kept as integers
         obj = ObjectType(127)
         assert obj.value == 127
-        assert str(obj) == "Enumerated(127)"
+        assert str(obj) == "ObjectType(127)"
 
     def test_object_type_str(self):
         if _debug: TestObjectType._debug("test_object_type_str")
