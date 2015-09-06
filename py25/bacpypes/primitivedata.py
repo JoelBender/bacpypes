@@ -69,10 +69,8 @@ class Tag(object):
 
     def set(self, tclass, tnum, tlvt=0, tdata=''):
         """set the values of the tag."""
-        if isinstance(tdata, bytearray):
-            tdata = bytes(tdata)
-        elif not isinstance(tdata, bytes):
-            raise TypeError("tag data must be bytes or bytearray")
+        if not isinstance(tdata, str):
+            raise TypeError("tag data must be str")
 
         self.tagClass = tclass
         self.tagNumber = tnum
@@ -81,10 +79,8 @@ class Tag(object):
 
     def set_app_data(self, tnum, tdata):
         """set the values of the tag."""
-        if isinstance(tdata, bytearray):
-            tdata = bytes(tdata)
-        elif not isinstance(tdata, bytes):
-            raise TypeError("tag data must be bytes or bytearray")
+        if not isinstance(tdata, str):
+            raise TypeError("tag data must be str")
 
         self.tagClass = Tag.applicationTagClass
         self.tagNumber = tnum
@@ -174,7 +170,7 @@ class Tag(object):
 
         # application tagged boolean now has data
         if (self.tagNumber == Tag.booleanAppTag):
-            return ContextTag(context, bytearray([self.tagLVT]))
+            return ContextTag(context, chr(self.tagLVT))
         else:
             return ContextTag(context, self.tagData)
 
@@ -563,11 +559,11 @@ class Unsigned(Atomic):
 
     def encode(self, tag):
         # rip apart the number
-        data = bytearray(struct.pack('>L', self.value))
+        data = struct.pack('>L', self.value)
 
         # reduce the value to the smallest number of octets
-        while (len(data) > 1) and (data[0] == 0):
-            del data[0]
+        while (len(data) > 1) and (data[0] == '\x00'):
+            data = data[1:]
 
         # encode the tag
         tag.set_app_data(Tag.unsignedAppTag, data)
@@ -613,24 +609,24 @@ class Integer(Atomic):
 
     def encode(self, tag):
         # rip apart the number
-        data = bytearray(struct.pack('>I', self.value & 0xFFFFFFFF))
+        data = struct.pack('>I', self.value & 0xFFFFFFFF)
 
         # reduce the value to the smallest number of bytes, be
         # careful about sign extension
         if self.value < 0:
             while (len(data) > 1):
-                if (data[0] != 255):
+                if (data[0] != '\xFF'):
                     break
-                if (data[1] < 128):
+                if (data[1] < '\x80'):
                     break
-                del data[0]
+                data = data[1:]
         else:
             while (len(data) > 1):
-                if (data[0] != 0):
+                if (data[0] != '\x00'):
                     break
-                if (data[1] >= 128):
+                if (data[1] >= '\x80'):
                     break
-                del data[0]
+                data = data[1:]
 
         # encode the tag
         tag.set_app_data(Tag.integerAppTag, data)
@@ -640,7 +636,7 @@ class Integer(Atomic):
             raise ValueError("integer application tag required")
 
         # byte array easier to deal with
-        tag_data = bytearray(tag.tagData)
+        tag_data = [ord(c) for c in tag.tagData]
 
         # get the data
         rslt = tag_data[0]
@@ -746,8 +742,8 @@ class OctetString(Atomic):
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
-        elif isinstance(arg, (bytes, bytearray)):
-            self.value = bytes(arg)
+        elif isinstance(arg, str):
+            self.value = arg
         elif isinstance(arg, OctetString):
             self.value = arg.value
         else:
@@ -800,11 +796,10 @@ class CharacterString(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
             raise ValueError("character string application tag required")
 
-        # byte array easier to deal with
-        tag_data = bytearray(tag.tagData)
+        tag_data = tag.tagData
 
         # extract the data
-        self.strEncoding = tag_data[0]
+        self.strEncoding = ord(tag_data[0])
         self.strValue = tag_data[1:]
 
         # normalize the value
@@ -870,7 +865,7 @@ class BitString(Atomic):
         unused = used and (8 - used) or 0
 
         # start with the number of unused bits
-        data = bytearray([unused])
+        data = [unused]
 
         # build and append each packed octet
         bits = self.value + [0] * unused
@@ -881,13 +876,13 @@ class BitString(Atomic):
             data.append(x)
 
         # encode the tag
-        tag.set_app_data(Tag.bitStringAppTag, data)
+        tag.set_app_data(Tag.bitStringAppTag, ''.join(chr(i) for i in data))
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.bitStringAppTag):
             raise ValueError("bit string application tag required")
 
-        tag_data = bytearray(tag.tagData)
+        tag_data = [ord(c) for c in tag.tagData]
 
         # extract the number of unused bits
         unused = tag_data[0]
@@ -1055,11 +1050,11 @@ class Enumerated(Atomic):
             raise TypeError("%s is an invalid enumeration value datatype" % (type(self.value),))
 
         # rip apart the number
-        data = bytearray(struct.pack('>L', value))
+        data = struct.pack('>L', value)
 
         # reduce the value to the smallest number of octets
-        while (len(data) > 1) and (data[0] == 0):
-            del data[0]
+        while (len(data) > 1) and (data[0] == '\x00'):
+            data = data[1:]
 
         # encode the tag
         tag.set_app_data(Tag.enumeratedAppTag, data)
@@ -1268,14 +1263,14 @@ class Date(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.dateAppTag, bytearray(self.value))
+        tag.set_app_data(Tag.dateAppTag, ''.join(chr(i) for i in self.value))
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.dateAppTag):
             raise ValueError("date application tag required")
 
         # rip apart the data
-        self.value = tuple(tag.tagData)
+        self.value = tuple(ord(c) for c in tag.tagData)
 
     def __str__(self):
         """String representation of the date."""
@@ -1291,10 +1286,7 @@ class Date(Atomic):
         day = _special_day_inv.get(day, str(day))
         day_of_week = _special_dow_inv.get(day_of_week, str(day_of_week))
 
-        return "%s-%s-%s %s" % (year, month, day, day_of_week)
-
-    def __repr__(self):
-        return "<%s(%s) at 0x%x>" % (self.__class__.__name__, str(self), id(self))
+        return "%s(%s-%s-%s %s)" % (self.__class__.__name__, year, month, day, day_of_week)
 
 
 #
@@ -1356,7 +1348,7 @@ class Time(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.timeAppTag, bytearray(self.value))
+        tag.set_app_data(Tag.timeAppTag, ''.join(chr(c) for c in self.value))
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.timeAppTag):

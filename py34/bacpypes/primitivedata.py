@@ -1300,10 +1300,7 @@ class Date(Atomic):
         day = _special_day_inv.get(day, str(day))
         day_of_week = _special_dow_inv.get(day_of_week, str(day_of_week))
 
-        return "%s-%s-%s %s" % (year, month, day, day_of_week)
-
-    def __repr__(self):
-        return "<%s(%s) at 0x%x>" % (self.__class__.__name__, str(self), id(self))
+        return "%s(%s-%s-%s %s)" % (self.__class__.__name__, year, month, day, day_of_week)
 
 
 #
