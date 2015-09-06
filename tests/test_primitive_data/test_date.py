@@ -9,7 +9,7 @@ Test Primitive Data Date
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Date, Tag, DecodingError
+from bacpypes.primitivedata import Date, Tag
 
 # some debugging
 _debug = 0
@@ -18,7 +18,7 @@ _log = ModuleLogger(globals())
 
 @bacpypes_debugging
 def date_tag(x):
-    """Convert a hex string to an date application tag."""
+    """Convert a hex string to a date application tag."""
     if _debug: date_tag._debug("date_tag %r", x)
 
     b = xtob(x)
@@ -41,7 +41,7 @@ def date_encode(obj):
 
 @bacpypes_debugging
 def date_decode(tag):
-    """Decode an date application tag into an date."""
+    """Decode a date application tag into a date."""
     if _debug: date_decode._debug("date_decode %r", tag)
 
     obj = Date(tag)
@@ -70,7 +70,7 @@ def date_endec(v, x):
 class TestDate(unittest.TestCase):
 
     def test_date(self):
-        if _debug: TestDate._debug("test_date")
+        if _debug: TestInteger._debug("test_date")
 
         # default values is all dont care
         obj = Date()
@@ -82,14 +82,14 @@ class TestDate(unittest.TestCase):
             Date(1.0)
 
     def test_date_tuple(self):
-        if _debug: TestDate._debug("test_date_tuple")
+        if _debug: TestInteger._debug("test_date_tuple")
 
         obj = Date((1,2,3,4))
         assert obj.value == (1,2,3,4)
         assert str(obj) == "Date(1901-2-3 thu)"
 
     def test_date_tag(self):
-        if _debug: TestDate._debug("test_date_tag")
+        if _debug: TestInteger._debug("test_date_tag")
 
         tag = Tag(Tag.applicationTagClass, Tag.dateAppTag, 4, xtob('01020304'))
         obj = Date(tag)
@@ -108,23 +108,17 @@ class TestDate(unittest.TestCase):
             Date(tag)
 
     def test_date_copy(self):
-        if _debug: TestDate._debug("test_date_copy")
+        if _debug: TestInteger._debug("test_date_copy")
 
-        date_value = (2, 3, 4, 5)
-        obj1 = Date(date_value)
+        value = (1, 2, 3, 4)
+        obj1 = Date(value)
         obj2 = Date(obj1)
-        assert obj2.value == date_value
-
-    def test_date_now(self):
-        if _debug: TestDate._debug("test_date_now")
-
-        # obj = Date().now()
-        ### how to test?
+        assert obj2.value == value
 
     def test_date_endec(self):
-        if _debug: TestDate._debug("test_date_endec")
+        if _debug: TestInteger._debug("test_date_endec")
 
-#       with self.assertRaises(DecodingError):
+#       with self.assertRaises(IndexError):
 #           obj = Date(date_tag(''))
 
     def old_tests(self):
