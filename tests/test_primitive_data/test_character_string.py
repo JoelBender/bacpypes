@@ -88,7 +88,7 @@ class TestCharacterString(unittest.TestCase):
 
         obj = CharacterString("hello")
         assert obj.value == "hello"
-        assert str(obj) == "CharacterString(0,'hello')"
+        assert str(obj) == "CharacterString(0,X'68656c6c6f')"
 
     def test_character_string_tag(self):
         if _debug: TestCharacterString._debug("test_character_string_tag")

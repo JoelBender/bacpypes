@@ -837,7 +837,7 @@ class CharacterString(Atomic):
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
+        return "CharacterString(%d,X'%s')" % (self.strEncoding, btox(self.strValue))
 
 #
 #   BitString
