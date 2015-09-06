@@ -111,6 +111,30 @@ class TestObjectType(unittest.TestCase):
         obj = ObjectType('analogInput')
         assert obj.value == 'analogInput'
 
+    def test_extended_object_type_int(self):
+        if _debug: TestObjectType._debug("test_extended_object_type_int")
+
+        # known values are translated into strings
+        obj = MyObjectType(0)
+        assert obj.value == 'analogInput'
+        assert str(obj) == "MyObjectType(analogInput)"
+
+        # unknown values are kept as integers
+        obj = MyObjectType(128)
+        assert obj.value == 'myAnalogInput'
+        assert str(obj) == "MyObjectType(myAnalogInput)"
+
+    def test_extended_object_type_str(self):
+        if _debug: TestObjectType._debug("test_extended_object_type_str")
+
+        # known strings are accepted
+        obj = MyObjectType('myAnalogInput')
+        assert obj.value == 'myAnalogInput'
+
+        # unknown strings are rejected
+        with self.assertRaises(ValueError):
+            MyObjectType('snork')
+
     def test_object_type_tag(self):
         if _debug: TestObjectType._debug("test_object_type_tag")
 

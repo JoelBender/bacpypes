@@ -114,10 +114,9 @@ class TestObjectIdentifier(unittest.TestCase):
     def test_object_identifier_copy(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_copy")
 
-        ### issue-49
-        # obj1 = ObjectIdentifier(('analogInput', 1))
-        # obj2 = ObjectIdentifier(obj1)
-        # assert obj2.value == ('analogInput', 1)
+        obj1 = ObjectIdentifier(('analogInput', 1))
+        obj2 = ObjectIdentifier(obj1)
+        assert obj2.value == ('analogInput', 1)
 
     def test_object_identifier_endec(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_endec")

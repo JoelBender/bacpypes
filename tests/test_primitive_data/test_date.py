@@ -85,29 +85,13 @@ class TestDate(unittest.TestCase):
         if _debug: TestDate._debug("test_date_tuple")
 
         obj = Date((1,2,3,4))
-        assert obj.value == (1, 2, 3, 4)
-        assert str(obj) == "Date(2/3/1901 Thu)"
-
-        ### issue-48
-        # obj = Date("1/2/3")
-        # assert obj.value == (1, 2, x, y)
-
-        # obj = Date("*/2/3")
-        # assert obj.value == (255, 2, x, 255)
-
-        # obj = Date("1/*/3")
-        # assert obj.value == (1, 255, x, 255)
-
-        # obj = Date("1/2/*")
-        # assert obj.value == (1, 2, 255, 255)
-
-        # obj = Date("1/2/3 *")
-        # assert obj.value == (1, 2, 3, 255)
+        assert obj.value == (1,2,3,4)
+        assert str(obj) == "Date(1901-2-3 thu)"
 
     def test_date_tag(self):
         if _debug: TestDate._debug("test_date_tag")
 
-        tag = Tag(Tag.applicationTagClass, Tag.dateAppTag, 1, xtob('01020304'))
+        tag = Tag(Tag.applicationTagClass, Tag.dateAppTag, 4, xtob('01020304'))
         obj = Date(tag)
         assert obj.value == (1, 2, 3, 4)
 
@@ -143,8 +127,55 @@ class TestDate(unittest.TestCase):
 #       with self.assertRaises(DecodingError):
 #           obj = Date(date_tag(''))
 
-        date_endec((0, 0, 0, 0), '00000000')
-        date_endec((1, 0, 0, 0), '01000000')
-        date_endec((0, 2, 0, 0), '00020000')
-        date_endec((0, 0, 3, 0), '00000300')
-        date_endec((0, 0, 0, 4), '00000004')
+    def old_tests(self):
+        self.test_values = [
+            #('1/2/3', 1903, 2, 1, 0),
+            #('1/2/3', 1903, 2, 1, 0),
+            ("1/2/2003", 2003, 2, 1, 6),
+            ("1/20/2003", 2003, 1, 20, 1),
+            ("01/20/2004", 2004, 1, 20, 2),
+            ("11/12/2005", 2005, 12, 11, 7),
+            ("30/1/2006", 2006, 1, 30, 1),
+            ("30/1/1230", 1230, 1, 30, 255),
+            ("30/1/98", 1998, 1, 30, 5),
+            ("2015/8/31", 2015, 8, 31, 1),
+            ("2015/08/30", 2015, 8, 30, 7),
+            ("2015/*/30", 2015,255,30,255),
+            ("2015/1/*",2015,1,255,255),
+            ("*/1/*", 255,1,255,255),
+            ("*/*/*",255,255,255,255),
+            ("1-2-2003", 2003, 2, 1, 6),
+            ("1-20-2003", 2003, 1, 20, 1),
+            ("01-20-2004", 2004, 1, 20, 2),
+            ("11-12-2005", 2005, 12, 11, 7),
+            ("30-1-2006", 2006, 1, 30, 1),
+            ("30-1-1230", 1230, 1, 30, 255),
+            ("30-1-98", 1998, 1, 30, 5),
+            ("2015-8-31", 2015, 8, 31, 1),
+            ("2015-08-30", 2015, 8, 30, 7),
+            ("2015-*-30", 2015,255,30,255),
+            ("2015-1-*",2015,1,255,255),
+            ("*-1-*", 255,1,255,255),
+            ("*-*-*",255,255,255,255)
+        ]
+
+        self.notEnoughPreciseOrWrong = [
+            ('1/31/1'),
+            ('0/1/4'),
+            ('99/13/41'),
+            ("2015/30/*")        
+        ]
+
+        def test_Date_from_str(self):
+            for each in self.test_values:
+                new_date = Date(each[0])
+                y, m, d, dow = new_date.value
+                self.assertEqual(y,each[1])
+                self.assertEqual(m,each[2])
+                self.assertEqual(d,each[3])
+                self.assertEqual(dow,each[4])
+            
+        def test_Wrong(self):
+            with self.assertRaises(ValueError):        
+                for each in self.notEnoughPreciseOrWrong:
+                    new_date = Date(each[0])
