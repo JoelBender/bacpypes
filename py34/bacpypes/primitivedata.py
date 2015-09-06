@@ -476,7 +476,7 @@ class Atomic(object):
         return (self.value < other.value)
 
     def __eq__(self, other):
-        sys.stderr.write("__eq__ %r %r\n" % (self, other))
+        # sys.stderr.write("__eq__ %r %r\n" % (self, other))
 
         # hoop jump it
         if not isinstance(other, self.__class__):
