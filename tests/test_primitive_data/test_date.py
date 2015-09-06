@@ -9,11 +9,7 @@ Test Primitive Data Date
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-<<<<<<< HEAD
 from bacpypes.primitivedata import Date, Tag
-=======
-from bacpypes.primitivedata import Date, Tag, DecodingError
->>>>>>> stage
 
 # some debugging
 _debug = 0
