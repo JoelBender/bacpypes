@@ -92,17 +92,13 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
-        # check for special encoding of open and close tags
-        if (self.tagClass == Tag.openingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0E)
-            return
-        if (self.tagClass == Tag.closingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0F)
-            return
-
-        # check for context encoding
+        # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
+        elif (self.tagClass == Tag.openingTagClass):
+            data = 0x0E
+        elif (self.tagClass == Tag.closingTagClass):
+            data = 0x0F
         else:
             data = 0x00
 
@@ -1084,7 +1080,7 @@ class Enumerated(Atomic):
         self.value = rslt
 
     def __str__(self):
-        return "Enumerated(%s)" % (self.value,)
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 #
 #   expand_enumerations
@@ -1093,13 +1089,17 @@ class Enumerated(Atomic):
 def expand_enumerations(klass):
     # build a value dictionary
     xlateTable = {}
-    for name, value in klass.enumerations.items():
-        # save the results
-        xlateTable[name] = value
-        xlateTable[value] = name
 
-        # save the name in the class
-        setattr(klass, name, value)
+    for c in klass.__mro__:
+        enumerations = getattr(c, 'enumerations', {})
+        if enumerations:
+            for name, value in enumerations.items():
+                # save the results
+                xlateTable[name] = value
+                xlateTable[value] = name
+
+                # save the name in the class
+                setattr(klass, name, value)
 
     # save the dictionary in the class
     setattr(klass, '_xlate_table', xlateTable)
@@ -1248,11 +1248,15 @@ class Time(Atomic):
                 raise ValueError("invalid time pattern")
 
             tup_list = []
-            for s in tup_match:
+            tup_items = list(tup_match.groups())
+            for s in tup_items:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
+                elif s is None:
+                    if '*' in tup_items:
+                        tup_list.append(255)
+                    else:
+                        tup_list.append(0)
                 else:
                     tup_list.append(int(s))
 
@@ -1393,12 +1397,12 @@ class ObjectIdentifier(Atomic):
                 self.set_long(arg)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
+            elif isinstance(arg, ObjectIdentifier):
+                self.value = arg.value
             else:
                 raise TypeError("invalid constructor datatype")
         elif len(args) == 2:
             self.set_tuple(*args)
-        elif isinstance(arg, ObjectIdentifier):
-            self.value = arg.value
         else:
             raise ValueError("invalid constructor parameters")
 
