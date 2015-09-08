@@ -1119,7 +1119,7 @@ def expand_enumerations(klass):
 #   Date
 #
 
-_mm = r'(?P<month>0?\d|1[0-4]|odd|even|255|[*])'
+_mm = r'(?P<month>0?[1-9]|1[0-4]|odd|even|255|[*])'
 _dd = r'(?P<day>[0-3]?\d|last|odd|even|255|[*])'
 _yy = r'(?P<year>\d{2}|255|[*])'
 _yyyy = r'(?P<year>\d{4}|255|[*])'
