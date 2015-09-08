@@ -1,12 +1,16 @@
 #!/usr/bin/python
 
 """
+Sample Application
+==================
+
 This sample application is the simplest BACpypes application that is
 a complete stack.  Using an INI file it will configure a
 LocalDeviceObject, create a SampleApplication instance, and run,
-waiting for a keyboard interrupt or a TERM signal to quit. There is no
-input or output for this application, but by adding --debug to the
-command line when it is run you can check the behavior of the stack by
+waiting for a keyboard interrupt or a TERM signal to quit.
+
+There is no input or output for this application, but by adding --debug to
+the command line when it is run you can check the behavior of the stack by
 seeing what is sent and received.
 """
 
