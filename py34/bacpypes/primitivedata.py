@@ -1200,6 +1200,8 @@ class Date(Atomic):
                     year += 2000
                 elif year < 100:
                     year += 1900
+                elif year < 1900:
+                    raise ValueError("invalid year")
 
             # extract the month and normalize
             month = match['month']
@@ -1208,7 +1210,7 @@ class Date(Atomic):
             else:
                 month = int(month)
                 if month > 14:
-                    print("invalid month")
+                    raise ValueError("invalid month")
 
             # extract the day and normalize
             day = match['day']
@@ -1217,7 +1219,7 @@ class Date(Atomic):
             else:
                 day = int(day)
                 if day > 34:
-                    print("invalid day")
+                    raise ValueError("invalid day")
 
             # extract the day-of-week and normalize
             day_of_week = match['dow']
