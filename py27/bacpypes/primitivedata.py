@@ -1201,7 +1201,9 @@ class Date(Atomic):
                 month = _special_mon[month]
             else:
                 month = int(month)
-                if month > 14:
+                if (month == 255):
+                    pass
+                elif month > 14:
                     raise ValueError("invalid month")
 
             # extract the day and normalize
