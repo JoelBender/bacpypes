@@ -1197,7 +1197,7 @@ class Date(Atomic):
                 month = int(month)
                 if (month == 255):
                     pass
-                elif month > 14:
+                elif (month == 0) or (month > 14):
                     raise ValueError("invalid month")
 
             # extract the day and normalize
@@ -1208,7 +1208,7 @@ class Date(Atomic):
                 day = int(day)
                 if (day == 255):
                     pass
-                elif day > 34:
+                elif (day == 0) or (day > 34):
                     raise ValueError("invalid day")
 
             # extract the day-of-week and normalize
@@ -1221,7 +1221,7 @@ class Date(Atomic):
                 day_of_week = int(day_of_week)
                 if (day_of_week == 255):
                     pass
-                elif day_of_week > 7:
+                elif (day_of_week == 0) or (day_of_week > 7):
                     raise ValueError("invalid day of week")
 
             # year becomes the correct octet

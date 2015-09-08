@@ -1203,7 +1203,7 @@ class Date(Atomic):
                 month = int(month)
                 if (month == 255):
                     pass
-                elif month > 14:
+                elif (month == 0) or (month > 14):
                     raise ValueError("invalid month")
 
             # extract the day and normalize
@@ -1214,7 +1214,7 @@ class Date(Atomic):
                 day = int(day)
                 if (day == 255):
                     pass
-                elif day > 34:
+                elif (day == 0) or (day > 34):
                     raise ValueError("invalid day")
 
             # extract the day-of-week and normalize
