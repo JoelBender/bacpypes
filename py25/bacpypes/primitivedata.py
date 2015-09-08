@@ -1219,6 +1219,10 @@ class Date(Atomic):
                 pass
             else:
                 day_of_week = int(day_of_week)
+                if (day_of_week == 255):
+                    pass
+                elif day_of_week > 7:
+                    raise ValueError("invalid day of week")
 
             # year becomes the correct octet
             if year != 255:
