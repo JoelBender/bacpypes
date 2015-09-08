@@ -1212,7 +1212,9 @@ class Date(Atomic):
                 day = _special_day[day]
             else:
                 day = int(day)
-                if day > 34:
+                if (day == 255):
+                    pass
+                elif day > 34:
                     raise ValueError("invalid day")
 
             # extract the day-of-week and normalize
