@@ -92,17 +92,13 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
-        # check for special encoding of open and close tags
-        if (self.tagClass == Tag.openingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0E)
-            return
-        if (self.tagClass == Tag.closingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0F)
-            return
-
-        # check for context encoding
+        # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
+        elif (self.tagClass == Tag.openingTagClass):
+            data = 0x0E
+        elif (self.tagClass == Tag.closingTagClass):
+            data = 0x0F
         else:
             data = 0x00
 
@@ -476,7 +472,7 @@ class Atomic(object):
         return (self.value < other.value)
 
     def __eq__(self, other):
-        sys.stderr.write("__eq__ %r %r\n" % (self, other))
+        # sys.stderr.write("__eq__ %r %r\n" % (self, other))
 
         # hoop jump it
         if not isinstance(other, self.__class__):
@@ -797,14 +793,15 @@ class CharacterString(Atomic):
     def __init__(self, arg=None):
         self.value = ''
         self.strEncoding = 0
-        self.strValue = ''
+        self.strValue = b''
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, str):
-            self.strValue = self.value = arg
+            self.value = arg
+            self.strValue = arg.encode('utf-8')
         elif isinstance(arg, CharacterString):
             self.value = arg.value
             self.strEncoding = arg.strEncoding
@@ -814,7 +811,7 @@ class CharacterString(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.characterStringAppTag, (chr(self.strEncoding)+self.strValue.encode('latin-1')))
+        tag.set_app_data(Tag.characterStringAppTag, bytes([self.strEncoding]) + self.strValue)
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
@@ -829,26 +826,18 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf-8')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf-8')
         elif (self.strEncoding == 3):
-            udata = self.strValue.decode('utf_32be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
-            udata = self.strValue.decode('utf_16be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_16be')
         elif (self.strEncoding == 5):
-            udata = self.strValue.decode('latin_1')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('latin_1')
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
+        return "CharacterString(%d,X'%s')" % (self.strEncoding, btox(self.strValue))
 
 #
 #   BitString
@@ -1037,7 +1026,7 @@ class Enumerated(Atomic):
     def keylist(self):
         """Return a list of names in order by value."""
         items = self.enumerations.items()
-        items.sort(lambda a, b: cmp(a[1], b[1]))
+        items.sort(lambda a, b: self.cmp(a[1], b[1]))
 
         # last item has highest value
         rslt = [None] * (items[-1][1] + 1)
@@ -1102,7 +1091,7 @@ class Enumerated(Atomic):
         self.value = rslt
 
     def __str__(self):
-        return "Enumerated(%s)" % (self.value,)
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 #
 #   expand_enumerations
@@ -1111,13 +1100,17 @@ class Enumerated(Atomic):
 def expand_enumerations(klass):
     # build a value dictionary
     xlateTable = {}
-    for name, value in klass.enumerations.items():
-        # save the results
-        xlateTable[name] = value
-        xlateTable[value] = name
 
-        # save the name in the class
-        setattr(klass, name, value)
+    for c in klass.__mro__:
+        enumerations = getattr(c, 'enumerations', {})
+        if enumerations:
+            for name, value in enumerations.items():
+                # save the results
+                xlateTable[name] = value
+                xlateTable[value] = name
+
+                # save the name in the class
+                setattr(klass, name, value)
 
     # save the dictionary in the class
     setattr(klass, '_xlate_table', xlateTable)
@@ -1126,83 +1119,171 @@ def expand_enumerations(klass):
 #   Date
 #
 
+_mm = r'(?P<month>0?[1-9]|1[0-4]|odd|even|255|[*])'
+_dd = r'(?P<day>[0-3]?\d|last|odd|even|255|[*])'
+_yy = r'(?P<year>\d{2}|255|[*])'
+_yyyy = r'(?P<year>\d{4}|255|[*])'
+_dow = r'(?P<dow>[1-7]|mon|tue|wed|thu|fri|sat|sun|255|[*])'
+
+_special_mon = {'*': 255, 'odd': 13, 'even': 14, None: 255}
+_special_mon_inv = {255: '*', 13: 'odd', 14: 'even'}
+
+_special_day = {'*': 255, 'last': 32, 'odd': 33, 'even': 34, None: 255}
+_special_day_inv = {255: '*', 32: 'last', 33: 'odd', 34: 'even'}
+
+_special_dow = {'*': 255, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 7}
+_special_dow_inv = {255: '*', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 7: 'sun'}
+
+def _merge(*args):
+    """Create a composite pattern and compile it."""
+    return re.compile(r'^' + r'[/-]'.join(args) + r'(?:\s+' + _dow + ')?$')
+
+# make a list of compiled patterns
+_date_patterns = [
+    _merge(_yyyy, _mm, _dd),
+    _merge(_mm, _dd, _yyyy),
+    _merge(_dd, _mm, _yyyy),
+    _merge(_yy, _mm, _dd),
+    _merge(_mm, _dd, _yy),
+    _merge(_dd, _mm, _yy),
+    ]
+
+
 class Date(Atomic):
 
-    _app_tag = Tag.dateAppTag
-    _date_regex = re.compile(r"^([*]|\d+)[/]([*]|\d+)[/]([*]|\d+)(?:\s([*]|\w+))?$")
-    _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-    DONT_CARE = 255
-
-    def __init__(self, arg=None, year=255, month=255, day=255, dayOfWeek=255):
-        self.value = (year, month, day, dayOfWeek)
-
+    def __init__(self, arg=None, year=255, month=255, day=255, day_of_week=255):
+        self.value = (year, month, day, day_of_week)
+        
         if arg is None:
             pass
-        elif isinstance(arg,Tag):
+        elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            date_match = Date._date_regex.match(arg)
-            if not date_match:
-                raise ValueError("invalid date pattern")
-            date_groups = date_match.groups()
+            # lower case everything
+            arg = arg.lower()
 
-            # day/month/year
-            tup_list = []
-            for s in date_groups[:3]:
-                if s == '*':
-                    tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
-                else:
-                    tup_list.append(int(s))
+            # make a list of the contents from matching patterns
+            matches = []
+            for p in _date_patterns:
+                m = p.match(arg)
+                if m:
+                    matches.append(m.groupdict())
 
-            # clean up the year
-            if (tup_list[2] < 100):
-                tup_list[2] += 2000
-            tup_list[2] -= 1900
+            # try to find a good one
+            match = None
+            if not matches:
+                raise ValueError("unmatched")
 
-            # day-of-week madness
-            dow = date_groups[3]
-            if dow is None:
-                tup_list.append(0)
-            elif (dow == '*'):
-                tup_list.append(255)
-            elif dow.isdigit():
-                tup_list.append(int(dow))
+            # if there is only one, success
+            if len(matches) == 1:
+                match = matches[0]
             else:
-                dow = dow.title()
-                if dow not in Date._day_names:
-                    raise ValueError("invalid day name")
-                tup_list.append(Date._day_names.index(dow))
+                # check to see if they really are the same
+                for a, b in zip(matches[:-1],matches[1:]):
+                    if a != b:
+                        raise ValueError("ambiguous")
+                        break
+                else:
+                    match = matches[0]
 
-            self.value = tuple(tup_list)
+            # extract the year and normalize
+            year = match['year']
+            if (year == '*') or (not year):
+                year = 255
+            else:
+                year = int(year)
+                if (year == 255):
+                    pass
+                elif year < 35:
+                    year += 2000
+                elif year < 100:
+                    year += 1900
+                elif year < 1900:
+                    raise ValueError("invalid year")
+
+            # extract the month and normalize
+            month = match['month']
+            if month in _special_mon:
+                month = _special_mon[month]
+            else:
+                month = int(month)
+                if (month == 255):
+                    pass
+                elif (month == 0) or (month > 14):
+                    raise ValueError("invalid month")
+
+            # extract the day and normalize
+            day = match['day']
+            if day in _special_day:
+                day = _special_day[day]
+            else:
+                day = int(day)
+                if (day == 255):
+                    pass
+                elif (day == 0) or (day > 34):
+                    raise ValueError("invalid day")
+
+            # extract the day-of-week and normalize
+            day_of_week = match['dow']
+            if day_of_week in _special_dow:
+                day_of_week = _special_dow[day_of_week]
+            elif not day_of_week:
+                pass
+            else:
+                day_of_week = int(day_of_week)
+                if (day_of_week == 255):
+                    pass
+                elif day_of_week > 7:
+                    raise ValueError("invalid day of week")
+
+            # year becomes the correct octet
+            if year != 255:
+                year -= 1900
+
+            # save the value
+            self.value = (year, month, day, day_of_week)
+
+            # calculate the day of the week
+            if not day_of_week:
+                self.CalcDayOfWeek()
+
         elif isinstance(arg, Date):
             self.value = arg.value
+
         else:
             raise TypeError("invalid constructor datatype")
-
-    def now(self):
-        tup = time.localtime()
-
-        self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
-
-        return self
 
     def CalcDayOfWeek(self):
         """Calculate the correct day of the week."""
         # rip apart the value
-        year, month, day, dayOfWeek = self.value
+        year, month, day, day_of_week = self.value
 
-        # make sure all the components are defined
-        if (year != 255) and (month != 255) and (day != 255):
-            today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
-            dayOfWeek = time.gmtime(today)[6] + 1
+        # assume the worst
+        day_of_week = 255
+
+        # check for special values
+        if year == 255:
+            pass
+        elif month in _special_mon_inv:
+            pass
+        elif day in _special_day_inv:
+            pass
+        else:
+            try:            
+                today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
+                day_of_week = time.gmtime(today)[6] + 1
+            except OverflowError:
+                pass
 
         # put it back together
-        self.value = (year, month, day, dayOfWeek)
+        self.value = (year, month, day, day_of_week)
+
+    def now(self):
+        tup = time.localtime()
+        self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
+        return self
 
     def encode(self, tag):
         # encode the tag
@@ -1216,28 +1297,21 @@ class Date(Atomic):
         self.value = tuple(tag.tagData)
 
     def __str__(self):
+        """String representation of the date."""
         # rip it apart
-        year, month, day, dayOfWeek = self.value
+        year, month, day, day_of_week = self.value
 
-        rslt = "Date("
-        if month == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (month,)
-        if day == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (day,)
         if year == 255:
-            rslt += "* "
+            year = "*"
         else:
-            rslt += "%d " % (year + 1900,)
-        if dayOfWeek == 255:
-            rslt += "*)"
-        else:
-            rslt += Date._day_names[dayOfWeek] + ")"
+            year = str(year + 1900)
 
-        return rslt
+        month = _special_mon_inv.get(month, str(month))
+        day = _special_day_inv.get(day, str(day))
+        day_of_week = _special_dow_inv.get(day_of_week, str(day_of_week))
+
+        return "%s(%s-%s-%s %s)" % (self.__class__.__name__, year, month, day, day_of_week)
+
 
 #
 #   Time
@@ -1266,11 +1340,15 @@ class Time(Atomic):
                 raise ValueError("invalid time pattern")
 
             tup_list = []
-            for s in tup_match:
+            tup_items = list(tup_match.groups())
+            for s in tup_items:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
+                elif s is None:
+                    if '*' in tup_items:
+                        tup_list.append(255)
+                    else:
+                        tup_list.append(0)
                 else:
                     tup_list.append(int(s))
 
@@ -1409,12 +1487,12 @@ class ObjectIdentifier(Atomic):
                 self.set_long(arg)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
+            elif isinstance(arg, ObjectIdentifier):
+                self.value = arg.value
             else:
                 raise TypeError("invalid constructor datatype")
         elif len(args) == 2:
             self.set_tuple(*args)
-        elif isinstance(arg, ObjectIdentifier):
-            self.value = arg.value
         else:
             raise ValueError("invalid constructor parameters")
 
