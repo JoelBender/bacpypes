@@ -90,13 +90,13 @@ class UDPMultiplexer:
         bind(self.direct, self.directPort)
 
         # create and bind the broadcast address
-        if specialBroadcast and (not noBroadcast):
-            self.broadcast = _MultiplexClient(self)
-            self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
-            bind(self.direct, self.broadcastPort)
-        else:
-            self.broadcast = None
-
+#        if specialBroadcast and (not noBroadcast):
+#            self.broadcast = _MultiplexClient(self)
+#            self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
+#            bind(self.direct, self.broadcastPort)
+#        else:
+#            self.broadcast = None
+        self.broadcast = None
         # create and bind the Annex H and J servers
         self.annexH = _MultiplexServer(self)
         self.annexJ = _MultiplexServer(self)
