@@ -133,7 +133,7 @@ class MiddleMan(Client, Server):
 
         # send it along
         try:
-            self.request(PDU(str(msg), destination=dest))
+            self.request(PDU(msg.encode('utf_8'), destination=dest))
         except Exception as err:
             sys.stderr.write("err: %r\n" % (err,))
             return
