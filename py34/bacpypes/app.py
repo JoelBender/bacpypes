@@ -22,6 +22,11 @@ from .apdu import ConfirmedRequestPDU, SimpleAckPDU, RejectPDU, RejectReason
 from .apdu import IAmRequest, ReadPropertyACK, Error
 from .errors import ExecutionError
 
+# for computing protocol services supported
+from .apdu import confirmed_request_types, unconfirmed_request_types, \
+    ConfirmedServiceChoice, UnconfirmedServiceChoice
+from .basetypes import ServicesSupported
+
 from .apdu import \
     AtomicReadFileACK, \
         AtomicReadFileACKAccessMethodChoice, \
@@ -208,6 +213,30 @@ class Application(ApplicationServiceElement, Logging):
     def iter_objects(self):
         """Iterate over the objects."""
         return iter(self.objectIdentifier.values())
+
+    def get_services_supported(self):
+        """Return a ServicesSupported bit string based in introspection, look
+        for helper methods that match confirmed and unconfirmed services."""
+        if _debug: Application._debug("get_services_supported")
+
+        services_supported = ServicesSupported()
+
+        # look through the confirmed services
+        for service_choice, service_request_class in confirmed_request_types.items():
+            service_helper = "do_" + service_request_class.__name__
+            if hasattr(self, service_helper):
+                service_supported = ConfirmedServiceChoice._xlate_table[service_choice]
+                services_supported[service_supported] = 1
+
+        # look through the unconfirmed services
+        for service_choice, service_request_class in unconfirmed_request_types.items():
+            service_helper = "do_" + service_request_class.__name__
+            if hasattr(self, service_helper):
+                service_supported = UnconfirmedServiceChoice._xlate_table[service_choice]
+                services_supported[service_supported] = 1
+
+        # return the bit list
+        return services_supported
 
     #-----
 
