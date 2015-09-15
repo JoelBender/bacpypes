@@ -1612,18 +1612,12 @@ class AuthenticateRequest(ConfirmedRequestSequence):
         , Element('startEncipheredSession', Boolean, 4)
         ]
 
-register_confirmed_request_type(AuthenticateRequest)
-
 # removed in version 1, revision 11
 class AuthenticateACK(ComplexAckSequence):
     serviceChoice = 24
     sequenceElements = \
         [ Element('modifiedRandomNumber', Unsigned)
         ]
-
-register_complex_ack_type(AuthenticateACK)
-
-#-----
 
 # removed in version 1, revision 11
 class RequestKeyRequest(ConfirmedRequestSequence):
@@ -1634,8 +1628,6 @@ class RequestKeyRequest(ConfirmedRequestSequence):
         , Element('remoteDeviceIdentifier', ObjectIdentifier)
         , Element('remoteDeviceAddress', DeviceAddress)
         ]
-
-register_confirmed_request_type(RequestKeyRequest)
 
 #-----------------------------------
 
@@ -1679,6 +1671,8 @@ class ConfirmedServiceChoice(Enumerated):
         'vtData':23,
         }
 
+expand_enumerations(ConfirmedServiceChoice)
+
 class UnconfirmedServiceChoice(Enumerated):
     enumerations = {
         'iAm':0,
@@ -1694,3 +1688,4 @@ class UnconfirmedServiceChoice(Enumerated):
         'writeGroup':10,
         }
 
+expand_enumerations(UnconfirmedServiceChoice)
