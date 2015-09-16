@@ -299,6 +299,10 @@ class Application(ApplicationServiceElement, Logging):
         # away it goes
         self.request(iAm)
 
+    def do_IAmRequest(self, apdu):
+        """Respond to an I-Am request."""
+        if _debug: Application._debug("do_IAmRequest %r", apdu)
+
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""
         if _debug: Application._debug("do_ReadPropertyRequest %r", apdu)
