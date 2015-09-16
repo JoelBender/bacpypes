@@ -4,7 +4,7 @@
 Application Module
 """
 
-from .debugging import ModuleLogger, Logging
+from .debugging import bacpypes_debugging, ModuleLogger
 from .comm import ApplicationServiceElement, bind
 
 from .pdu import Address
@@ -86,7 +86,8 @@ class CurrentTimeProperty(Property):
 #   LocalDeviceObject
 #
 
-class LocalDeviceObject(DeviceObject, Logging):
+@bacpypes_debugging
+class LocalDeviceObject(DeviceObject):
 
     properties = \
         [ CurrentTimeProperty('localTime')
@@ -142,7 +143,8 @@ class LocalDeviceObject(DeviceObject, Logging):
 #   Application
 #
 
-class Application(ApplicationServiceElement, Logging):
+@bacpypes_debugging
+class Application(ApplicationServiceElement):
 
     def __init__(self, localDevice, localAddress, aseID=None):
         if _debug: Application._debug("__init__ %r %r aseID=%r", localDevice, localAddress, aseID)
@@ -298,6 +300,10 @@ class Application(ApplicationServiceElement, Logging):
 
         # away it goes
         self.request(iAm)
+
+    def do_IAmRequest(self, apdu):
+        """Respond to an I-Am request."""
+        if _debug: Application._debug("do_IAmRequest %r", apdu)
 
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""
@@ -588,7 +594,8 @@ class Application(ApplicationServiceElement, Logging):
 #   BIPSimpleApplication
 #
 
-class BIPSimpleApplication(Application, Logging):
+@bacpypes_debugging
+class BIPSimpleApplication(Application):
 
     def __init__(self, localDevice, localAddress, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r aseID=%r", localDevice, localAddress, aseID)
@@ -627,7 +634,8 @@ class BIPSimpleApplication(Application, Logging):
 #   BIPForeignApplication
 #
 
-class BIPForeignApplication(Application, Logging):
+@bacpypes_debugging
+class BIPForeignApplication(Application):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
@@ -666,7 +674,8 @@ class BIPForeignApplication(Application, Logging):
 #   BIPNetworkApplication
 #
 
-class BIPNetworkApplication(NetworkServiceElement, Logging):
+@bacpypes_debugging
+class BIPNetworkApplication(NetworkServiceElement):
 
     def __init__(self, localAddress, eID=None):
         if _debug: BIPNetworkApplication._debug("__init__ %r eID=%r", localAddress, eID)
