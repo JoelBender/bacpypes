@@ -95,6 +95,13 @@ try:
     # make a sample application
     this_application = WhoHasIHaveApplication(this_device, args.ini.address)
 
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
+
     _log.debug("running")
 
     # run until stopped, ^C works

@@ -135,18 +135,15 @@ try:
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
-    # build a bit string that knows about the bit names
-    pss = ServicesSupported()
-    pss['whoIs'] = 1
-    pss['iAm'] = 1
-    pss['readProperty'] = 1
-    pss['writeProperty'] = 1
-
-    # set the property value to be just the bits
-    this_device.protocolServicesSupported = pss.value
-
     # make a simple application
     this_application = ReadPointListApplication(point_list, this_device, args.ini.address)
+
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
     # fire off a request when the core has a chance
     deferred(this_application.next_request)
