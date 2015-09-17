@@ -278,17 +278,6 @@ try:
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
-    # build a bit string that knows about the bit names
-    pss = ServicesSupported()
-    pss['whoIs'] = 1
-    pss['iAm'] = 1
-    pss['readProperty'] = 1
-    pss['readPropertyMultiple'] = 1
-    pss['writeProperty'] = 1
-
-    # set the property value to be just the bits
-    this_device.protocolServicesSupported = pss.value
-
     # make a sample application
     this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)
 
@@ -307,6 +296,13 @@ try:
     this_application.add_object(ravo1)
     this_application.add_object(ravo2)
     _log.debug("    - object list: %r", this_device.objectList)
+
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
     _log.debug("running")
 

@@ -245,19 +245,18 @@ try:
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
-    # build a bit string that knows about the bit names
-    pss = ServicesSupported()
-    pss['whoIs'] = 1
-    pss['iAm'] = 1
-    pss['readProperty'] = 1
-    pss['writeProperty'] = 1
-
-    # set the property value to be just the bits
-    this_device.protocolServicesSupported = pss.value
-
     # make a simple application
     this_application = TestApplication(this_device, args.ini.address)
-    TestConsoleCmd()
+
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
+
+    # make a console
+    this_console = TestConsoleCmd()
 
     _log.debug("running")
 
