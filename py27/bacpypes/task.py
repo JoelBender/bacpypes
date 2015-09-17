@@ -265,7 +265,7 @@ class TaskManager(SingletonLogging):
         # because a task manager wasn't created yet.
         if _unscheduled_tasks:
             for task in _unscheduled_tasks:
-                self.install_task(task)
+                task.install_task()
 
     def get_time(self):
         if _debug: TaskManager._debug("get_time")
@@ -275,6 +275,10 @@ class TaskManager(SingletonLogging):
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
+
+        # if the taskTime is None is hasn't been computed correctly
+        if task.taskTime is None:
+            raise RuntimeError("task time is None")
 
         # if this is already installed, suspend it
         if task.isScheduled:
