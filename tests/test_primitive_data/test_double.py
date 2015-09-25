@@ -11,7 +11,8 @@ import struct
 import math
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Double, Tag, DecodingError
+from bacpypes.primitivedata import Double, Tag
+from bacpypes.errors import DecodingError,InvalidTagError
 
 # some debugging
 _debug = 0
@@ -126,8 +127,8 @@ class TestDouble(unittest.TestCase):
     def test_double_endec(self):
         if _debug: TestDouble._debug("test_double_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Double(double_tag(''))
+        with self.assertRaises(InvalidTagError):
+            obj = Double(double_tag(''))
 
         double_endec(0, '0000000000000000')
         double_endec(1, '3ff0000000000000')

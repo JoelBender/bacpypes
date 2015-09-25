@@ -10,6 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.primitivedata import Time, Tag
+from bacpypes.errors import DecodingError,InvalidTagError 
 
 # some debugging
 _debug = 0
@@ -132,8 +133,8 @@ class TestTime(unittest.TestCase):
         if _debug: TestTime._debug("test_time_endec")
 
         ### this should raise a decoding error
-        # with self.assertRaises(IndexError):
-        #    obj = Time(time_tag(''))
+        with self.assertRaises(InvalidTagError):
+            obj = Time(time_tag(''))
 
         time_endec((0, 0, 0, 0), '00000000')
         time_endec((1, 0, 0, 0), '01000000')

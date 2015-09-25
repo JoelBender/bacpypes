@@ -9,8 +9,9 @@ Test Primitive Data ObjectType
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import ObjectType, Tag, DecodingError, \
-    expand_enumerations
+from bacpypes.primitivedata import ObjectType, Tag, expand_enumerations
+from bacpypes.errors import DecodingError,InvalidTagError    
+    
 
 # some debugging
 _debug = 0
@@ -165,8 +166,8 @@ class TestObjectType(unittest.TestCase):
     def test_object_type_endec(self):
         if _debug: TestObjectType._debug("test_object_type_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = ObjectType(object_type_tag(''))
+        with self.assertRaises(InvalidTagError):
+            obj = ObjectType(object_type_tag(''))
 
         object_type_endec('analogInput', '00')
         object_type_endec('analogOutput', '01')

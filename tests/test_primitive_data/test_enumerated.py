@@ -9,7 +9,8 @@ Test Primitive Data Enumerated
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Enumerated, Tag, DecodingError
+from bacpypes.primitivedata import Enumerated, Tag
+from bacpypes.errors import DecodingError,InvalidTagError
 
 # some debugging
 _debug = 0
@@ -119,8 +120,8 @@ class TestEnumerated(unittest.TestCase):
     def test_enumerated_endec(self):
         if _debug: TestEnumerated._debug("test_enumerated_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Enumerated(enumerated_tag(''))
+        with self.assertRaises(InvalidTagError):
+            obj = Enumerated((enumerated_tag('')))
 
         enumerated_endec(0, '00')
         enumerated_endec(1, '01')

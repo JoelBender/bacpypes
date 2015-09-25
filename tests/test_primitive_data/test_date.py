@@ -10,6 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.primitivedata import Date, Tag
+from bacpypes.errors import DecodingError,InvalidTagError
 
 # some debugging
 _debug = 0
@@ -118,8 +119,8 @@ class TestDate(unittest.TestCase):
     def test_date_endec(self):
         if _debug: TestInteger._debug("test_date_endec")
 
-#       with self.assertRaises(IndexError):
-#           obj = Date(date_tag(''))
+        with self.assertRaises(InvalidTagError):
+            obj = Date(date_tag(''))
 
     def old_tests(self):
         self.test_values = [
