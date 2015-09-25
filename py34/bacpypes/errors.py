@@ -35,6 +35,17 @@ class DecodingError(ValueError):
         self.args = args
 
 #
+#   InvalidTag
+#
+
+class InvalidTagError(DecodingError):
+
+    """ This error is raised if there is a problem during decoding. """
+
+    def __init__(self, *args):
+        self.args = args
+
+#
 #   ExecutionError
 #
 

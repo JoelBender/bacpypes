@@ -11,7 +11,7 @@ import re
 
 from .debugging import ModuleLogger, btox
 
-from .errors import DecodingError
+from .errors import DecodingError,InvalidTagError
 from .pdu import PDUData
 
 # some debugging
@@ -548,7 +548,7 @@ class Boolean(Atomic):
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.booleanAppTag):
             raise ValueError("boolean application tag required")
-
+            
         # get the data
         self.value = bool(tag.tagLVT)
 
@@ -594,6 +594,9 @@ class Unsigned(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.unsignedAppTag):
             raise ValueError("unsigned application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # get the data
         rslt = 0
         for c in tag.tagData:
@@ -655,6 +658,9 @@ class Integer(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.integerAppTag):
             raise ValueError("integer application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # byte array easier to deal with
         tag_data = bytearray(tag.tagData)
 
@@ -703,6 +709,9 @@ class Real(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.realAppTag):
             raise ValueError("real application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # extract the data
         self.value = struct.unpack('>f',tag.tagData)[0]
 
@@ -741,6 +750,9 @@ class Double(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.doubleAppTag):
             raise ValueError("double application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # extract the data
         self.value = struct.unpack('>d',tag.tagData)[0]
 
@@ -777,6 +789,9 @@ class OctetString(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.octetStringAppTag):
             raise ValueError("octet string application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         self.value = tag.tagData
 
     def __str__(self):
@@ -816,6 +831,9 @@ class CharacterString(Atomic):
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
             raise ValueError("character string application tag required")
+
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
 
         # byte array easier to deal with
         tag_data = bytearray(tag.tagData)
@@ -900,6 +918,9 @@ class BitString(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.bitStringAppTag):
             raise ValueError("bit string application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         tag_data = bytearray(tag.tagData)
 
         # extract the number of unused bits
@@ -1079,6 +1100,9 @@ class Enumerated(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.enumeratedAppTag):
             raise ValueError("enumerated application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+        
         # get the data
         rslt = 0
         for c in tag.tagData:
@@ -1293,6 +1317,9 @@ class Date(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.dateAppTag):
             raise ValueError("date application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # rip apart the data
         self.value = tuple(tag.tagData)
 
@@ -1378,6 +1405,9 @@ class Time(Atomic):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.timeAppTag):
             raise ValueError("time application tag required")
 
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
+            
         # rip apart the data
         self.value = tuple(tag.tagData)
 
@@ -1553,6 +1583,9 @@ class ObjectIdentifier(Atomic):
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.objectIdentifierAppTag):
             raise ValueError("object identifier application tag required")
+
+        if tag.tagData == b'':
+            raise InvalidTagError('empty tag')
 
         # extract the data
         self.set_long(struct.unpack('>L',tag.tagData)[0])
