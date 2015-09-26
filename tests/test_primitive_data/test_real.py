@@ -11,7 +11,9 @@ import struct
 import math
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Real, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import Real, Tag
 
 # some debugging
 _debug = 0
@@ -106,15 +108,15 @@ class TestReal(unittest.TestCase):
         assert obj.value == 1.0
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Real(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Real(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Real(tag)
 
     def test_real_copy(self):
@@ -127,8 +129,8 @@ class TestReal(unittest.TestCase):
     def test_real_endec(self):
         if _debug: TestReal._debug("test_real_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Real(real_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Real(real_tag(''))
 
         real_endec(0, '00000000')
         real_endec(1, '3f800000')
