@@ -7,7 +7,7 @@ Console Communications
 import sys
 import asyncore
 
-from .debugging import Logging, ModuleLogger
+from .debugging import bacpypes_debugging, ModuleLogger
 
 from .core import deferred
 from .comm import PDU, Client, Server
@@ -16,17 +16,25 @@ from .comm import PDU, Client, Server
 _debug = 0
 _log = ModuleLogger(globals())
 
+#
+#   asyncore.file_dispatcher is only available in Unix.  This is a hack that
+#   allows the ConsoleClient and ConsoleServer to initialize on Windows.
+#
+
 try:
     asyncore.file_dispatcher
 except:
-    class _barf: pass
+    class _barf:
+        def __init__(self, *args):
+            pass
     asyncore.file_dispatcher = _barf
+
 
 #
 #   ConsoleClient
 #
 
-class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
+class ConsoleClient(asyncore.file_dispatcher, Client):
 
     def __init__(self, cid=None):
         ConsoleClient._debug("__init__ cid=%r", cid)
@@ -52,11 +60,13 @@ class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
         except Exception, err:
             ConsoleClient._exception("Confirmation sys.stdout.write exception: %r", err)
 
+bacpypes_debugging(ConsoleClient)
+
 #
 #   ConsoleServer
 #
 
-class ConsoleServer(asyncore.file_dispatcher, Server, Logging):
+class ConsoleServer(asyncore.file_dispatcher, Server):
 
     def __init__(self, sid=None):
         ConsoleServer._debug("__init__ sid=%r", sid)
@@ -81,3 +91,5 @@ class ConsoleServer(asyncore.file_dispatcher, Server, Logging):
             sys.stdout.write(pdu.pduData)
         except Exception, err:
             ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)
+
+bacpypes_debugging(ConsoleServer)

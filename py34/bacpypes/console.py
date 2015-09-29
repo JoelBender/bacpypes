@@ -16,11 +16,19 @@ from .comm import PDU, Client, Server
 _debug = 0
 _log = ModuleLogger(globals())
 
+#
+#   asyncore.file_dispatcher is only available in Unix.  This is a hack that
+#   allows the ConsoleClient and ConsoleServer to initialize on Windows.
+#
+
 try:
     asyncore.file_dispatcher
 except:
-    class _barf: pass
+    class _barf:
+        def __init__(self, *args):
+            pass
     asyncore.file_dispatcher = _barf
+
 
 #
 #   ConsoleClient
