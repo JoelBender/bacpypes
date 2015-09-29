@@ -9,7 +9,9 @@ Test Primitive Data Unsigned
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Unsigned, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import Unsigned, Tag
 
 # some debugging
 _debug = 0
@@ -98,15 +100,15 @@ class TestUnsigned(unittest.TestCase):
         assert obj.value == 1
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Unsigned(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Unsigned(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Unsigned(tag)
 
     def test_unsigned_copy(self):
@@ -119,8 +121,8 @@ class TestUnsigned(unittest.TestCase):
     def test_unsigned_endec(self):
         if _debug: TestUnsigned._debug("test_unsigned_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Unsigned(unsigned_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Unsigned(unsigned_tag(''))
 
         unsigned_endec(0, '00')
         unsigned_endec(1, '01')

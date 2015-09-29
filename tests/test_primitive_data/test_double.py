@@ -11,7 +11,9 @@ import struct
 import math
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Double, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import Double, Tag
 
 # some debugging
 _debug = 0
@@ -105,15 +107,15 @@ class TestDouble(unittest.TestCase):
         assert obj.value == 1.0
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Double(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Double(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Double(tag)
 
     def test_double_copy(self):
@@ -126,8 +128,8 @@ class TestDouble(unittest.TestCase):
     def test_double_endec(self):
         if _debug: TestDouble._debug("test_double_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Double(double_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Double(double_tag(''))
 
         double_endec(0, '0000000000000000')
         double_endec(1, '3ff0000000000000')

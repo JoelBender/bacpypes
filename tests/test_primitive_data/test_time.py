@@ -9,6 +9,8 @@ Test Primitive Data Time
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+
+from bacpypes.errors import InvalidTag
 from bacpypes.primitivedata import Time, Tag
 
 # some debugging
@@ -103,15 +105,15 @@ class TestTime(unittest.TestCase):
         assert obj.value == (1, 2, 3, 4)
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Time(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Time(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Time(tag)
 
     def test_time_copy(self):
@@ -131,9 +133,8 @@ class TestTime(unittest.TestCase):
     def test_time_endec(self):
         if _debug: TestTime._debug("test_time_endec")
 
-        ### this should raise a decoding error
-        # with self.assertRaises(IndexError):
-        #    obj = Time(time_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Time(time_tag(''))
 
         time_endec((0, 0, 0, 0), '00000000')
         time_endec((1, 0, 0, 0), '01000000')
