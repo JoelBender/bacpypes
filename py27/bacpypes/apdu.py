@@ -675,9 +675,14 @@ class APCISequence(APCI, Sequence):
         # create a tag list and decode the rest of the data
         self._tag_list = TagList()
         self._tag_list.decode(apdu)
+        if _debug: APCISequence._debug("    - tag list: %r", self._tag_list)
 
         # pass the taglist to the Sequence for additional decoding
         Sequence.decode(self, self._tag_list)
+
+        # trailing unmatched tags
+        if self._tag_list:
+            if _debug: APCISequence._debug("    - trailing unmatched tags")
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
