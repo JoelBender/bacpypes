@@ -11,7 +11,7 @@ import re
 
 from .debugging import ModuleLogger, btox
 
-from .errors import DecodingError
+from .errors import DecodingError, InvalidTag
 from .pdu import PDUData
 
 # some debugging
@@ -406,13 +406,13 @@ class TagList(object):
 
                 # make sure everything balances
                 if lvl >= 0:
-                    raise DecodingError("mismatched open/close tags")
+                    raise InvalidTag("mismatched open/close tags")
 
                 # get everything we need?
                 if keeper:
                     return TagList(rslt)
             else:
-                raise DecodingError("unexpected tag")
+                raise InvalidTag("unexpected tag")
 
             # try the next tag
             i += 1
@@ -483,7 +483,9 @@ class Null(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.nullAppTag):
-            raise ValueError("null application tag required")
+            raise InvalidTag("null application tag required")
+        if len(tag.tagData) != 0:
+            raise InvalidTag("invalid tag length")
 
         self.value = ()
 
@@ -521,7 +523,9 @@ class Boolean(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.booleanAppTag):
-            raise ValueError("boolean application tag required")
+            raise InvalidTag("boolean application tag required")
+        if (tag.tagLVT > 1):
+            raise InvalidTag("invalid tag value")
 
         # get the data
         self.value = bool(tag.tagLVT)
@@ -570,7 +574,9 @@ class Unsigned(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.unsignedAppTag):
-            raise ValueError("unsigned application tag required")
+            raise InvalidTag("unsigned application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # get the data
         rslt = 0L
@@ -633,7 +639,9 @@ class Integer(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.integerAppTag):
-            raise ValueError("integer application tag required")
+            raise InvalidTag("integer application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # byte array easier to deal with
         tag_data = [ord(c) for c in tag.tagData]
@@ -681,7 +689,9 @@ class Real(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.realAppTag):
-            raise ValueError("real application tag required")
+            raise InvalidTag("real application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.value = struct.unpack('>f',tag.tagData)[0]
@@ -719,7 +729,9 @@ class Double(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.doubleAppTag):
-            raise ValueError("double application tag required")
+            raise InvalidTag("double application tag required")
+        if len(tag.tagData) != 8:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.value = struct.unpack('>d',tag.tagData)[0]
@@ -755,7 +767,7 @@ class OctetString(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.octetStringAppTag):
-            raise ValueError("octet string application tag required")
+            raise InvalidTag("octet string application tag required")
 
         self.value = tag.tagData
 
@@ -794,7 +806,9 @@ class CharacterString(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
-            raise ValueError("character string application tag required")
+            raise InvalidTag("character string application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         tag_data = tag.tagData
 
@@ -880,7 +894,9 @@ class BitString(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.bitStringAppTag):
-            raise ValueError("bit string application tag required")
+            raise InvalidTag("bit string application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         tag_data = [ord(c) for c in tag.tagData]
 
@@ -1061,7 +1077,9 @@ class Enumerated(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.enumeratedAppTag):
-            raise ValueError("enumerated application tag required")
+            raise InvalidTag("enumerated application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # get the data
         rslt = 0L
@@ -1277,7 +1295,9 @@ class Date(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.dateAppTag):
-            raise ValueError("date application tag required")
+            raise InvalidTag("date application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # rip apart the data
         self.value = tuple(ord(c) for c in tag.tagData)
@@ -1362,7 +1382,9 @@ class Time(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.timeAppTag):
-            raise ValueError("time application tag required")
+            raise InvalidTag("time application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # rip apart the data
         self.value = tuple(ord(c) for c in tag.tagData)
@@ -1544,7 +1566,9 @@ class ObjectIdentifier(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.objectIdentifierAppTag):
-            raise ValueError("object identifier application tag required")
+            raise InvalidTag("object identifier application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.set_long(struct.unpack('>L',tag.tagData)[0])

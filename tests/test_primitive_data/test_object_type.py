@@ -9,8 +9,9 @@ Test Primitive Data ObjectType
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import ObjectType, Tag, DecodingError, \
-    expand_enumerations
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import ObjectType, Tag, expand_enumerations
 
 # some debugging
 _debug = 0
@@ -143,15 +144,15 @@ class TestObjectType(unittest.TestCase):
         assert obj.value == 'analogOutput'
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectType(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectType(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectType(tag)
 
     def test_object_type_copy(self):
@@ -165,8 +166,8 @@ class TestObjectType(unittest.TestCase):
     def test_object_type_endec(self):
         if _debug: TestObjectType._debug("test_object_type_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = ObjectType(object_type_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = ObjectType(object_type_tag(''))
 
         object_type_endec('analogInput', '00')
         object_type_endec('analogOutput', '01')

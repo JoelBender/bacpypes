@@ -9,6 +9,8 @@ Test Primitive Data Boolean
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+
+from bacpypes.errors import InvalidTag
 from bacpypes.primitivedata import Boolean, Tag
 
 # some debugging
@@ -98,15 +100,15 @@ class TestBoolean(unittest.TestCase):
         assert obj.value == 1
 
         tag = Tag(Tag.applicationTagClass, Tag.integerAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Boolean(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Boolean(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Boolean(tag)
 
     def test_boolean_copy(self):
