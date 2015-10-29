@@ -7,7 +7,7 @@ Console Communications
 import sys
 import asyncore
 
-from .debugging import Logging, ModuleLogger
+from .debugging import bacpypes_debugging, ModuleLogger
 
 from .core import deferred
 from .comm import PDU, Client, Server
@@ -16,20 +16,29 @@ from .comm import PDU, Client, Server
 _debug = 0
 _log = ModuleLogger(globals())
 
+#
+#   asyncore.file_dispatcher is only available in Unix.  This is a hack that
+#   allows the ConsoleClient and ConsoleServer to initialize on Windows.
+#
+
 try:
     asyncore.file_dispatcher
 except:
-    class _barf: pass
+    class _barf:
+        def __init__(self, *args):
+            pass
     asyncore.file_dispatcher = _barf
+
 
 #
 #   ConsoleClient
 #
 
-class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
+@bacpypes_debugging
+class ConsoleClient(asyncore.file_dispatcher, Client):
 
     def __init__(self, cid=None):
-        ConsoleClient._debug("__init__ cid=%r", cid)
+        if _debug: ConsoleClient._debug("__init__ cid=%r", cid)
         asyncore.file_dispatcher.__init__(self, sys.stdin)
         Client.__init__(self, cid)
 
@@ -40,15 +49,15 @@ class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
         return False    # we don't have anything to write
 
     def handle_read(self):
-        deferred(ConsoleClient._debug, "handle_read")
+        if _debug: deferred(ConsoleClient._debug, "handle_read")
         data = sys.stdin.read()
-        deferred(ConsoleClient._debug, "    - data: %r", data)
-        deferred(self.request, PDU(data))
+        if _debug: deferred(ConsoleClient._debug, "    - data: %r", data)
+        deferred(self.request, PDU(data.encode('utf_8')))
 
     def confirmation(self, pdu):
-        deferred(ConsoleClient._debug, "confirmation %r", pdu)
+        if _debug: deferred(ConsoleClient._debug, "confirmation %r", pdu)
         try:
-            sys.stdout.write(pdu.pduData)
+            sys.stdout.write(pdu.pduData.decode('utf_8'))
         except Exception as err:
             ConsoleClient._exception("Confirmation sys.stdout.write exception: %r", err)
 
@@ -56,10 +65,11 @@ class ConsoleClient(asyncore.file_dispatcher, Client, Logging):
 #   ConsoleServer
 #
 
-class ConsoleServer(asyncore.file_dispatcher, Server, Logging):
+@bacpypes_debugging
+class ConsoleServer(asyncore.file_dispatcher, Server):
 
     def __init__(self, sid=None):
-        ConsoleServer._debug("__init__ sid=%r", sid)
+        if _debug: ConsoleServer._debug("__init__ sid=%r", sid)
         asyncore.file_dispatcher.__init__(self, sys.stdin)
         Server.__init__(self, sid)
 
@@ -70,14 +80,14 @@ class ConsoleServer(asyncore.file_dispatcher, Server, Logging):
         return False    # we don't have anything to write
 
     def handle_read(self):
-        deferred(ConsoleServer._debug, "handle_read")
+        if _debug: deferred(ConsoleServer._debug, "handle_read")
         data = sys.stdin.read()
-        deferred(ConsoleServer._debug, "    - data: %r", data)
-        deferred(self.response, PDU(data))
+        if _debug: deferred(ConsoleServer._debug, "    - data: %r", data)
+        deferred(self.response, PDU(data.encode('utf_8')))
 
     def indication(self, pdu):
-        deferred(ConsoleServer._debug, "Indication %r", pdu)
+        if _debug: deferred(ConsoleServer._debug, "Indication %r", pdu)
         try:
-            sys.stdout.write(pdu.pduData)
+            sys.stdout.write(pdu.pduData.decode('utf_8'))
         except Exception as err:
             ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)

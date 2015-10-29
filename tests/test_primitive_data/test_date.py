@@ -9,6 +9,8 @@ Test Primitive Data Date
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+
+from bacpypes.errors import InvalidTag
 from bacpypes.primitivedata import Date, Tag
 
 # some debugging
@@ -96,15 +98,15 @@ class TestDate(unittest.TestCase):
         assert obj.value == (1, 2, 3, 4)
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Date(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Date(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Date(tag)
 
     def test_date_copy(self):
@@ -118,8 +120,8 @@ class TestDate(unittest.TestCase):
     def test_date_endec(self):
         if _debug: TestInteger._debug("test_date_endec")
 
-#       with self.assertRaises(IndexError):
-#           obj = Date(date_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Date(date_tag(''))
 
     def old_tests(self):
         self.test_values = [

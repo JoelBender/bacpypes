@@ -10,6 +10,8 @@ import unittest
 import struct
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+
+from bacpypes.errors import InvalidTag
 from bacpypes.primitivedata import OctetString, Tag
 
 # some debugging
@@ -98,15 +100,15 @@ class TestOctetString(unittest.TestCase):
         assert obj.value == xtob('00')
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             OctetString(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             OctetString(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             OctetString(tag)
 
     def test_octet_string_copy(self):

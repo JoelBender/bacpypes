@@ -335,6 +335,8 @@ def pack_ip_addr(addr):
 
 def unpack_ip_addr(addr):
     """Given a six-octet BACnet address, return an IP address tuple."""
+    if isinstance(addr, bytearray):
+        addr = bytes(addr)
     return (socket.inet_ntoa(addr[0:4]), struct.unpack('!H', addr[4:6])[0])
 
 #

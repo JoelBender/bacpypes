@@ -9,7 +9,9 @@ Test Primitive Data Object Identifier
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import ObjectIdentifier, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import ObjectIdentifier, Tag
 
 # some debugging
 _debug = 0
@@ -100,15 +102,15 @@ class TestObjectIdentifier(unittest.TestCase):
         assert obj.value == ('pulseConverter', 3)
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectIdentifier(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectIdentifier(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             ObjectIdentifier(tag)
 
     def test_object_identifier_copy(self):
@@ -121,9 +123,8 @@ class TestObjectIdentifier(unittest.TestCase):
     def test_object_identifier_endec(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_endec")
 
-        ### this should raise a DecodingError
-        # with self.assertRaises(DecodingError):
-        #     obj = ObjectIdentifier(object_identifier_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = ObjectIdentifier(object_identifier_tag(''))
 
         # test standard types
         object_identifier_endec(('analogInput', 0), '00000000')

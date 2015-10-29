@@ -9,7 +9,9 @@ Test Primitive Data Integer
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Integer, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import Integer, Tag
 
 # some debugging
 _debug = 0
@@ -99,15 +101,15 @@ class TestInteger(unittest.TestCase):
         assert obj.value == 1
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Integer(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Integer(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             Integer(tag)
 
     def test_integer_copy(self):
@@ -120,8 +122,8 @@ class TestInteger(unittest.TestCase):
     def test_integer_endec(self):
         if _debug: TestInteger._debug("test_integer_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = Integer(integer_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = Integer(integer_tag(''))
 
         integer_endec(0, '00')
         integer_endec(1, '01')
