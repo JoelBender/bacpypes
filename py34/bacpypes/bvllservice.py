@@ -4,8 +4,8 @@
 BACnet Virtual Link Layer Service
 """
 
-import struct
 import sys
+import struct
 from time import time as _time
 
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
