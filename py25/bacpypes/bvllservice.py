@@ -15,7 +15,8 @@ from .task import OneShotTask, RecurringTask
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .pdu import Address, LocalBroadcast, LocalStation, PDU
+from .pdu import Address, LocalBroadcast, LocalStation, PDU, \
+    unpack_ip_addr
 from .bvll import BVLPDU, DeleteForeignDeviceTableEntry, \
     DistributeBroadcastToNetwork, FDTEntry, ForwardedNPDU, \
     OriginalBroadcastNPDU, OriginalUnicastNPDU, \
@@ -109,7 +110,7 @@ class UDPMultiplexer:
             dest = self.addrBroadcastTuple
             if _debug: UDPMultiplexer._debug("    - requesting local broadcast: %r", dest)
         elif pdu.pduDestination.addrType == Address.localStationAddr:
-            dest = pdu.pduDestination.addrTuple
+            dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)
         else:
             raise RuntimeError("invalid destination address type")

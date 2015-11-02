@@ -15,7 +15,8 @@ from .task import OneShotTask, RecurringTask
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .pdu import Address, LocalBroadcast, LocalStation, PDU
+from .pdu import Address, LocalBroadcast, LocalStation, PDU, \
+    unpack_ip_addr
 from .bvll import BVLPDU, DeleteForeignDeviceTableEntry, \
     DistributeBroadcastToNetwork, FDTEntry, ForwardedNPDU, \
     OriginalBroadcastNPDU, OriginalUnicastNPDU, \
