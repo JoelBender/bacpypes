@@ -675,9 +675,14 @@ class APCISequence(APCI, Sequence):
         # create a tag list and decode the rest of the data
         self._tag_list = TagList()
         self._tag_list.decode(apdu)
+        if _debug: APCISequence._debug("    - tag list: %r", self._tag_list)
 
         # pass the taglist to the Sequence for additional decoding
         Sequence.decode(self, self._tag_list)
+
+        # trailing unmatched tags
+        if self._tag_list:
+            if _debug: APCISequence._debug("    - trailing unmatched tags")
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -1612,18 +1617,12 @@ class AuthenticateRequest(ConfirmedRequestSequence):
         , Element('startEncipheredSession', Boolean, 4)
         ]
 
-register_confirmed_request_type(AuthenticateRequest)
-
 # removed in version 1, revision 11
 class AuthenticateACK(ComplexAckSequence):
     serviceChoice = 24
     sequenceElements = \
         [ Element('modifiedRandomNumber', Unsigned)
         ]
-
-register_complex_ack_type(AuthenticateACK)
-
-#-----
 
 # removed in version 1, revision 11
 class RequestKeyRequest(ConfirmedRequestSequence):
@@ -1634,8 +1633,6 @@ class RequestKeyRequest(ConfirmedRequestSequence):
         , Element('remoteDeviceIdentifier', ObjectIdentifier)
         , Element('remoteDeviceAddress', DeviceAddress)
         ]
-
-register_confirmed_request_type(RequestKeyRequest)
 
 #-----------------------------------
 
@@ -1679,6 +1676,8 @@ class ConfirmedServiceChoice(Enumerated):
         'vtData':23,
         }
 
+expand_enumerations(ConfirmedServiceChoice)
+
 class UnconfirmedServiceChoice(Enumerated):
     enumerations = {
         'iAm':0,
@@ -1694,3 +1693,4 @@ class UnconfirmedServiceChoice(Enumerated):
         'writeGroup':10,
         }
 
+expand_enumerations(UnconfirmedServiceChoice)

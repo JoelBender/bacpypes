@@ -84,7 +84,7 @@ class Address:
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, (bytes, bytearray)):
@@ -150,7 +150,7 @@ class Address:
                 if (addr > 255):
                     raise ValueError("address out of range")
 
-                self.addrAddr = struct.pack('b', addr)
+                self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
 
             elif re.match(r"^\d+:[*]$", addr):
@@ -178,7 +178,7 @@ class Address:
 
                 self.addrType = Address.remoteStationAddr
                 self.addrNet = net
-                self.addrAddr = struct.pack('b', addr)
+                self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
 
             elif re.match(r"^0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
@@ -265,7 +265,7 @@ class Address:
         elif self.addrType == Address.localStationAddr:
             rslt = ''
             if self.addrLen == 1:
-                rslt += str(self.addrAddr)
+                rslt += str(self.addrAddr[0])
             else:
                 port = struct.unpack('!H', self.addrAddr[-2:])[0]
                 if (len(self.addrAddr) == 6) and (port >= 47808) and (port <= 47823):
@@ -282,7 +282,7 @@ class Address:
         elif self.addrType == Address.remoteStationAddr:
             rslt = '%d:' % (self.addrNet,)
             if self.addrLen == 1:
-                rslt += str(self.addrAddr)
+                rslt += str(self.addrAddr[0])
             else:
                 port = struct.unpack('!H', self.addrAddr[-2:])[0]
                 if (len(self.addrAddr) == 6) and (port >= 47808) and (port <= 47823):
@@ -335,6 +335,8 @@ def pack_ip_addr(addr):
 
 def unpack_ip_addr(addr):
     """Given a six-octet BACnet address, return an IP address tuple."""
+    if isinstance(addr, bytearray):
+        addr = bytes(addr)
     return (socket.inet_ntoa(addr[0:4]), struct.unpack('!H', addr[4:6])[0])
 
 #
@@ -351,7 +353,7 @@ class LocalStation(Address):
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, (bytes, bytearray)):
@@ -370,6 +372,8 @@ class LocalStation(Address):
 class RemoteStation(Address):
 
     def __init__(self, net, addr):
+        if not isinstance(net, int):
+            raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
             raise ValueError("network out of range")
 
@@ -380,7 +384,7 @@ class RemoteStation(Address):
             if (addr < 0) or (addr >= 256):
                 raise ValueError("address out of range")
 
-            self.addrAddr = struct.pack('b', addr)
+            self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
         elif isinstance(addr, (bytes, bytearray)):
@@ -410,7 +414,9 @@ class LocalBroadcast(Address):
 
 class RemoteBroadcast(Address):
 
-    def __init__(self,net):
+    def __init__(self, net):
+        if not isinstance(net, int):
+            raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
             raise ValueError("network out of range")
 

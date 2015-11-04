@@ -115,8 +115,7 @@ class ArgumentParser(_ArgumentParser):
 
         # check to dump labels
         if result_args.buggers:
-            loggers = logging.Logger.manager.loggerDict.keys()
-            loggers.sort()
+            loggers = sorted(logging.Logger.manager.loggerDict.keys())
             for loggerName in loggers:
                 sys.stdout.write(loggerName + '\n')
             sys.exit(0)
