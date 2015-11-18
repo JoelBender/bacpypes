@@ -7,21 +7,21 @@ ExtendedTagList
 An extended tag list adds a loads() function which takes a blob of text
 and parses it into a list of tags using the following mini language:
 
-    opening [tag] n
-    closing [tag] n
-    [ [context] n ] null
-    [ [context] n ] boolean (false | true)
-    [ [context] n ] unsigned [0-9]+
-    [ [context] n ] integer [+-][0-9]+
-    [ [context] n ] real [+-][0-9]+([.][0-9]+)?
-    [ [context] n ] double [+-][0-9]+([.][0-9]+)?
-    [ [context] n ] octet [string] OCTETSTR
-    [ [context] n ] [character] string ([0-9]+)? CHARSTR
-    [ [context] n ] bit [string] BITSTR
-    [ [context] n ] enumerated [0-9]+
-    [ [context] n ] date DATESTR
-    [ [context] n ] time TIMESTR
-    [ [context] n ] object [identifier] OBJTYPE [,] OBJINST
+    opening [tag] [context] n
+    closing [tag] [context] n
+    null  [ [context] n ]
+    boolean (false | true) [ [context] n ]
+    unsigned [0-9]+ [ [context] n ]
+    integer [+-][0-9]+ [ [context] n ]
+    real [+-][0-9]+([.][0-9]+)? [ [context] n ]
+    double [+-][0-9]+([.][0-9]+)? [ [context] n ]
+    octet [string] OCTETSTR [ [context] n ]
+    [character] string ([0-9]+)? CHARSTR [ [context] n ]
+    bit [string] BITSTR [ [context] n ]
+    enumerated [0-9]+ [ [context] n ]
+    date DATESTR [ [context] n ]
+    time TIMESTR [ [context] n ]
+    object [identifier] OBJTYPE [,] OBJINST [ [context] n ]
 
 Blank lines and everything after the comment '#' is ignored.
 
@@ -48,26 +48,24 @@ from bacpypes.primitivedata import *
 _debug = 0
 _log = ModuleLogger(globals())
 
-# parse the command line arguments
-args = ArgumentParser(description=__doc__).parse_args()
-
-
 # globals
 statements = []
 
 statement_pattern = r"""
-    ^ \s*                                       # leading white space
-    ( (context\s+)? (?P<context>[0-9]+) \s+ )?  # optional context
+    ^
+    \s*                                         # leading white space
     (%s)                                        # keyword
-    ([#].*)? $                                  # optional comment
-    """
+    ( (\s+context)? \s+ (?P<context>[0-9]+))?   # optional context
+    ([#].*)?                                    # optional comment
+    $"""
 
 statement_value_pattern = r"""
-    ^ \s*                                       # leading white space
-    ( (context\s+)? (?P<context>[0-9]+) \s+ )?  # optional context
-    (%s) \s+ (?P<value>%s) \s*                  # keyword and value
-    ([#].*)? $                                  # optional comment
-    """
+    ^
+    \s*                                         # leading white space
+    (%s) \s+ (?P<value>%s)                      # keyword and value
+    ( (\s+context)? \s+ (?P<context>[0-9]+))?   # optional context
+    \s* ([#].*)?                                # optional comment
+    $"""
 
 #
 #   blank lines
@@ -117,13 +115,13 @@ def statement(pattern):
 #   statements
 #
 
-@statement(r"opening(\s+tag)? [0-9]+")
+@statement(r"opening(\s+tag)?(\s+context)? [0-9]+")
 def opening_tag_statement(value):
     if _debug: ExtendedTagList._debug("opening_tag_statement %r", value)
 
     return OpeningTag(int(value))
 
-@statement(r"closing(\s+tag)? [0-9]+")
+@statement(r"closing(\s+tag)?(\s+context)? [0-9]+")
 def closing_tag_statement(value):
     if _debug: ExtendedTagList._debug("closing_tag_statement %r", value)
 
@@ -273,6 +271,8 @@ class ExtendedTagList(TagList):
         # check for element already a tag
         if isinstance(element, Tag):
             tag = element
+            if context is not None:
+                raise RuntimeError("syntax error: %r" % (line,))
 
         elif isinstance(element, Atomic):
             tag = Tag()
@@ -309,6 +309,10 @@ class ExtendedTagList(TagList):
 @bacpypes_debugging
 def main():
     if _debug: main._debug("main")
+
+    # parse the command line arguments
+    args = ArgumentParser(description=__doc__).parse_args()
+    if _debug: main._debug("    - args: %r", args)
 
     # suck in the test content
     text = sys.stdin.read()
