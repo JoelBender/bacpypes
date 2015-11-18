@@ -129,8 +129,6 @@ def closing_tag_statement(value):
 
     return ClosingTag(int(value))
 
-    statement(ExtendedTagList.null_tag_statement, 'null', ''),
-
 @statement(r"null")
 def null_statement(value):
     if _debug: ExtendedTagList._debug("null_statement %r", value)
