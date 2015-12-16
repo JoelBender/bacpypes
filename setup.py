@@ -24,13 +24,13 @@ test_requirements = [
 ]
 
 setup(
-    name='bacpypes',
-    version="0.13.6",
+    name="bacpypes",
+    version="0.13.7",
     description="Testing multiple versions of python",
     long_description="This is a long line of text",
     author="Joel Bender",
     author_email="joel@carrickbender.com",
-    url="http://something.com",
+    url="https://github.com/JoelBender/bacpypes",
     packages=[
         'bacpypes',
     ],
