@@ -7,7 +7,7 @@ This application demonstrates doing something at a regular interval.
 import sys
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from bacpypes.consolelogging import ConfigArgumentParser
+from bacpypes.consolelogging import ArgumentParser
 
 from bacpypes.core import run
 from bacpypes.task import RecurringTask
@@ -46,7 +46,7 @@ class PrairieDog(RecurringTask):
 
 try:
     # parse the command line arguments
-    parser = ConfigArgumentParser(description=__doc__)
+    parser = ArgumentParser(description=__doc__)
 
     # add an argument for seconds per dog
     parser.add_argument('seconds', metavar='N', type=int, nargs='+',

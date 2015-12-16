@@ -80,13 +80,21 @@ try:
 
     # make a sample application
     this_application = SampleApplication(this_device, args.ini.address)
+    if _debug: _log.debug("    - this_application: %r", this_application)
+
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
     _log.debug("running")
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")
 

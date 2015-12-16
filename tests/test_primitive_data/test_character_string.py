@@ -9,7 +9,9 @@ Test Primitive Data Character String
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import CharacterString, Tag, DecodingError
+
+from bacpypes.errors import InvalidTag
+from bacpypes.primitivedata import CharacterString, Tag
 
 # some debugging
 _debug = 0
@@ -88,7 +90,7 @@ class TestCharacterString(unittest.TestCase):
 
         obj = CharacterString("hello")
         assert obj.value == "hello"
-        assert str(obj) == "CharacterString(0,'hello')"
+        assert str(obj) == "CharacterString(0,X'68656c6c6f')"
 
     def test_character_string_tag(self):
         if _debug: TestCharacterString._debug("test_character_string_tag")
@@ -98,15 +100,15 @@ class TestCharacterString(unittest.TestCase):
         assert obj.value == ''
 
         tag = Tag(Tag.applicationTagClass, Tag.booleanAppTag, 0, xtob(''))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             CharacterString(tag)
 
         tag = Tag(Tag.contextTagClass, 0, 1, xtob('ff'))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             CharacterString(tag)
 
         tag = Tag(Tag.openingTagClass, 0)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(InvalidTag):
             CharacterString(tag)
 
     def test_character_string_copy(self):
@@ -119,8 +121,8 @@ class TestCharacterString(unittest.TestCase):
     def test_character_string_endec(self):
         if _debug: TestCharacterString._debug("test_character_string_endec")
 
-#       with self.assertRaises(DecodingError):
-#           obj = CharacterString(character_string_tag(''))
+        with self.assertRaises(InvalidTag):
+            obj = CharacterString(character_string_tag(''))
 
         character_string_endec("", '00')
         character_string_endec("abc", '00616263')

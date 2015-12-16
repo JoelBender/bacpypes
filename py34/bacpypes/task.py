@@ -160,15 +160,20 @@ def FunctionTask(fn, *args, **kwargs):
 #   RecurringTask
 #
 
+@bacpypes_debugging
 class RecurringTask(_Task):
 
     _debug_contents = ('taskInterval',)
 
     def __init__(self, interval=None):
+        if _debug: RecurringTask._debug("__init__ interval=%r", interval)
         _Task.__init__(self)
+
+        # save the interval, but do not automatically install
         self.taskInterval = interval
 
     def install_task(self, interval=None):
+        if _debug: RecurringTask._debug("install_task interval=%r", interval)
         global _task_manager, _unscheduled_tasks
 
         # set the interval if it hasn't already been set
@@ -181,6 +186,7 @@ class RecurringTask(_Task):
 
         # if there is no task manager, postpone the install
         if not _task_manager:
+            if _debug: RecurringTask._debug("    - no task manager")
             _unscheduled_tasks.append(self)
 
         else:
@@ -188,6 +194,7 @@ class RecurringTask(_Task):
             now = _task_manager.get_time()
             interval = self.taskInterval / 1000.0
             self.taskTime = now + interval - (now % interval)
+            if _debug: RecurringTask._debug("    - task time: %r", self.taskTime)
 
             # install it
             _task_manager.install_task(self)
@@ -258,7 +265,7 @@ class TaskManager(SingletonLogging):
         # because a task manager wasn't created yet.
         if _unscheduled_tasks:
             for task in _unscheduled_tasks:
-                self.install_task(task)
+                task.install_task()
 
     def get_time(self):
         if _debug: TaskManager._debug("get_time")
@@ -268,6 +275,10 @@ class TaskManager(SingletonLogging):
 
     def install_task(self, task):
         if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
+
+        # if the taskTime is None is hasn't been computed correctly
+        if task.taskTime is None:
+            raise RuntimeError("task time is None")
 
         # if this is already installed, suspend it
         if task.isScheduled:

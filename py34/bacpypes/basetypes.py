@@ -157,8 +157,9 @@ class ServicesSupported(BitString):
         , 'lifeSafetyOperation':37
         , 'subscribeCOVProperty':38
         , 'getEventInformation':39
+        , 'writeGroup':40
         }
-    bitLen = 40
+    bitLen = 41
 
 class StatusFlags(BitString):
     bitNames = \

@@ -28,6 +28,17 @@ class Element:
         self.context = context
         self.optional = optional
 
+    def __repr__(self):
+        desc = "%s(%s" % (self.__class__.__name__, self.name)
+        desc += " " + self.klass.__name__
+        if self.context is not None:
+            desc += ", context=%r" % (self.context,)
+        if self.optional:
+            desc += ", optional"
+        desc += ")"
+
+        return '<' + desc + ' instance at 0x%08x' % (id(self),) + '>'
+
 #
 #   Sequence
 #
