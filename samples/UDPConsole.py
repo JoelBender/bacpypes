@@ -113,23 +113,19 @@ class MiddleMan(Client, Server):
             return
 
         addr, msg = line_parts
-        try:
-            address = Address(str(addr))
-            if _debug: MiddleMan._debug('    - address: %r', address)
-        except Exception as err:
-            sys.stderr.write("err: invalid address %r: %r\n" % (addr, err))
-            return
 
-        # check for a broadcast message
-        if address.addrType == Address.localBroadcastAddr:
+        # check the address
+        if addr == "*":
             dest = local_broadcast_tuple
-            if _debug: MiddleMan._debug("    - requesting local broadcast: %r", dest)
-        elif address.addrType == Address.localStationAddr:
-            dest = address.addrTuple
-            if _debug: MiddleMan._debug("    - requesting local station: %r", dest)
+        elif ':' in addr:
+            addr, port = addr.split(':')
+            if addr == "*":
+                dest = (local_broadcast_tuple[0], int(port))
+            else:
+                dest = (addr, int(port))
         else:
-            sys.stderr.write("err: invalid destination address type\n")
-            return
+            dest = (addr, local_unicast_tuple[1])
+        if _debug: MiddleMan._debug('    - dest: %r', dest)
 
         # send it along
         try:
