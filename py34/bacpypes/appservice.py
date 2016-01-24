@@ -1242,6 +1242,7 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
 class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoint):
 
     def __init__(self, aseID=None, sapID=None):
+        if _debug: ApplicationServiceAccessPoint._debug("__init__ aseID=%r sapID=%r", aseID, sapID)
         ApplicationServiceElement.__init__(self, aseID)
         ServiceAccessPoint.__init__(self, sapID)
 
