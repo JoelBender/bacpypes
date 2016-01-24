@@ -21,7 +21,7 @@ _task_manager = None
 _unscheduled_tasks = []
 
 # only defined for linux platforms
-if 'linux' in sys.platform:
+if sys.platform.startswith(('linux', 'darwin')):
     from .event import WaitableEvent
     #
     #   _Trigger
@@ -39,6 +39,8 @@ if 'linux' in sys.platform:
             # read in the character, highlander
             data = self.recv(1)
             if _debug: _Trigger._debug("    - data: %r", data)
+else:
+    _Trigger = None
 
 #
 #   _Task
@@ -253,7 +255,7 @@ class TaskManager(SingletonLogging):
 
         # initialize
         self.tasks = []
-        if 'linux' in sys.platform:
+        if _Trigger:
             self.trigger = _Trigger()
         else:
             self.trigger = None
