@@ -286,7 +286,7 @@ class WritableProperty(StandardProperty, Logging):
 
     def __init__(self, identifier, datatype, default=None, optional=False, mutable=True):
         if _debug:
-            ReadableProperty._debug("__init__ %s %s default=%r optional=%r mutable=%r",
+            WritableProperty._debug("__init__ %s %s default=%r optional=%r mutable=%r",
                 identifier, datatype, default, optional, mutable
                 )
 
@@ -342,6 +342,9 @@ class Object(Logging):
                 raise PropertyError(key)
             initargs[key] = value
 
+        # object is detached from an application until it is added
+        self._app = None
+
         # start with a clean dict of values
         self._values = {}
 
@@ -388,6 +391,8 @@ class Object(Logging):
 
         # get the property
         prop = self._properties.get(attr)
+        if _debug: Object._debug("    - prop: %r", prop)
+
         if not prop:
             raise PropertyError(attr)
 
@@ -465,6 +470,19 @@ class Object(Logging):
         klasses = list(self.__class__.__mro__)
         klasses.reverse()
 
+        # print special attributes "bottom up"
+        previous_attrs = ()
+        for c in klasses:
+            attrs = getattr(c, '_debug_contents', ())
+
+            # if we have seen this list already, move to the next class
+            if attrs is previous_attrs:
+                continue
+
+            for attr in attrs:
+                file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
+            previous_attrs = attrs
+
         # build a list of properties "bottom up"
         properties = []
         for c in klasses:
@@ -498,6 +516,11 @@ class Object(Logging):
         # print out the values
         for prop in properties:
             value = prop.ReadProperty(self)
+
+            # printing out property values that are None is tedious
+            if value is None:
+                continue
+
             if hasattr(value, "debug_contents"):
                 file.write("%s%s\n" % ("    " * indent, prop.identifier))
                 value.debug_contents(indent+1, file, _ids)
