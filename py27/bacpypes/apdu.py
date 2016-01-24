@@ -1295,8 +1295,8 @@ class SubscribeCOVRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('subscriberProcessIdentifier', Unsigned, 0)
         , Element('monitoredObjectIdentifier', ObjectIdentifier, 1)
-        , Element('issueConfirmedNotifications', Boolean, 2)
-        , Element('lifetime', Unsigned, 3)
+        , Element('issueConfirmedNotifications', Boolean, 2, True)
+        , Element('lifetime', Unsigned, 3, True)
         ]
 
 register_confirmed_request_type(SubscribeCOVRequest)
