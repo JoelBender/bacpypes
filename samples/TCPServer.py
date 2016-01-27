@@ -42,7 +42,7 @@ class EchoMaster(Client):
 bacpypes_debugging(EchoMaster)
 
 #
-#   ConnectionASE
+#   MiddleManASE
 #
 
 class MiddleManASE(ApplicationServiceElement):

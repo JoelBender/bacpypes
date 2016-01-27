@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 """
-TCPConsole
+This simple TCP client application connects to a server and sends the text
+entered in the console.  There is no conversion from incoming streams of
+content into a line or any other higher-layer concept of a packet.
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
@@ -30,7 +32,13 @@ default_server_port = 9000
 #
 
 class MiddleMan(Client, Server):
-
+    """
+    An instance of this class sits between the TCPClientDirector and the
+    console client.  Downstream packets from a console have no concept of a
+    destination, so this is added to the PDUs before being sent to the
+    director.  The source information in upstream packets is ignored by the
+    console client.
+    """
     def indication(self, pdu):
         if _debug: MiddleMan._debug("indication %r", pdu)
         global server_address
