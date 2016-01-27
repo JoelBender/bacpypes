@@ -23,6 +23,7 @@ _log = ModuleLogger(globals())
 #
 
 class Tag(object):
+
     applicationTagClass     = 0
     contextTagClass         = 1
     openingTagClass         = 2
@@ -1160,6 +1161,8 @@ _date_patterns = [
 
 
 class Date(Atomic):
+
+    _app_tag = Tag.dateAppTag
 
     def __init__(self, arg=None, year=255, month=255, day=255, day_of_week=255):
         self.value = (year, month, day, day_of_week)
