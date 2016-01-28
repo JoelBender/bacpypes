@@ -40,7 +40,7 @@ def console_interrupt(*args):
 @bacpypes_debugging
 class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
-    def __init__(self, prompt="> ", allow_exec=False, stdin=None, stdout=None):
+    def __init__(self, prompt="> ", stdin=None, stdout=None):
         if _debug: ConsoleCmd._debug("__init__")
         cmd.Cmd.__init__(self, stdin=stdin, stdout=stdout)
         Thread.__init__(self, name="ConsoleCmd")
@@ -54,19 +54,12 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         else:
             self.prompt = ''
 
-        # save the exec option
-        self.allow_exec = allow_exec
-
         # gc counters
         self.type2count = {}
         self.type2all = {}
 
         # logging handlers
         self.handlers = {}
-
-        # execution space for the user
-        self._locals  = {}
-        self._globals = {}
 
         # set a INT signal handler, ^C will only get sent to the
         # main thread and there's no way to break the readline
@@ -307,15 +300,3 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
     def emptyline(self):
         """Do nothing on empty input line"""
         pass
-
-    def default(self, line):
-        """Called on an input line when the command prefix is not recognized.
-        If allow_exec is enabled, execute the line as Python code.
-        """
-        if not self.allow_exec:
-            return cmd.Cmd.default(self, line)
-
-        try:
-            exec(line) in self._locals, self._globals
-        except Exception as err:
-            self.stdout.write("%s : %s\n" % (err.__class__, err))
