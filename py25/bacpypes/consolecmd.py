@@ -44,8 +44,16 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         cmd.Cmd.__init__(self, stdin=stdin, stdout=stdout)
         Thread.__init__(self, name="ConsoleCmd")
 
-        # save the prompt and exec option
-        self.prompt = prompt
+        # check to see if this is running interactive
+        self.interactive = sys.__stdin__.isatty()
+
+        # save the prompt for interactive sessions, otherwise be quiet
+        if self.interactive:
+            self.prompt = prompt
+        else:
+            self.prompt = ''
+
+        # save the exec option
         self.allow_exec = allow_exec
 
         # gc counters
@@ -272,9 +280,13 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
 
-        cmd.Cmd.postloop(self)   ## Clean up command completion
+        # clean up command completion
+        cmd.Cmd.postloop(self)
 
-        self.stdout.write("Exiting...\n")
+        if self.interactive:
+            self.stdout.write("Exiting...\n")
+
+        # tell the core we have stopped
         core.stop()
 
     def precmd(self, line):
