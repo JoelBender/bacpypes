@@ -5,6 +5,13 @@ Release Notes
 
 This page contains release notes.
 
+Version 0.13.6
+--------------
+
+There have been lots of changes in the span between the previous published
+version and this one and I haven't quite figured out how to extract the
+relevent content from the git log.  More to come.
+
 Version 0.13.0
 --------------
 
