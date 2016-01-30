@@ -78,7 +78,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         if _debug: ConsoleCmd._debug("    - done cmdloop")
 
         # tell the main thread to stop, this thread will exit
-        core.stop()
+        core.deferred(core.stop)
 
     def onecmd(self, cmdString):
         if _debug: ConsoleCmd._debug('onecmd %r', cmdString)
@@ -234,15 +234,19 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
     def do_exit(self, args):
         """Exits from the console."""
         if _debug: ConsoleCmd._debug("do_exit %r", args)
+
         return -1
 
     def do_EOF(self, args):
         """Exit on system end of file character"""
         if _debug: ConsoleCmd._debug("do_EOF %r", args)
+
         return self.do_exit(args)
 
     def do_shell(self, args):
         """Pass command to a system shell when line begins with '!'"""
+        if _debug: ConsoleCmd._debug("do_shell %r", args)
+
         os.system(args)
 
     def do_help(self, args):
@@ -250,7 +254,9 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         'help' or '?' with no arguments prints a list of commands for which help is available
         'help <command>' or '? <command>' gives help on <command>
         """
-        ## The only reason to define this method is for the help text in the doc string
+        if _debug: ConsoleCmd._debug("do_help %r", args)
+
+        # the only reason to define this method is for the help text in the doc string
         cmd.Cmd.do_help(self, args)
 
     def preloop(self):
@@ -282,7 +288,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
             self.stdout.write("Exiting...\n")
 
         # tell the core we have stopped
-        core.stop()
+        core.deferred(core.stop)
 
     def precmd(self, line):
         """ This method is called after the line has been input but before
