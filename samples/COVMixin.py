@@ -36,7 +36,6 @@ _cov_increment_criteria_classes = {}
 
 # test globals
 test_application = None
-test_avo = None
 
 #
 #   COVSubscriptionList
@@ -90,6 +89,7 @@ bacpypes_debugging(COVSubscriptionList)
 #   COVSubscription
 #
 
+@bacpypes_debugging
 class COVSubscription(OneShotTask, DebugContents):
 
     _debug_contents = (
@@ -151,12 +151,11 @@ class COVSubscription(OneShotTask, DebugContents):
         # subscription is canceled
         self.cancel_subscription()
 
-bacpypes_debugging(COVSubscription)
-
 #
 #   COVCriteria
 #
 
+@bacpypes_debugging
 class COVCriteria:
 
     _properties_tracked = ()
@@ -186,6 +185,7 @@ class COVCriteria:
         return something_changed
 
 
+@bacpypes_debugging
 def GenericCriteria(cls):
     
     if cls in _generic_criteria_classes:
@@ -238,7 +238,7 @@ def COVIncrementCriteria(cls):
             value_changed = (new_present_value <= (old_present_value - cov_increment)) \
                 or (new_present_value >= (old_present_value + cov_increment))
             if value_changed:
-                if _debug: COVCriteria._debug("    - present value changed")
+                if _debug: COVIncrementCriteria._debug("    - present value changed")
 
                 # copy the new value for next time
                 self._cov_properties['presentValue'] = new_present_value
@@ -292,6 +292,19 @@ class COVObjectMixin(object):
 
     def WriteProperty(self, propid, value, arrayIndex=None, priority=None, direct=False):
         if _debug: COVObjectMixin._debug("WriteProperty %r %r arrayIndex=%r priority=%r", propid, value, arrayIndex, priority)
+
+        # normalize the property identifier
+        if isinstance(propid, int):
+            # get the property
+            prop = self._properties.get(propid)
+            if _debug: Object._debug("    - prop: %r", prop)
+
+            if not prop:
+                raise PropertyError(propid)
+
+            # use the name from now on
+            propid = prop.identifier
+            if _debug: Object._debug("    - propid: %r", propid)
 
         # use the default implementation
         super(COVObjectMixin, self).WriteProperty(propid, value, arrayIndex, priority, direct)
@@ -491,7 +504,6 @@ class COVApplicationMixin(object):
 
     def do_SubscribeCOVRequest(self, apdu):
         if _debug: COVApplicationMixin._debug("do_SubscribeCOVRequest %r", apdu)
-        global test_avo
 
         # extract the pieces
         client_addr = apdu.pduSource
@@ -503,8 +515,15 @@ class COVApplicationMixin(object):
         # request is to cancel the subscription
         cancel_subscription = (confirmed is None) and (lifetime is None)
 
+        # find the object
+        obj = self.get_object_id(obj_id)
+        if not obj:
+            if _debug: COVConsoleCmd._debug("    - object not found")
+            self.response(Error(errorClass='object', errorCode='unknownObject', context=apdu))
+            return
+
         # can a match be found?
-        cov = test_avo._cov_subscriptions.find(client_addr, proc_id, obj_id)
+        cov = obj._cov_subscriptions.find(client_addr, proc_id, obj_id)
         if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
 
         # if a match was found, update the subscription
@@ -521,7 +540,7 @@ class COVApplicationMixin(object):
             else:
                 if _debug: COVConsoleCmd._debug("    - create a subscription")
 
-                cov = COVSubscription(test_avo, client_addr, proc_id, obj_id, confirmed, lifetime)
+                cov = COVSubscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
                 if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
 
         # success
@@ -549,7 +568,7 @@ class COVConsoleCmd(ConsoleCmd):
         """
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_subscribe %r", args)
-        global test_application, test_avo
+        global test_application
 
         try:
             addr, proc_id, obj_type, obj_inst = args[:4]
@@ -567,6 +586,11 @@ class COVConsoleCmd(ConsoleCmd):
             obj_inst = int(obj_inst)
             obj_id = (obj_type, obj_inst)
             if _debug: COVConsoleCmd._debug("    - obj_id: %r", obj_id)
+
+            obj = test_application.get_object_id(obj_id)
+            if not obj:
+                print("object not found")
+                return
 
             if len(args) >= 5:
                 issue_confirmed = args[4]
@@ -589,13 +613,13 @@ class COVConsoleCmd(ConsoleCmd):
                 lifetime = None
 
             # can a match be found?
-            cov = test_avo._cov_subscriptions.find(client_addr, proc_id, obj_id)
+            cov = obj._cov_subscriptions.find(client_addr, proc_id, obj_id)
             if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
 
             # build a request
             request = SubscribeCOVRequest(
                 subscriberProcessIdentifier=proc_id,
-                monitoredObjectIdentifier=(obj_type, obj_inst),
+                monitoredObjectIdentifier=obj_id,
                 )
 
             # spoof that it came from the client
@@ -616,46 +640,143 @@ class COVConsoleCmd(ConsoleCmd):
             COVConsoleCmd._exception("exception: %r", err)
 
     def do_status(self, args):
-        """status"""
+        """status [ object_name ]"""
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_status %r", args)
-        global test_avo
+        global test_application
 
-        print("test_avo")
-        test_avo.debug_contents()
+        if args:
+            obj = test_application.get_object_name(args[0])
+            if not obj:
+                print("no such object")
+            else:
+                print("%s %s" % (obj.objectName, obj.objectIdentifier))
+                obj.debug_contents()
+        else:
+            # dump the information about all the known objects
+            for obj in test_application.iter_objects():
+                print("%s %s" % (obj.objectName, obj.objectIdentifier))
+                obj.debug_contents()
 
     def do_trigger(self, args):
-        """trigger"""
+        """trigger object_name"""
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_trigger %r", args)
-        global test_avo
+        global test_application
 
-        # tell the object to send out notifications
-        test_avo._send_cov_notifications()
+        if not args:
+            print("object name required")
+        else:
+            obj = test_application.get_object_name(args[0])
+            if not obj:
+                print("no such object")
+            else:
+                obj._send_cov_notifications()
 
     def do_set(self, args):
-        """set value"""
+        """set object_name [ . ] property_name [ = ] value"""
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_set %r", args)
-        global test_avo
+        global test_application
 
-        # use 'direct' access to the property
-        test_avo.presentValue = float(args[0])
+        try:
+            object_name = args.pop(0)
+            if '.' in object_name:
+                object_name, property_name = object_name.split('.')
+            else:
+                property_name = args.pop(0)
+            if _debug: COVConsoleCmd._debug("    - object_name: %r", object_name)
+            if _debug: COVConsoleCmd._debug("    - property_name: %r", property_name)
+
+            obj = test_application.get_object_name(object_name)
+            if _debug: COVConsoleCmd._debug("    - obj: %r", obj)
+            if not obj:
+                raise RuntimeError("object not found: %r" % (object_name,))
+
+            datatype = obj.get_datatype(property_name)
+            if _debug: COVConsoleCmd._debug("    - datatype: %r", datatype)
+            if not datatype:
+                raise RuntimeError("not a property: %r" % (property_name,))
+
+            # toss the equals
+            if args[0] == '=':
+                args.pop(0)
+
+            # evaluate the value
+            value = eval(args.pop(0))
+            if _debug: COVConsoleCmd._debug("    - raw value: %r", value)
+
+            # see if it can be built
+            obj_value = datatype(value)
+            if _debug: COVConsoleCmd._debug("    - obj_value: %r", obj_value)
+
+            # normalize
+            value = obj_value.value
+            if _debug: COVConsoleCmd._debug("    - normalized value: %r", value)
+
+            # change the value
+            setattr(obj, property_name, value)
+            if _debug: COVConsoleCmd._debug("    - hummm")
+
+        except IndexError:
+            print(COVConsoleCmd.do_set.__doc__)
+        except Exception as err:
+            print("exception: %s" % (err,))
 
     def do_write(self, args):
-        """write value"""
+        """write object_name [ . ] property [ = ] value"""
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_set %r", args)
-        global test_avo
+        global test_application
 
-        # use the service to change the value
-        test_avo.WriteProperty('presentValue', float(args[0]))
+        try:
+            object_name = args.pop(0)
+            if '.' in object_name:
+                object_name, property_name = object_name.split('.')
+            else:
+                property_name = args.pop(0)
+            if _debug: COVConsoleCmd._debug("    - object_name: %r", object_name)
+            if _debug: COVConsoleCmd._debug("    - property_name: %r", property_name)
+
+            obj = test_application.get_object_name(object_name)
+            if _debug: COVConsoleCmd._debug("    - obj: %r", obj)
+            if not obj:
+                raise RuntimeError("object not found: %r" % (object_name,))
+
+            datatype = obj.get_datatype(property_name)
+            if _debug: COVConsoleCmd._debug("    - datatype: %r", datatype)
+            if not datatype:
+                raise RuntimeError("not a property: %r" % (property_name,))
+
+            # toss the equals
+            if args[0] == '=':
+                args.pop(0)
+
+            # evaluate the value
+            value = eval(args.pop(0))
+            if _debug: COVConsoleCmd._debug("    - raw value: %r", value)
+
+            # see if it can be built
+            obj_value = datatype(value)
+            if _debug: COVConsoleCmd._debug("    - obj_value: %r", obj_value)
+
+            # normalize
+            value = obj_value.value
+            if _debug: COVConsoleCmd._debug("    - normalized value: %r", value)
+
+            # pass it along
+            obj.WriteProperty(property_name, value)
+
+        except IndexError:
+            print(COVConsoleCmd.do_write.__doc__)
+        except Exception as err:
+            print("exception: %s" % (err,))
 
 bacpypes_debugging(COVConsoleCmd)
 
 
 def main():
-    global test_application, test_avo
+    global test_application
 
     # make a parser
     parser = ConfigArgumentParser(description=__doc__)
@@ -683,10 +804,22 @@ def main():
     # make a sample application
     test_application = SubscribeCOVApplication(test_device, args.ini.address)
 
+    # make a binary value object
+    test_bvo = BinaryValueObjectCOV(
+        objectIdentifier=('binaryValue', 1),
+        objectName='bvo',
+        presentValue='inactive',
+        statusFlags=[0, 0, 0, 0],
+        )
+    _log.debug("    - test_bvo: %r", test_bvo)
+
+    # add it to the device
+    test_application.add_object(test_bvo)
+
     # make an analog value object
     test_avo = AnalogValueObjectCOV(
         objectIdentifier=('analogValue', 1),
-        objectName='Random1',
+        objectName='avo',
         presentValue=0.0,
         statusFlags=[0, 0, 0, 0],
         covIncrement=1.0,
