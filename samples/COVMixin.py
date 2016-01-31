@@ -15,12 +15,22 @@ from bacpypes.core import run
 from bacpypes.task import OneShotTask, TaskManager
 from bacpypes.pdu import Address
 
-from bacpypes.primitivedata import Real
-from bacpypes.constructeddata import Any
-from bacpypes.basetypes import BinaryPV, StatusFlags, PropertyValue
+from bacpypes.constructeddata import SequenceOf, Any
+from bacpypes.basetypes import DeviceAddress, COVSubscription, PropertyValue, \
+    Recipient, RecipientProcess, ObjectPropertyReference
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import AnalogValueObject, BinaryValueObject, \
-    WritableProperty, get_object_class, register_object_type
+from bacpypes.object import Property, get_object_class, register_object_type, \
+    AccessDoorObject, AccessPointObject, \
+    AnalogInputObject, AnalogOutputObject,  AnalogValueObject, \
+    LargeAnalogValueObject, IntegerValueObject, PositiveIntegerValueObject, \
+    LightingOutputObject, BinaryInputObject, BinaryOutputObject, \
+    BinaryValueObject, LifeSafetyPointObject, LifeSafetyZoneObject, \
+    MultiStateInputObject, MultiStateOutputObject, MultiStateValueObject, \
+    OctetStringValueObject, CharacterStringValueObject, TimeValueObject, \
+    DateTimeValueObject, DateValueObject, TimePatternValueObject, \
+    DatePatternValueObject, DateTimePatternValueObject, \
+    CredentialDataInputObject, LoadControlObject, LoopObject, \
+    PulseConverterObject
 from bacpypes.apdu import SubscribeCOVRequest, \
     ConfirmedCOVNotificationRequest, \
     UnconfirmedCOVNotificationRequest, \
@@ -38,34 +48,34 @@ _cov_increment_criteria_classes = {}
 test_application = None
 
 #
-#   COVSubscriptionList
+#   SubscriptionList
 #
 
-class COVSubscriptionList:
+class SubscriptionList:
 
     def __init__(self):
-        if _debug: COVSubscriptionList._debug("__init__")
+        if _debug: SubscriptionList._debug("__init__")
 
         self.cov_subscriptions = []
 
     def append(self, cov):
-        if _debug: COVSubscriptionList._debug("append %r", cov)
+        if _debug: SubscriptionList._debug("append %r", cov)
 
         self.cov_subscriptions.append(cov)
 
     def remove(self, cov):
-        if _debug: COVSubscriptionList._debug("remove %r", cov)
+        if _debug: SubscriptionList._debug("remove %r", cov)
 
         self.cov_subscriptions.remove(cov)
 
     def find(self, client_addr, proc_id, obj_id):
-        if _debug: COVSubscriptionList._debug("find %r %r %r", client_addr, proc_id, obj_id)
+        if _debug: SubscriptionList._debug("find %r %r %r", client_addr, proc_id, obj_id)
 
         for cov in self.cov_subscriptions:
             all_equal = (cov.client_addr == client_addr) and \
                 (cov.proc_id == proc_id) and \
                 (cov.obj_id == obj_id)
-            if _debug: COVSubscriptionList._debug("    - cov, all_equal: %r %r", cov, all_equal)
+            if _debug: SubscriptionList._debug("    - cov, all_equal: %r %r", cov, all_equal)
 
             if all_equal:
                 return cov
@@ -73,24 +83,24 @@ class COVSubscriptionList:
         return None
 
     def __len__(self):
-        if _debug: COVSubscriptionList._debug("__len__")
+        if _debug: SubscriptionList._debug("__len__")
 
         return len(self.cov_subscriptions)
 
     def __iter__(self):
-        if _debug: COVSubscriptionList._debug("__iter__")
+        if _debug: SubscriptionList._debug("__iter__")
 
         for cov in self.cov_subscriptions:
             yield cov
 
-bacpypes_debugging(COVSubscriptionList)
+bacpypes_debugging(SubscriptionList)
 
 #
-#   COVSubscription
+#   Subscription
 #
 
 @bacpypes_debugging
-class COVSubscription(OneShotTask, DebugContents):
+class Subscription(OneShotTask, DebugContents):
 
     _debug_contents = (
         'obj_ref',
@@ -102,7 +112,7 @@ class COVSubscription(OneShotTask, DebugContents):
         )
 
     def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime):
-        if _debug: COVSubscription._debug("__init__ %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime)
+        if _debug: Subscription._debug("__init__ %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime)
         OneShotTask.__init__(self)
 
         # save the reference to the related object
@@ -115,15 +125,18 @@ class COVSubscription(OneShotTask, DebugContents):
         self.confirmed = confirmed
         self.lifetime = lifetime
 
-        # add ourselves to the subscription list
-        self.obj_ref._cov_subscriptions.append(self)
+        # add ourselves to the subscription list for this object
+        obj_ref._cov_subscriptions.append(self)
+
+        # add ourselves to the list of all active subscriptions
+        obj_ref._app.active_cov_subscriptions.append(self)
 
         # if lifetime is non-zero, schedule the subscription to expire
         if lifetime != 0:
             self.install_task(delta=self.lifetime)
 
     def cancel_subscription(self):
-        if _debug: COVSubscription._debug("cancel_subscription")
+        if _debug: Subscription._debug("cancel_subscription")
 
         # suspend the task
         self.suspend_task()
@@ -131,11 +144,14 @@ class COVSubscription(OneShotTask, DebugContents):
         # remove ourselves from the other subscriptions for this object
         self.obj_ref._cov_subscriptions.remove(self)
 
+        # remove ourselves from the list of all active subscriptions
+        self.obj_ref._app.active_cov_subscriptions.remove(self)
+
         # break the object reference
         self.obj_ref = None
 
     def renew_subscription(self, lifetime):
-        if _debug: COVSubscription._debug("renew_subscription")
+        if _debug: Subscription._debug("renew_subscription")
 
         # suspend iff scheduled
         if self.isScheduled:
@@ -146,7 +162,7 @@ class COVSubscription(OneShotTask, DebugContents):
             self.install_task(delta=lifetime)
 
     def process_task(self):
-        if _debug: COVSubscription._debug("process_task")
+        if _debug: Subscription._debug("process_task")
 
         # subscription is canceled
         self.cancel_subscription()
@@ -160,6 +176,7 @@ class COVCriteria:
 
     _properties_tracked = ()
     _properties_reported = ()
+    _monitored_property_reference = None
 
     def _check_criteria(self):
         if _debug: COVCriteria._debug("_check_criteria")
@@ -186,85 +203,69 @@ class COVCriteria:
 
 
 @bacpypes_debugging
-def GenericCriteria(cls):
-    
-    if cls in _generic_criteria_classes:
-        return _generic_criteria_classes[cls]
+class GenericCriteria(COVCriteria):
 
-    class _GenericCriteria(COVCriteria):
-
-        _properties_tracked = ('presentValue', 'statusFlags')
-        _properties_reported = ('presentValue', 'statusFlags')
-
-        properties = \
-            [ WritableProperty('presentValue', cls)
-            , WritableProperty('statusFlags', StatusFlags)
-            ]
-
-    _GenericCriteria.__name__ = 'GenericCriteria(' + cls.__name__ + ')'
-
-    _generic_criteria_classes[cls] = _GenericCriteria
-    return _GenericCriteria
+    _properties_tracked = (
+        'presentValue',
+        'statusFlags',
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        )
+    _monitored_property_reference = 'presentValue'
 
 
 @bacpypes_debugging
-def COVIncrementCriteria(cls):
-    
-    if cls in _cov_increment_criteria_classes:
-        return _cov_increment_criteria_classes[cls]
+class COVIncrementCriteria(COVCriteria):
 
-    class _COVIncrementCriteria(COVCriteria):
+    _properties_tracked = (
+        'presentValue',
+        'statusFlags',
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        )
+    _monitored_property_reference = 'presentValue'
 
-        _properties_tracked = ('presentValue', 'statusFlags')
-        _properties_reported = ('presentValue', 'statusFlags')
+    def _check_criteria(self):
+        if _debug: COVIncrementCriteria._debug("_check_criteria")
 
-        properties = \
-            [ WritableProperty('presentValue', cls)
-            , WritableProperty('statusFlags', StatusFlags)
-            ]
+        # assume nothing has changed
+        something_changed = False
 
-        def _check_criteria(self):
-            if _debug: COVIncrementCriteria._debug("_check_criteria")
+        # get the old and new values
+        old_present_value = self._cov_properties['presentValue']
+        new_present_value = self._values['presentValue']
+        cov_increment = self._values['covIncrement']
 
-            # assume nothing has changed
-            something_changed = False
+        # check the difference in values
+        value_changed = (new_present_value <= (old_present_value - cov_increment)) \
+            or (new_present_value >= (old_present_value + cov_increment))
+        if value_changed:
+            if _debug: COVIncrementCriteria._debug("    - present value changed")
 
-            # get the old and new values
-            old_present_value = self._cov_properties['presentValue']
-            new_present_value = self._values['presentValue']
-            cov_increment = self._values['covIncrement']
+            # copy the new value for next time
+            self._cov_properties['presentValue'] = new_present_value
 
-            # check the difference in values
-            value_changed = (new_present_value <= (old_present_value - cov_increment)) \
-                or (new_present_value >= (old_present_value + cov_increment))
-            if value_changed:
-                if _debug: COVIncrementCriteria._debug("    - present value changed")
+            something_changed = True
 
-                # copy the new value for next time
-                self._cov_properties['presentValue'] = new_present_value
+        # check the status flags
+        status_changed = (self._values['statusFlags'] != self._cov_properties['statusFlags'])
+        if status_changed:
+            if _debug: COVIncrementCriteria._debug("    - status flags changed")
 
-                something_changed = True
+            # copy the new value for next time
+            self._cov_properties['statusFlags'] = self._values['statusFlags']
 
-            # check the status flags
-            status_changed = (self._values['statusFlags'] != self._cov_properties['statusFlags'])
-            if status_changed:
-                if _debug: COVIncrementCriteria._debug("    - status flags changed")
+            something_changed = True
 
-                # copy the new value for next time
-                self._cov_properties['statusFlags'] = self._values['statusFlags']
+        if not something_changed:
+            if _debug: COVIncrementCriteria._debug("    - nothing changed")
 
-                something_changed = True
-
-            if not something_changed:
-                if _debug: COVIncrementCriteria._debug("    - nothing changed")
-
-            # should send notifications
-            return something_changed
-
-    _COVIncrementCriteria.__name__ = 'COVIncrementCriteria(' + cls.__name__ + ')'
-
-    _cov_increment_criteria_classes[cls] = _COVIncrementCriteria
-    return _COVIncrementCriteria
+        # should send notifications
+        return something_changed
 
 #
 #   Change of Value Mixin
@@ -283,12 +284,34 @@ class COVObjectMixin(object):
         super(COVObjectMixin, self).__init__(**kwargs)
 
         # list of all active subscriptions
-        self._cov_subscriptions = COVSubscriptionList()
+        self._cov_subscriptions = SubscriptionList()
 
         # snapshot the properties tracked
         self._cov_properties = {}
         for property_name in self._properties_tracked:
             self._cov_properties[property_name] = self._values[property_name]
+
+    def __setattr__(self, attr, value):
+        if _debug: COVObjectMixin._debug("__setattr__ %r %r", attr, value)
+
+        if attr.startswith('_') or attr[0].isupper() or (attr == 'debug_contents'):
+            return object.__setattr__(self, attr, value)
+
+        # use the default implementation
+        super(COVObjectMixin, self).__setattr__(attr, value)
+
+        # check for special properties
+        if attr in self._properties_tracked:
+            if _debug: COVObjectMixin._debug("    - property tracked")
+
+            # check if it is significant
+            if self._check_criteria():
+                if _debug: COVObjectMixin._debug("    - send notifications")
+                self._send_cov_notifications()
+            else:
+                if _debug: COVObjectMixin._debug("    - no notifications necessary")
+        else:
+            if _debug: COVObjectMixin._debug("    - property not tracked")
 
     def WriteProperty(self, propid, value, arrayIndex=None, priority=None, direct=False):
         if _debug: COVObjectMixin._debug("WriteProperty %r %r arrayIndex=%r priority=%r", propid, value, arrayIndex, priority)
@@ -388,13 +411,228 @@ class COVObjectMixin(object):
             # let the application send it
             self._app.cov_notification(cov, request)
 
+# ---------------------------
+# access door
+# ---------------------------
+
+@bacpypes_debugging
+class AccessDoorCriteria(COVCriteria):
+
+    _properties_tracked = (
+        'presentValue',
+        'statusFlags',
+        'doorAlarmState',
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        'doorAlarmState',
+        )
 
 @register_object_type
-class BinaryValueObjectCOV(COVObjectMixin, GenericCriteria(BinaryPV), BinaryValueObject):
+class AccessDoorObjectCOV(COVObjectMixin, AccessDoorCriteria, AccessDoorObject):
+    pass
+
+# ---------------------------
+# access point
+# ---------------------------
+
+@bacpypes_debugging
+class AccessPointCriteria(COVCriteria):
+
+    _properties_tracked = (
+        'accessEventTime',
+        'statusFlags',
+        )
+    _properties_reported = (
+        'accessEvent',
+        'statusFlags',
+        'accessEventTag',
+        'accessEventTime',
+        'accessEventCredential',
+        'accessEventAuthenticationFactor',
+        )
+    _monitored_property_reference = 'accessEvent'
+
+@register_object_type
+class AccessPointObjectCOV(COVObjectMixin, AccessPointCriteria, AccessPointObject):
+    pass
+
+# ---------------------------
+# analog objects
+# ---------------------------
+
+@register_object_type
+class AnalogInputObjectCOV(COVObjectMixin, COVIncrementCriteria, AnalogInputObject):
     pass
 
 @register_object_type
-class AnalogValueObjectCOV(COVObjectMixin, COVIncrementCriteria(Real), AnalogValueObject):
+class AnalogOutputObjectCOV(COVObjectMixin, COVIncrementCriteria, AnalogOutputObject):
+    pass
+
+@register_object_type
+class AnalogValueObjectCOV(COVObjectMixin, COVIncrementCriteria, AnalogValueObject):
+    pass
+
+@register_object_type
+class LargeAnalogValueObjectCOV(COVObjectMixin, COVIncrementCriteria, LargeAnalogValueObject):
+    pass
+
+@register_object_type
+class IntegerValueObjectCOV(COVObjectMixin, COVIncrementCriteria, IntegerValueObject):
+    pass
+
+@register_object_type
+class PositiveIntegerValueObjectCOV(COVObjectMixin, COVIncrementCriteria, PositiveIntegerValueObject):
+    pass
+
+@register_object_type
+class LightingOutputObjectCOV(COVObjectMixin, COVIncrementCriteria, LightingOutputObject):
+    pass
+
+# ---------------------------
+# generic objects
+# ---------------------------
+
+@register_object_type
+class BinaryInputObjectCOV(COVObjectMixin, GenericCriteria, BinaryInputObject):
+    pass
+
+@register_object_type
+class BinaryOutputObjectCOV(COVObjectMixin, GenericCriteria, BinaryOutputObject):
+    pass
+
+@register_object_type
+class BinaryValueObjectCOV(COVObjectMixin, GenericCriteria, BinaryValueObject):
+    pass
+
+@register_object_type
+class LifeSafetyPointObjectCOV(COVObjectMixin, GenericCriteria, LifeSafetyPointObject):
+    pass
+
+@register_object_type
+class LifeSafetyZoneObjectCOV(COVObjectMixin, GenericCriteria, LifeSafetyZoneObject):
+    pass
+
+@register_object_type
+class MultiStateInputObjectCOV(COVObjectMixin, GenericCriteria, MultiStateInputObject):
+    pass
+
+@register_object_type
+class MultiStateOutputObjectCOV(COVObjectMixin, GenericCriteria, MultiStateOutputObject):
+    pass
+
+@register_object_type
+class MultiStateValueObjectCOV(COVObjectMixin, GenericCriteria, MultiStateValueObject):
+    pass
+
+@register_object_type
+class OctetStringValueObjectCOV(COVObjectMixin, GenericCriteria, OctetStringValueObject):
+    pass
+
+@register_object_type
+class CharacterStringValueObjectCOV(COVObjectMixin, GenericCriteria, CharacterStringValueObject):
+    pass
+
+@register_object_type
+class TimeValueObjectCOV(COVObjectMixin, GenericCriteria, TimeValueObject):
+    pass
+
+@register_object_type
+class DateTimeValueObjectCOV(COVObjectMixin, GenericCriteria, DateTimeValueObject):
+    pass
+
+@register_object_type
+class DateValueObjectCOV(COVObjectMixin, GenericCriteria, DateValueObject):
+    pass
+
+@register_object_type
+class TimePatternValueObjectCOV(COVObjectMixin, GenericCriteria, TimePatternValueObject):
+    pass
+
+@register_object_type
+class DatePatternValueObjectCOV(COVObjectMixin, GenericCriteria, DatePatternValueObject):
+    pass
+
+@register_object_type
+class DateTimePatternValueObjectCOV(COVObjectMixin, GenericCriteria, DateTimePatternValueObject):
+    pass
+
+# ---------------------------
+# credential data input
+# ---------------------------
+
+@bacpypes_debugging
+class CredentialDataInputCriteria(COVCriteria):
+
+    _properties_tracked = (
+        'updateTime',
+        'statusFlags'
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        'updateTime',
+        )
+
+@register_object_type
+class CredentialDataInputObjectCOV(COVObjectMixin, CredentialDataInputCriteria, CredentialDataInputObject):
+    pass
+
+# ---------------------------
+# load control
+# ---------------------------
+
+@bacpypes_debugging
+class LoadControlCriteria(COVCriteria):
+
+    _properties_tracked = (
+        'presentValue',
+        'statusFlags',
+        'requestedShedLevel',
+        'startTime',
+        'shedDuration',
+        'dutyWindow',
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        'requestedShedLevel',
+        'startTime',
+        'shedDuration',
+        'dutyWindow',
+        )
+
+@register_object_type
+class LoadControlObjectCOV(COVObjectMixin, LoadControlCriteria, LoadControlObject):
+    pass
+
+# ---------------------------
+# loop
+# ---------------------------
+
+@register_object_type
+class LoopObjectCOV(COVObjectMixin, COVIncrementCriteria, LoopObject):
+    pass
+
+# ---------------------------
+# pulse converter
+# ---------------------------
+
+@bacpypes_debugging
+class PulseConverterCriteria():
+
+    _properties_tracked = (
+        'presentValue',
+        'statusFlags',
+        )
+    _properties_reported = (
+        'presentValue',
+        'statusFlags',
+        )
+
+@register_object_type
+class PulseConverterObjectCOV(COVObjectMixin, PulseConverterCriteria, PulseConverterObject):
     pass
 
 #
@@ -407,6 +645,9 @@ class COVApplicationMixin(object):
     def __init__(self, *args, **kwargs):
         if _debug: COVApplicationMixin._debug("__init__ %r %r", args, kwargs)
         super(COVApplicationMixin, self).__init__(*args, **kwargs)
+
+        # list of active subscriptions
+        self.active_cov_subscriptions = []
 
         # a queue of confirmed notifications by client address
         self.confirmed_notifications_queue = defaultdict(list)
@@ -540,7 +781,7 @@ class COVApplicationMixin(object):
             else:
                 if _debug: COVConsoleCmd._debug("    - create a subscription")
 
-                cov = COVSubscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
+                cov = Subscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
                 if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
 
         # success
@@ -548,6 +789,85 @@ class COVApplicationMixin(object):
 
         # return the result
         self.response(response)
+
+#
+#   ActiveCOVSubscriptions
+#
+
+@bacpypes_debugging
+class ActiveCOVSubscriptions(Property):
+
+    def __init__(self, identifier):
+        Property.__init__(
+            self, identifier, SequenceOf(COVSubscription),
+            default=None, optional=True, mutable=False,
+            )
+
+    def ReadProperty(self, obj, arrayIndex=None):
+        if _debug: ActiveCOVSubscriptions._debug("ReadProperty %s arrayIndex=%r", obj, arrayIndex)
+
+        # get the current time from the task manager
+        current_time = TaskManager().get_time()
+        if _debug: ActiveCOVSubscriptions._debug("    - current_time: %r", current_time)
+
+        # start with an empty sequence
+        cov_subscriptions = SequenceOf(COVSubscription)()
+
+        # the obj is a DeviceObject with a reference to the application
+        for cov in obj._app.active_cov_subscriptions:
+            # calculate time remaining
+            if not cov.lifetime:
+                time_remaining = 0
+            else:
+                time_remaining = int(cov.taskTime - current_time)
+
+                # make sure it is at least one second
+                if not time_remaining:
+                    time_remaining = 1
+
+            recipient_process = RecipientProcess(
+                recipient=Recipient(
+                    address=DeviceAddress(
+                        networkNumber=cov.client_addr.addrNet or 0,
+                        macAddress=cov.client_addr.addrAddr,
+                        ),
+                    ),
+                processIdentifier=cov.proc_id,
+                )
+
+            cov_subscription = COVSubscription(
+                recipient=recipient_process,
+                monitoredPropertyReference=ObjectPropertyReference(
+                    objectIdentifier=cov.obj_id,
+                    propertyIdentifier=cov.obj_ref._monitored_property_reference,
+                    ),
+                issueConfirmedNotifications=cov.confirmed,
+                timeRemaining=time_remaining,
+                # covIncrement=???,
+                )
+            if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
+
+            # add the list
+            cov_subscriptions.append(cov_subscription)
+
+        return cov_subscriptions
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+
+#
+#   COVDeviceObject
+#
+
+@bacpypes_debugging
+class COVDeviceMixin(object):
+
+    properties = [
+        ActiveCOVSubscriptions('activeCovSubscriptions'),
+        ]
+
+class LocalDeviceObjectCOV(COVDeviceMixin, LocalDeviceObject):
+    pass
 
 #
 #   SubscribeCOVApplication
@@ -716,7 +1036,6 @@ class COVConsoleCmd(ConsoleCmd):
 
             # change the value
             setattr(obj, property_name, value)
-            if _debug: COVConsoleCmd._debug("    - hummm")
 
         except IndexError:
             print(COVConsoleCmd.do_set.__doc__)
@@ -793,7 +1112,7 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    test_device = LocalDeviceObject(
+    test_device = LocalDeviceObjectCOV(
         objectName=args.ini.objectname,
         objectIdentifier=int(args.ini.objectidentifier),
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
@@ -845,6 +1164,8 @@ def main():
     _log.debug("running")
 
     run()
+
+    _log.debug("fini")
 
 
 if __name__ == "__main__":
