@@ -91,7 +91,7 @@ class UDPMultiplexer:
         bind(self.direct, self.directPort)
 
         # create and bind the broadcast address for non-Windows
-        if specialBroadcast and (not noBroadcast) and 'win' not in sys.platform:
+        if specialBroadcast and (not noBroadcast) and sys.platform in ('linux2', 'darwin'):
             self.broadcast = _MultiplexClient(self)
             self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
             bind(self.direct, self.broadcastPort)
