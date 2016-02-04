@@ -9,7 +9,7 @@
 import sys as _sys
 import warnings as _warnings
 
-_supported_platforms = ('linux2', 'win32', 'darwin')
+_supported_platforms = ('linux', 'win32', 'darwin')
 
 if _sys.platform not in _supported_platforms:
     _warnings.warn("unsupported platform", RuntimeWarning)
