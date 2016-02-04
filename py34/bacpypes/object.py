@@ -183,7 +183,9 @@ class Property(Logging):
                 self.identifier, obj, value, arrayIndex, priority, direct
                 )
 
-        if (not direct):
+        if direct:
+            if _debug: Property._debug("    - direct write")
+        else:
             # see if it must be provided
             if not self.optional and value is None:
                 raise ValueError("%s value required" % (self.identifier,))

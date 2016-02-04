@@ -153,6 +153,9 @@ class Application(ApplicationServiceElement):
         # keep track of the local device
         self.localDevice = localDevice
 
+        # bind the device object to this application
+        localDevice._app = self
+
         # allow the address to be cast to the correct type
         if isinstance(localAddress, Address):
             self.localAddress = localAddress

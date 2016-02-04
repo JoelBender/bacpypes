@@ -19,10 +19,11 @@ And then use the setup utility to install it::
     $ python setup.py install
 
 If you would like to participate in its development, please join the
-`developers mailing list <https://lists.sourceforge.net/lists/listinfo/bacpypes-developers>`_.  There is also a
-`Google+ <https://plus.google.com/100756765082570761221/posts>`_ page that you
-can add to your circles have have release notifications show up in your
-stream.
+`developers mailing list
+<https://lists.sourceforge.net/lists/listinfo/bacpypes-developers>`_, join the
+`chat room on Gitter <https://gitter.im/JoelBender/bacpypes>`_, and add the
+`Google+ <https://plus.google.com/100756765082570761221/posts>`_ to your
+circles have have release notifications show up in your stream.
 
 Welcome aboard!
 

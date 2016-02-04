@@ -183,7 +183,9 @@ class Property(Logging):
                 self.identifier, obj, value, arrayIndex, priority, direct
                 )
 
-        if (not direct):
+        if direct:
+            if _debug: Property._debug("    - direct write")
+        else:
             # see if it must be provided
             if not self.optional and value is None:
                 raise ValueError("%s value required" % (self.identifier,))
@@ -513,23 +515,26 @@ class Object(Logging):
             previous_attrs = attrs
 
         # build a list of properties "bottom up"
-        properties = []
+        property_names = []
         for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
+            properties = getattr(c, 'properties', [])
+            for property in properties:
+                if property.identifier not in property_names:
+                    property_names.append(property.identifier)
 
         # print out the values
-        for prop in properties:
-            value = prop.ReadProperty(self)
+        for property_name in property_names:
+            property_value = self._values.get(property_name, None)
 
             # printing out property values that are None is tedious
-            if value is None:
+            if property_value is None:
                 continue
 
-            if hasattr(value, "debug_contents"):
-                file.write("%s%s\n" % ("    " * indent, prop.identifier))
-                value.debug_contents(indent+1, file, _ids)
+            if hasattr(property_value, "debug_contents"):
+                file.write("%s%s\n" % ("    " * indent, property_name))
+                property_value.debug_contents(indent+1, file, _ids)
             else:
-                file.write("%s%s = %r\n" % ("    " * indent, prop.identifier, value))
+                file.write("%s%s = %r\n" % ("    " * indent, property_name, property_value))
 
 #
 #   Standard Object Types
