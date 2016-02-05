@@ -1242,6 +1242,7 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
 class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoint):
 
     def __init__(self, aseID=None, sapID=None):
+        if _debug: ApplicationServiceAccessPoint._debug("__init__ aseID=%r sapID=%r", aseID, sapID)
         ApplicationServiceElement.__init__(self, aseID)
         ServiceAccessPoint.__init__(self, sapID)
 
@@ -1312,6 +1313,12 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
 
         # forward the encoded packet
         self.request(xpdu)
+
+        # if the upper layers of the application did not assign an invoke ID,
+        # copy the one that was assigned on its way down the stack
+        if isinstance(apdu, ConfirmedRequestPDU) and apdu.apduInvokeID is None:
+            if _debug: ApplicationServiceAccessPoint._debug("    - pass invoke ID upstream %r", xpdu.apduInvokeID)
+            apdu.apduInvokeID = xpdu.apduInvokeID
 
     def confirmation(self, apdu):
         if _debug: ApplicationServiceAccessPoint._debug("confirmation %r", apdu)

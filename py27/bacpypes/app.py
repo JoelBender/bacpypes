@@ -151,6 +151,9 @@ class Application(ApplicationServiceElement, Logging):
         # keep track of the local device
         self.localDevice = localDevice
 
+        # bind the device object to this application
+        localDevice._app = self
+
         # allow the address to be cast to the correct type
         if isinstance(localAddress, Address):
             self.localAddress = localAddress
@@ -186,6 +189,9 @@ class Application(ApplicationServiceElement, Logging):
         # append the new object's identifier to the device's object list
         self.localDevice.objectList.append(object_identifier)
 
+        # let the object know which application stack it belongs to
+        obj._app = self
+
     def delete_object(self, obj):
         """Add an object to the local collection."""
         if _debug: Application._debug("delete_object %r", obj)
@@ -201,6 +207,9 @@ class Application(ApplicationServiceElement, Logging):
         # remove the object's identifier from the device's object list
         indx = self.localDevice.objectList.index(object_identifier)
         del self.localDevice.objectList[indx]
+
+        # make sure the object knows it's detached from an application
+        obj._app = None
 
     def get_object_id(self, objid):
         """Return a local object or None."""

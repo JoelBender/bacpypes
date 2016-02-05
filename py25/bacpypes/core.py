@@ -160,6 +160,7 @@ def stop(*args):
 
     # trigger the task manager event
     if taskManager and taskManager.trigger:
+        if _debug: stop._debug("    - trigger")
         taskManager.trigger.set()
 
 bacpypes_debugging(stop)

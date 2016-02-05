@@ -715,11 +715,14 @@ class StreamToPacket(Client, Server):
         self.downstreamBuffer = {}
 
     def packetize(self, pdu, streamBuffer):
-        if _debug: StreamToPacket._debug("packetize %r", pdu)
+        if _debug: StreamToPacket._debug("packetize %r ...", pdu)
 
-        def Chop(addr):
+        def chop(addr):
+            if _debug: StreamToPacket._debug("chop %r", addr)
+
             # get the current downstream buffer
-            buff = streamBuffer.get(addr, '') + pdu.pduData
+            buff = streamBuffer.get(addr, b'') + pdu.pduData
+            if _debug: StreamToPacket._debug("    - buff: %r", buff)
 
             # look for a packet
             while 1:
@@ -727,7 +730,11 @@ class StreamToPacket(Client, Server):
                 if packet is None:
                     break
 
-                yield PDU(packet[0], source=pdu.pduSource, destination=pdu.pduDestination)
+                yield PDU(packet[0],
+                    source=pdu.pduSource,
+                    destination=pdu.pduDestination,
+                    user_data=pdu.pduUserData,
+                    )
                 buff = packet[1]
 
             # save what didn't get sent
@@ -735,10 +742,10 @@ class StreamToPacket(Client, Server):
 
         # buffer related to the addresses
         if pdu.pduSource:
-            for pdu in Chop(pdu.pduSource):
+            for pdu in chop(pdu.pduSource):
                 yield pdu
         if pdu.pduDestination:
-            for pdu in Chop(pdu.pduDestination):
+            for pdu in chop(pdu.pduDestination):
                 yield pdu
 
     def indication(self, pdu):
@@ -777,8 +784,8 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
 
         if addPeer:
             # create empty buffers associated with the peer
-            self.stp.upstreamBuffer[addPeer] = ''
-            self.stp.downstreamBuffer[addPeer] = ''
+            self.stp.upstreamBuffer[addPeer] = b''
+            self.stp.downstreamBuffer[addPeer] = b''
 
         if delPeer:
             # delete the buffer contents associated with the peer
