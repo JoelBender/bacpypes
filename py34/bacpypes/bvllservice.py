@@ -289,7 +289,7 @@ class BIPSAP(ServiceAccessPoint):
 
     def __init__(self, sap=None):
         """A BIP service access point."""
-        if _debug: BIPSimple._debug("__init__ sap=%r", sap)
+        if _debug: BIPSAP._debug("__init__ sap=%r", sap)
         ServiceAccessPoint.__init__(self, sap)
 
     def sap_indication(self, pdu):
