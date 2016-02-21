@@ -8,7 +8,6 @@ import sys
 import types
 import os
 import gc
-import readline
 import signal
 import cmd
 import logging
@@ -19,6 +18,12 @@ from .debugging import bacpypes_debugging, function_debugging, Logging, ModuleLo
 from .consolelogging import ConsoleLogHandler
 
 from . import core
+
+# readline is used for history files
+try:
+    import readline
+except ImportError:
+    readline = None
 
 # some debugging
 _debug = 0
@@ -266,7 +271,8 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         cmd.Cmd.preloop(self)   ## sets up command completion
 
         try:
-            readline.read_history_file(sys.argv[0] + ".history")
+            if readline:
+                readline.read_history_file(sys.argv[0] + ".history")
         except Exception as err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
@@ -276,7 +282,8 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         Despite the claims in the Cmd documentaion, Cmd.postloop() is not a stub.
         """
         try:
-            readline.write_history_file(sys.argv[0]+".history")
+            if readline:
+                readline.write_history_file(sys.argv[0] + ".history")
         except Exception as err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
