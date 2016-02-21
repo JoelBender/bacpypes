@@ -25,7 +25,7 @@ test_requirements = [
 
 setup(
     name="bacpypes",
-    version="0.13.7",
+    version="0.13.8",
     description="Testing multiple versions of python",
     long_description="This is a long line of text",
     author="Joel Bender",

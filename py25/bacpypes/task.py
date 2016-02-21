@@ -21,7 +21,7 @@ _task_manager = None
 _unscheduled_tasks = []
 
 # only defined for linux platforms
-if sys.platform.startswith(('linux', 'darwin')):
+if sys.platform in ('linux2', 'darwin'):
     from .event import WaitableEvent
     #
     #   _Trigger
