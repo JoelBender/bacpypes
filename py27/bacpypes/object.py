@@ -6,7 +6,8 @@ Object
 
 import sys
 
-from .errors import ConfigurationError, ExecutionError
+from .errors import ConfigurationError, ExecutionError, \
+    InvalidParameterDatatype
 from .debugging import function_debugging, ModuleLogger, Logging
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
@@ -194,12 +195,21 @@ class Property(Logging):
             if not self.mutable:
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
-        # if it's atomic assume correct datatype
-        if issubclass(self.datatype, Atomic):
-            if _debug: Property._debug("    - property is atomic, assumed correct type")
-        elif isinstance(value, self.datatype):
-            if _debug: Property._debug("    - correct type")
-        elif arrayIndex is not None:
+            # if it's atomic assume correct datatype
+            if issubclass(self.datatype, Atomic):
+                if _debug: Property._debug("    - property is atomic, checking value")
+                if not self.datatype.is_valid(value):
+                    raise InvalidParameterDatatype("%s must be of type %s" % (
+                            self.identifier, self.datatype.__name__,
+                            ))
+
+            elif not isinstance(value, self.datatype):
+                if _debug: Property._debug("    - property is not atomic and wrong type")
+                raise InvalidParameterDatatype("%s must be of type %s" % (
+                        self.identifier, self.datatype.__name__,
+                        ))
+
+        if arrayIndex is not None:
             if not issubclass(self.datatype, Array):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
@@ -213,10 +223,6 @@ class Property(Logging):
             arry[arrayIndex] = value
 
             return
-        elif value is not None:
-            # coerce the value
-            value = self.datatype(value)
-            if _debug: Property._debug("    - coerced the value: %r", value)
 
         # seems to be OK
         obj._values[self.identifier] = value
