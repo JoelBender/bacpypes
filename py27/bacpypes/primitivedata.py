@@ -11,7 +11,7 @@ import re
 
 from .debugging import ModuleLogger, btox
 
-from .errors import DecodingError, InvalidTag
+from .errors import InvalidTag
 from .pdu import PDUData
 
 # some debugging
@@ -93,6 +93,7 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
+        """Encode a tag on the end of the PDU."""
         # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
@@ -135,38 +136,42 @@ class Tag(object):
         pdu.put_data(self.tagData)
 
     def decode(self, pdu):
-        tag = pdu.get()
+        """Decode a tag from the PDU."""
+        try:
+            tag = pdu.get()
 
-        # extract the type
-        self.tagClass = (tag >> 3) & 0x01
+            # extract the type
+            self.tagClass = (tag >> 3) & 0x01
 
-        # extract the tag number
-        self.tagNumber = (tag >> 4)
-        if (self.tagNumber == 0x0F):
-            self.tagNumber = pdu.get()
+            # extract the tag number
+            self.tagNumber = (tag >> 4)
+            if (self.tagNumber == 0x0F):
+                self.tagNumber = pdu.get()
 
-        # extract the length
-        self.tagLVT = tag & 0x07
-        if (self.tagLVT == 5):
-            self.tagLVT = pdu.get()
-            if (self.tagLVT == 254):
-                self.tagLVT = pdu.get_short()
-            elif (self.tagLVT == 255):
-                self.tagLVT = pdu.get_long()
-        elif (self.tagLVT == 6):
-            self.tagClass = Tag.openingTagClass
-            self.tagLVT = 0
-        elif (self.tagLVT == 7):
-            self.tagClass = Tag.closingTagClass
-            self.tagLVT = 0
+            # extract the length
+            self.tagLVT = tag & 0x07
+            if (self.tagLVT == 5):
+                self.tagLVT = pdu.get()
+                if (self.tagLVT == 254):
+                    self.tagLVT = pdu.get_short()
+                elif (self.tagLVT == 255):
+                    self.tagLVT = pdu.get_long()
+            elif (self.tagLVT == 6):
+                self.tagClass = Tag.openingTagClass
+                self.tagLVT = 0
+            elif (self.tagLVT == 7):
+                self.tagClass = Tag.closingTagClass
+                self.tagLVT = 0
 
-        # application tagged boolean has no more data
-        if (self.tagClass == Tag.applicationTagClass) and (self.tagNumber == Tag.booleanAppTag):
-            # tagLVT contains value
-            self.tagData = b''
-        else:
-            # tagLVT contains length
-            self.tagData = pdu.get_data(self.tagLVT)
+            # application tagged boolean has no more data
+            if (self.tagClass == Tag.applicationTagClass) and (self.tagNumber == Tag.booleanAppTag):
+                # tagLVT contains value
+                self.tagData = b''
+            else:
+                # tagLVT contains length
+                self.tagData = pdu.get_data(self.tagLVT)
+        except:
+            raise InvalidTag("invalid tag encoding")
 
     def app_to_context(self, context):
         """Return a context encoded tag."""
@@ -269,7 +274,7 @@ class ApplicationTag(Tag):
         if len(args) == 1 and isinstance(args[0], PDUData):
             Tag.__init__(self, args[0])
             if self.tagClass != Tag.applicationTagClass:
-                raise DecodingError("application tag not decoded")
+                raise InvalidTag("application tag not decoded")
         elif len(args) == 2:
             tnum, tdata = args
             Tag.__init__(self, Tag.applicationTagClass, tnum, len(tdata), tdata)
@@ -286,7 +291,7 @@ class ContextTag(Tag):
         if len(args) == 1 and isinstance(args[0], PDUData):
             Tag.__init__(self, args[0])
             if self.tagClass != Tag.contextTagClass:
-                raise DecodingError("context tag not decoded")
+                raise InvalidTag("context tag not decoded")
         elif len(args) == 2:
             tnum, tdata = args
             Tag.__init__(self, Tag.contextTagClass, tnum, len(tdata), tdata)
@@ -303,7 +308,7 @@ class OpeningTag(Tag):
         if isinstance(context, PDUData):
             Tag.__init__(self, context)
             if self.tagClass != Tag.openingTagClass:
-                raise DecodingError("opening tag not decoded")
+                raise InvalidTag("opening tag not decoded")
         elif isinstance(context, int):
             Tag.__init__(self, Tag.openingTagClass, context)
         else:
@@ -319,7 +324,7 @@ class ClosingTag(Tag):
         if isinstance(context, PDUData):
             Tag.__init__(self, context)
             if self.tagClass != Tag.closingTagClass:
-                raise DecodingError("closing tag not decoded")
+                raise InvalidTag("closing tag not decoded")
         elif isinstance(context, int):
             Tag.__init__(self, Tag.closingTagClass, context)
         else:
