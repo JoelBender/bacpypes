@@ -87,6 +87,14 @@ statements.append((blank_line_statement,
         ))
 
 #
+#   SyntaxError
+#
+
+class SyntaxError(RuntimeError):
+
+    pass
+
+#
 #   statement decorator
 #
 
@@ -234,6 +242,55 @@ def object_identifier_statement(value):
     return ObjectIdentifier(object_type, object_instance)
 
 #
+#   statement_to_tag
+#
+
+def statement_to_tag(line):
+    """Parse a line of text and return the appropriate tag."""
+    if _debug: statement_to_tag._debug("statement_to_tag %r", line)
+
+    # look for a matching statement pattern
+    for stmt_fn, stmt_re in statements:
+        match = stmt_re.match(line)
+        if match:
+            break
+    else:
+        raise SyntaxError("syntax error: %r" % (line,))
+
+    # extract the pieces captured by the pattern
+    match_groups = match.groupdict()
+    value = match_groups.get('value', None)
+    context = match_groups.get('context', None)
+    if _debug: statement_to_tag._debug("    - value: %r", value)
+    if _debug: statement_to_tag._debug("    - context: %r", context)
+
+    # let the function work on the value, skip blank lines
+    element = stmt_fn(value)
+    if not element:
+        return None
+
+    # check for element already a tag
+    if isinstance(element, Tag):
+        tag = element
+        if context is not None:
+            raise SyntaxError("syntax error: %r" % (line,))
+
+    elif isinstance(element, Atomic):
+        tag = Tag()
+        element.encode(tag)
+        if _debug: statement_to_tag._debug("    - encoded tag: %r", tag)
+
+        if context is not None:
+            tag = tag.app_to_context(int(context))
+            if _debug: statement_to_tag._debug("    - with context: %r", tag)
+
+    else:
+        raise TypeError("element must be a tag or atomic")
+    if _debug: statement_to_tag._debug("    - tag: %r", tag)
+
+    return tag
+
+#
 #   ExtendedTagList
 #
 
@@ -248,50 +305,6 @@ class ExtendedTagList(TagList):
         if text:
             self.loads(text)
 
-    def load_line(self, line):
-        if _debug: ExtendedTagList._debug("load_line %r", line)
-
-        # look for a matching statement pattern
-        for stmt_fn, stmt_re in statements:
-            match = stmt_re.match(line)
-            if match:
-                break
-        else:
-            raise RuntimeError("syntax error: %r" % (line,))
-
-        # extract the pieces captured by the pattern
-        match_groups = match.groupdict()
-        value = match_groups.get('value', None)
-        context = match_groups.get('context', None)
-        if _debug: ExtendedTagList._debug("    - value: %r", value)
-        if _debug: ExtendedTagList._debug("    - context: %r", context)
-
-        # let the function work on the value, skip blank lines
-        element = stmt_fn(value)
-        if not element:
-            return
-
-        # check for element already a tag
-        if isinstance(element, Tag):
-            tag = element
-            if context is not None:
-                raise RuntimeError("syntax error: %r" % (line,))
-
-        elif isinstance(element, Atomic):
-            tag = Tag()
-            element.encode(tag)
-            if _debug: ExtendedTagList._debug("    - encoded tag: %r", tag)
-
-            if context is not None:
-                tag = tag.app_to_context(int(context))
-                if _debug: ExtendedTagList._debug("    - with context: %r", tag)
-
-        else:
-            raise TypeError("element must be a tag or atomic")
-        if _debug: ExtendedTagList._debug("    - tag: %r", tag)
-
-        TagList.append(self, tag)
-
     def loads(self, text):
         if _debug: ExtendedTagList._debug("loads '%s...'", text[:20])
 
@@ -300,7 +313,13 @@ class ExtendedTagList(TagList):
 
         # load each line
         for line in lines:
-            self.load_line(line)
+            tag = statement_to_tag(line)
+
+            # no tag is a blank line
+            if not tag:
+                continue
+
+            self.append(tag)
 
     def dumps(self):
         return ''
