@@ -9,7 +9,7 @@ Test Utilities Extended Tag List
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
-from bacpypes.primitivedata import Tag, TagList, OpeningTag, ClosingTag, \
+from bacpypes.primitivedata import Tag, OpeningTag, ClosingTag, \
     Null, Boolean, Unsigned, Integer, Real, Double, OctetString, \
     CharacterString, BitString, Enumerated, Date, Time, ObjectIdentifier
 
