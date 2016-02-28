@@ -42,7 +42,10 @@ import re
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.primitivedata import *
+from bacpypes.primitivedata import Tag, TagList, OpeningTag, ClosingTag, \
+    Atomic, Null, Boolean, Unsigned, Integer, \
+    Real, Double, OctetString, CharacterString, BitString, Enumerated, \
+    Date, Time, ObjectIdentifier
 
 # some debugging
 _debug = 0
@@ -317,7 +320,10 @@ def main():
     # suck in the test content
     text = sys.stdin.read()
 
+    # parse it
     tag_list = ExtendedTagList(text)
+
+    # dump it back out
     for tag in tag_list:
         tag.debug_contents()
 
