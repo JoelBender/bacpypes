@@ -29,6 +29,8 @@ The OCTETSTR is an optional sequence of pairs of hex characters.
 
 The CHARSTR can be single quoted (') or double quoted (").
 
+The BITSTR is an optional sequence of 0 or 1 digits.
+
 The DATESTR and TIMESTR are patterns matched by associated primitive data
 type classes Date and Time.
 
@@ -127,62 +129,72 @@ def statement(pattern):
 #
 
 @statement(r"opening(\s+tag)?(\s+context)? [0-9]+")
+@bacpypes_debugging
 def opening_tag_statement(value):
-    if _debug: ExtendedTagList._debug("opening_tag_statement %r", value)
+    if _debug: opening_tag_statement._debug("opening_tag_statement %r", value)
 
     return OpeningTag(int(value))
 
 @statement(r"closing(\s+tag)?(\s+context)? [0-9]+")
+@bacpypes_debugging
 def closing_tag_statement(value):
-    if _debug: ExtendedTagList._debug("closing_tag_statement %r", value)
+    if _debug: closing_tag_statement._debug("closing_tag_statement %r", value)
 
     return ClosingTag(int(value))
 
 @statement(r"null")
+@bacpypes_debugging
 def null_statement(value):
-    if _debug: ExtendedTagList._debug("null_statement %r", value)
+    if _debug: null_statement._debug("null_statement %r", value)
 
     return Null()
 
 @statement(r"boolean false|true")
+@bacpypes_debugging
 def boolean_statement(value):
-    if _debug: ExtendedTagList._debug("boolean_statement %r", value)
+    if _debug: boolean_statement._debug("boolean_statement %r", value)
 
     return Boolean(value)
 
 @statement(r"unsigned [0-9]+")
+@bacpypes_debugging
 def unsigned_statement(value):
-    if _debug: ExtendedTagList._debug("unsigned_statement %r", value)
+    if _debug: unsigned_statement._debug("unsigned_statement %r", value)
 
     return Unsigned(int(value))
 
 @statement(r"integer [+-]?[0-9]+")
+@bacpypes_debugging
 def integer_statement(value):
-    if _debug: ExtendedTagList._debug("integer_statement %r", value)
+    if _debug: integer_statement._debug("integer_statement %r", value)
 
     return Integer(int(value))
 
 @statement(r"real [+-]?[0-9]+([.][0-9]+)?|nan")
+@bacpypes_debugging
 def real_statement(value):
-    if _debug: ExtendedTagList._debug("real_statement %r", value)
+    if _debug: real_statement._debug("real_statement %r", value)
 
     return Real(float(value))
 
 @statement(r"double [+-]?[0-9]+([.][0-9]+)?|nan")
+@bacpypes_debugging
 def double_statement(value):
-    if _debug: ExtendedTagList._debug("double_statement %r", value)
+    if _debug: double_statement._debug("double_statement %r", value)
 
     return Double(float(value))
 
 @statement(r"octet(\s+string)? ([0-9A-Fa-f][0-9A-Fa-f][.]?)*")
+@bacpypes_debugging
 def octet_string_statement(value):
-    if _debug: ExtendedTagList._debug("octet_string_statement %r", value)
+    if _debug: octet_string_statement._debug("octet_string_statement %r", value)
 
     return OctetString(xtob(value.replace('.', '')))
 
 @statement(r"""(character\s+)?string ([0-9]+\s+)?(?P<q>['"]).*(?P=q)""")
+@bacpypes_debugging
 def character_string_statement(value):
-    if _debug: ExtendedTagList._debug("character_string_statement %r", value)
+    if _debug: character_string_statement._debug("character_string_statement %r", value)
 
     # chop off the encoding
     encoding = None
@@ -202,42 +214,47 @@ def character_string_statement(value):
     return element
 
 @statement(r"bit(\s+string)? [01]*")
+@bacpypes_debugging
 def bit_string_statement(value):
-    if _debug: ExtendedTagList._debug("bit_string_statement %r", value)
+    if _debug: bit_string_statement._debug("bit_string_statement %r", value)
 
     return BitString([int(c) for c in value])
 
 @statement(r"enumerated [0-9]+")
+@bacpypes_debugging
 def enumerated_statement(value):
-    if _debug: ExtendedTagList._debug("enumerated_statement %r", value)
+    if _debug: enumerated_statement._debug("enumerated_statement %r", value)
 
     return Enumerated(int(value))
 
 @statement(r"date [*\w/-]+(\s+[*\w]+)?")
+@bacpypes_debugging
 def date_statement(value):
-    if _debug: ExtendedTagList._debug("date_statement %r", value)
+    if _debug: date_statement._debug("date_statement %r", value)
 
     return Date(value)
 
 @statement(r"time [*\d:.]+")
+@bacpypes_debugging
 def time_statement(value):
-    if _debug: ExtendedTagList._debug("time_statement %r", value)
+    if _debug: time_statement._debug("time_statement %r", value)
 
     return Time(value)
 
 @statement(r"object(\s+identifier)? [\w]+(\s+|\s*[,]\s*)[\d]+")
+@bacpypes_debugging
 def object_identifier_statement(value):
-    if _debug: ExtendedTagList._debug("object_identifier_statement %r", value)
+    if _debug: object_identifier_statement._debug("object_identifier_statement %r", value)
 
     # split into two pieces
     object_type, object_instance = re.split('[, ]+', value)
 
     if object_type.isdigit():
         object_type = int(object_type)
-    if _debug: ExtendedTagList._debug("    - object_type: %r", object_type)
+    if _debug: object_identifier_statement._debug("    - object_type: %r", object_type)
 
     object_instance = int(object_instance)
-    if _debug: ExtendedTagList._debug("    - object_instance: %r", object_instance)
+    if _debug: object_identifier_statement._debug("    - object_instance: %r", object_instance)
 
     return ObjectIdentifier(object_type, object_instance)
 
@@ -245,6 +262,7 @@ def object_identifier_statement(value):
 #   statement_to_tag
 #
 
+@bacpypes_debugging
 def statement_to_tag(line):
     """Parse a line of text and return the appropriate tag."""
     if _debug: statement_to_tag._debug("statement_to_tag %r", line)
