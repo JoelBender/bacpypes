@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -78,7 +78,7 @@ class ReadPropertyAnyApplication(BIPSimpleApplication):
                 datatype = Tag._app_tag_class[value_tag.tagNumber]
                 if _debug: ReadPropertyAnyApplication._debug("    - datatype: %r", datatype)
                 if not datatype:
-                    raise TypeError, "unknown datatype"
+                    raise TypeError("unknown datatype")
 
                 # cast out the value
                 value = apdu.propertyValue.cast_out(datatype)
@@ -107,7 +107,7 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
@@ -128,8 +128,8 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadPropertyAnyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadPropertyAnyConsoleCmd._exception("exception: %r", error)
 
 bacpypes_debugging(ReadPropertyAnyConsoleCmd)
 
@@ -168,9 +168,11 @@ try:
 
     _log.debug("running")
 
+    # enable sleeping will allow handling of threads
+    enable_sleeping()
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

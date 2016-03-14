@@ -50,9 +50,9 @@ class WhoHasIHaveApplication(BIPSimpleApplication):
         elif apdu.object.objectName is not None:
             key += (apdu.object.objectName,)
         else:
-            print "(rejected APDU:"
+            print("(rejected APDU:")
             apdu.debug_contents()
-            print ")"
+            print(")")
             return
 
         # count the times this has been received
@@ -107,17 +107,17 @@ try:
     # run until stopped, ^C works
     run()
 
-    print "----- Who Has -----"
+    print("----- Who Has -----")
     for (src, objname), count in sorted(who_has_counter.items()):
-        print "%-20s %-30s %4d" % (src, objname, count)
-    print
+        print("%-20s %-30s %4d" % (src, objname, count))
+    print("")
 
-    print "----- I Have -----"
+    print("----- I Have -----")
     for (src, devid, objid, objname), count in sorted(i_have_counter.items()):
-        print "%-20s %-20s %-20s %-20s %4d" % (src, devid, objid, objname, count)
-    print
+        print("%-20s %-20s %-20s %-20s %4d" % (src, devid, objid, objname, count))
+    print("")
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

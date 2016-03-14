@@ -103,8 +103,8 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
 

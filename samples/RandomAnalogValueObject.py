@@ -110,7 +110,7 @@ try:
     _log.debug("    - ravo1: %r", ravo1)
 
     ravo1d = ravo1._dict_contents()
-    print ravo1d
+    print(ravo1d)
 
     ravo2 = RandomAnalogValueObject(
         objectIdentifier=('analogValue', 2), objectName='Random2'
@@ -122,12 +122,12 @@ try:
     this_application.add_object(ravo2)
     _log.debug("    - object list: %r", this_device.objectList)
 
-    print this_device._dict_contents()
+    print(this_device._dict_contents())
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
 

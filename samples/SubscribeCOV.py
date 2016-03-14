@@ -117,7 +117,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
             obj_inst = int(obj_inst)
 
             if len(args) >= 5:
@@ -158,7 +158,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
+        except Exception as e:
             SubscribeCOVConsoleCmd._exception("exception: %r", e)
 
     def do_ack(self, args):
@@ -227,7 +227,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

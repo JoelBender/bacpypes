@@ -33,6 +33,7 @@ this_application = None
 this_console = None
 
 # point list
+# set according to your device
 point_list = [
     ('1.2.3.4', 'analogValue', 1, 'presentValue'),
     ('1.2.3.4', 'analogValue', 2, 'presentValue'),
@@ -97,7 +98,7 @@ class ReadPointListApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPointListApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -154,9 +155,9 @@ try:
 
     # dump out the results
     for request, response in zip(point_list, this_application.response_values):
-        print request, response
+        print(request, response)
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
