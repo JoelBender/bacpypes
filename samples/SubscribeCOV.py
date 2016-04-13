@@ -1,9 +1,13 @@
 #!/usr/bin/python
 
 """
-This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+This application presents a 'console' prompt to the user for 'subscribe'
+commands to issue change-of-value subscription requests to a BACnet
+device (server).  The response should be a simple ack.
+
+When a confirmed change-of-value notification is received it is usually
+simply acked, but the user has the option of returning a reject or an
+abort.
 """
 
 import sys
@@ -104,7 +108,18 @@ bacpypes_debugging(SubscribeCOVApplication)
 class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
-        """subscribe addr proc_id obj_type obj_inst [ confirmed ] [ lifetime ]
+        """
+        subscribe addr proc_id obj_type obj_inst [ confirmed ] [ lifetime ]
+
+        positional arguments:
+            addr                device address
+            proc_id             subscriber process identifier
+            obj_type            object type
+            obj_inst            object instance
+            confirmed           issue confirmed notifications ('true' or '-')
+            lifetime            lifetime
+
+        If both confirmed and lifetime are omitted, the subscription is canceled.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
@@ -162,7 +177,11 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             SubscribeCOVConsoleCmd._exception("exception: %r", e)
 
     def do_ack(self, args):
-        """ack
+        """
+        ack
+
+        When confirmed change-of-value notifications are received,
+        return a simple acknowledgment.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_ack %r", args)
@@ -171,7 +190,14 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
         rsvp = (True, None, None)
 
     def do_reject(self, args):
-        """reject reason
+        """
+        reject reason
+
+        positional arguments:
+            reason              reject reason enumeration
+
+        When confirmed change-of-value notifications are received,
+        return a reject APDU with the provided reason.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
@@ -180,7 +206,14 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
         rsvp = (False, args[0], None)
 
     def do_abort(self, args):
-        """abort reason
+        """
+        abort reason
+
+        positional arguments:
+            reason              abort reason enumeration
+
+        When confirmed change-of-value notifications are received,
+        return an abort APDU with the provided reason.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
