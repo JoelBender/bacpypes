@@ -21,7 +21,7 @@ from bacpypes.object import get_object_class, get_datatype
 from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import PropertyIdentifier, ServicesSupported
+from bacpypes.basetypes import PropertyIdentifier
 
 # some debugging
 _debug = 0
@@ -99,7 +99,7 @@ class ReadPropertyMultipleApplication(BIPSimpleApplication):
                         datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
                         if _debug: ReadPropertyMultipleApplication._debug("    - datatype: %r", datatype)
                         if not datatype:
-                            raise TypeError, "unknown datatype"
+                            raise TypeError("unknown datatype")
 
                         # special case for array parts, others are managed by cast_out
                         if issubclass(datatype, Array) and (propertyArrayIndex is not None):
@@ -139,8 +139,8 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                 if obj_type.isdigit():
                     obj_type = int(obj_type)
                 elif not get_object_class(obj_type):
-                    raise ValueError, "unknown object type"
-                
+                    raise ValueError("unknown object type")
+
                 obj_inst = int(args[i])
                 i += 1
 
@@ -156,7 +156,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                     else:
                         datatype = get_datatype(obj_type, prop_id)
                         if not datatype:
-                            raise ValueError, "invalid property for object type"
+                            raise ValueError("invalid property for object type")
 
                     # build a property reference
                     prop_reference = PropertyReference(
@@ -173,7 +173,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
                 # check for at least one property
                 if not prop_reference_list:
-                    raise ValueError, "provide at least one property"
+                    raise ValueError("provide at least one property")
 
                 # build a read access specification
                 read_access_spec = ReadAccessSpecification(
@@ -186,7 +186,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
             # check for at least one
             if not read_access_spec_list:
-                raise RuntimeError, "at least one read access specification required"
+                raise RuntimeError("at least one read access specification required")
 
             # build the request
             request = ReadPropertyMultipleRequest(
@@ -278,7 +278,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")

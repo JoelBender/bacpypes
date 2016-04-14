@@ -16,12 +16,10 @@ from bacpypes.core import run
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_object_class
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Tag
-from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -78,7 +76,7 @@ class ReadPropertyAnyApplication(BIPSimpleApplication):
                 datatype = Tag._app_tag_class[value_tag.tagNumber]
                 if _debug: ReadPropertyAnyApplication._debug("    - datatype: %r", datatype)
                 if not datatype:
-                    raise TypeError, "unknown datatype"
+                    raise TypeError("unknown datatype")
 
                 # cast out the value
                 value = apdu.propertyValue.cast_out(datatype)
@@ -107,7 +105,7 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
@@ -210,7 +208,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")

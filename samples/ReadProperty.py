@@ -21,7 +21,6 @@ from bacpypes.object import get_object_class, get_datatype
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -69,7 +68,7 @@ class ReadPropertyApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -105,13 +104,13 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
             datatype = get_datatype(obj_type, prop_id)
             if not datatype:
-                raise ValueError, "invalid property for object type"
+                raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
@@ -127,8 +126,8 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadPropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as err:
+            ReadPropertyConsoleCmd._exception("exception: %r", err)
 
     def do_rt(self, args):
         """
@@ -209,7 +208,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")
