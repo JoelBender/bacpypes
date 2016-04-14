@@ -132,7 +132,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
             obj_inst = int(obj_inst)
 
             if len(args) >= 5:
@@ -220,6 +220,46 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
         global rsvp
 
         rsvp = (False, None, args[0])
+
+    def do_rt(self, args):
+        """
+        rt [ address [ net [ net ... ]]]
+
+        positional arguments:
+            address             router address
+            net                 reachable network(s)
+
+        Print, add, or remove internal routing table references.
+
+        If the address and network(s) are not provided, the current contents
+        of the routing table is printed out.
+        """
+        args = args.split()
+        if _debug: SubscribeCOVConsoleCmd._debug("do_rt %r", args)
+
+        # simplify the code a little
+        nsap = this_application.nsap
+
+        if not args:
+            if _debug: SubscribeCOVConsoleCmd._debug("    - print the contents")
+
+            # loop through the router references, ignore the adapter
+            for ref in nsap.routers.values():
+                print("%s %s" % (ref.address, ref.networks))
+        else:
+            addr = Address(args[0])
+            if _debug: SubscribeCOVConsoleCmd._debug("    - addr: %r", addr)
+            nets = [int(arg) for arg in args[1:]]
+            if _debug: SubscribeCOVConsoleCmd._debug("    - nets: %r", nets)
+
+            if not nets:
+                if _debug: SubscribeCOVConsoleCmd._debug("    - delete the router")
+
+                nsap.remove_router_references(nsap.adapters[0], addr)
+            else:
+                if _debug: SubscribeCOVConsoleCmd._debug("    - add the references")
+
+                nsap.add_router_references(nsap.adapters[0], addr, nets)
 
 bacpypes_debugging(SubscribeCOVConsoleCmd)
 

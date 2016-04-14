@@ -130,6 +130,46 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
         except Exception, e:
             ReadPropertyConsoleCmd._exception("exception: %r", e)
 
+    def do_rt(self, args):
+        """
+        rt [ address [ net [ net ... ]]]
+
+        positional arguments:
+            address             router address
+            net                 reachable network(s)
+
+        Print, add, or remove internal routing table references.
+
+        If the address and network(s) are not provided, the current contents
+        of the routing table is printed out.
+        """
+        args = args.split()
+        if _debug: ReadPropertyConsoleCmd._debug("do_rt %r", args)
+
+        # simplify the code a little
+        nsap = this_application.nsap
+
+        if not args:
+            if _debug: ReadPropertyConsoleCmd._debug("    - print the contents")
+
+            # loop through the router references, ignore the adapter
+            for ref in nsap.routers.values():
+                print("%s %s" % (ref.address, ref.networks))
+        else:
+            addr = Address(args[0])
+            if _debug: ReadPropertyConsoleCmd._debug("    - addr: %r", addr)
+            nets = [int(arg) for arg in args[1:]]
+            if _debug: ReadPropertyConsoleCmd._debug("    - nets: %r", nets)
+
+            if not nets:
+                if _debug: ReadPropertyConsoleCmd._debug("    - delete the router")
+
+                nsap.remove_router_references(nsap.adapters[0], addr)
+            else:
+                if _debug: ReadPropertyConsoleCmd._debug("    - add the references")
+
+                nsap.add_router_references(nsap.adapters[0], addr, nets)
+
 bacpypes_debugging(ReadPropertyConsoleCmd)
 
 #
