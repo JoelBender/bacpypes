@@ -2,8 +2,8 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyMultipleRequest PDUs, then lines up the corresponding
+ReadPropertyMultipleACK and prints the value.
 """
 
 import sys
@@ -18,7 +18,8 @@ from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
 
-from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
+from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, \
+    ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
 from bacpypes.basetypes import PropertyIdentifier

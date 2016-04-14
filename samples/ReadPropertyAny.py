@@ -2,8 +2,10 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyRequest PDUs, then lines up the corresponding
+ReadPropertyACK and prints the value.  This application does not assume that
+the object type and property identifier can be used to determine the
+appropriate data type, but peeks into the value that is returned.
 """
 
 import sys
