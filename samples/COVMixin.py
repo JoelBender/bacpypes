@@ -40,10 +40,6 @@ from bacpypes.apdu import SubscribeCOVRequest, \
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-_generic_criteria_classes = {}
-_cov_increment_criteria_classes = {}
-
 # test globals
 test_application = None
 
@@ -458,9 +454,9 @@ class AccessPointCriteria(COVCriteria):
 class AccessPointObjectCOV(COVObjectMixin, AccessPointCriteria, AccessPointObject):
     pass
 
-# ---------------------------
-# analog objects
-# ---------------------------
+# -------------------------------------
+# objects with a covIncrement property
+# -------------------------------------
 
 @register_object_type
 class AnalogInputObjectCOV(COVObjectMixin, COVIncrementCriteria, AnalogInputObject):
@@ -490,9 +486,9 @@ class PositiveIntegerValueObjectCOV(COVObjectMixin, COVIncrementCriteria, Positi
 class LightingOutputObjectCOV(COVObjectMixin, COVIncrementCriteria, LightingOutputObject):
     pass
 
-# ---------------------------
+# ----------------
 # generic objects
-# ---------------------------
+# ----------------
 
 @register_object_type
 class BinaryInputObjectCOV(COVObjectMixin, GenericCriteria, BinaryInputObject):
@@ -558,9 +554,9 @@ class DatePatternValueObjectCOV(COVObjectMixin, GenericCriteria, DatePatternValu
 class DateTimePatternValueObjectCOV(COVObjectMixin, GenericCriteria, DateTimePatternValueObject):
     pass
 
-# ---------------------------
+# ----------------------
 # credential data input
-# ---------------------------
+# ----------------------
 
 @bacpypes_debugging
 class CredentialDataInputCriteria(COVCriteria):
@@ -579,9 +575,9 @@ class CredentialDataInputCriteria(COVCriteria):
 class CredentialDataInputObjectCOV(COVObjectMixin, CredentialDataInputCriteria, CredentialDataInputObject):
     pass
 
-# ---------------------------
+# -------------
 # load control
-# ---------------------------
+# -------------
 
 @bacpypes_debugging
 class LoadControlCriteria(COVCriteria):
@@ -607,17 +603,17 @@ class LoadControlCriteria(COVCriteria):
 class LoadControlObjectCOV(COVObjectMixin, LoadControlCriteria, LoadControlObject):
     pass
 
-# ---------------------------
+# -----
 # loop
-# ---------------------------
+# -----
 
 @register_object_type
 class LoopObjectCOV(COVObjectMixin, COVIncrementCriteria, LoopObject):
     pass
 
-# ---------------------------
+# ----------------
 # pulse converter
-# ---------------------------
+# ----------------
 
 @bacpypes_debugging
 class PulseConverterCriteria():
@@ -759,30 +755,30 @@ class COVApplicationMixin(object):
         # find the object
         obj = self.get_object_id(obj_id)
         if not obj:
-            if _debug: COVConsoleCmd._debug("    - object not found")
+            if _debug: COVApplicationMixin._debug("    - object not found")
             self.response(Error(errorClass='object', errorCode='unknownObject', context=apdu))
             return
 
         # can a match be found?
         cov = obj._cov_subscriptions.find(client_addr, proc_id, obj_id)
-        if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
+        if _debug: COVApplicationMixin._debug("    - cov: %r", cov)
 
         # if a match was found, update the subscription
         if cov:
             if cancel_subscription:
-                if _debug: COVConsoleCmd._debug("    - cancel the subscription")
+                if _debug: COVApplicationMixin._debug("    - cancel the subscription")
                 cov.cancel_subscription()
             else:
-                if _debug: COVConsoleCmd._debug("    - renew the subscription")
+                if _debug: COVApplicationMixin._debug("    - renew the subscription")
                 cov.renew_subscription(lifetime)
         else:
             if cancel_subscription:
-                if _debug: COVConsoleCmd._debug("    - cancel a subscription that doesn't exist")
+                if _debug: COVApplicationMixin._debug("    - cancel a subscription that doesn't exist")
             else:
-                if _debug: COVConsoleCmd._debug("    - create a subscription")
+                if _debug: COVApplicationMixin._debug("    - create a subscription")
 
                 cov = Subscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
-                if _debug: COVConsoleCmd._debug("    - cov: %r", cov)
+                if _debug: COVApplicationMixin._debug("    - cov: %r", cov)
 
         # success
         response = SimpleAckPDU(context=apdu)
