@@ -23,6 +23,7 @@ this_console = None
 #   ConsoleCmdTemplate
 #
 
+@bacpypes_debugging
 class ConsoleCmdTemplate(ConsoleCmd):
 
     def do_echo(self, args):
@@ -31,8 +32,6 @@ class ConsoleCmdTemplate(ConsoleCmd):
         if _debug: ConsoleCmdTemplate._debug("do_echo %r", args)
 
         sys.stdout.write(' '.join(args) + '\n')
-
-bacpypes_debugging(ConsoleCmdTemplate)
 
 
 def main():

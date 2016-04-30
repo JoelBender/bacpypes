@@ -40,6 +40,7 @@ rsvp = (True, None, None)
 #   SubscribeCOVApplication
 #
 
+@bacpypes_debugging
 class SubscribeCOVApplication(BIPSimpleApplication):
 
     def __init__(self, *args):
@@ -95,12 +96,12 @@ class SubscribeCOVApplication(BIPSimpleApplication):
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 
-bacpypes_debugging(SubscribeCOVApplication)
 
 #
 #   SubscribeCOVConsoleCmd
 #
 
+@bacpypes_debugging
 class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
@@ -188,7 +189,6 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
 
         rsvp = (False, None, args[0])
 
-bacpypes_debugging(SubscribeCOVConsoleCmd)
 
 #
 #   __main__

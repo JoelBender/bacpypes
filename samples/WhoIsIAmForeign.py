@@ -34,6 +34,7 @@ this_console = None
 #   WhoIsIAmApplication
 #
 
+@bacpypes_debugging
 class WhoIsIAmApplication(BIPForeignApplication):
 
     def __init__(self, *args):
@@ -84,12 +85,12 @@ class WhoIsIAmApplication(BIPForeignApplication):
         # forward it along
         BIPForeignApplication.indication(self, apdu)
 
-bacpypes_debugging(WhoIsIAmApplication)
 
 #
 #   WhoIsIAmConsoleCmd
 #
 
+@bacpypes_debugging
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
@@ -156,7 +157,6 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         # pass along to the service access point
         this_application.nsap.add_router_references(adapter, router_address, network_list)
 
-bacpypes_debugging(WhoIsIAmConsoleCmd)
 
 #
 #   main

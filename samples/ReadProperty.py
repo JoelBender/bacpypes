@@ -36,6 +36,7 @@ this_console = None
 #   ReadPropertyApplication
 #
 
+@bacpypes_debugging
 class ReadPropertyApplication(BIPSimpleApplication):
 
     def __init__(self, *args):
@@ -86,12 +87,12 @@ class ReadPropertyApplication(BIPSimpleApplication):
                 value.debug_contents(file=sys.stdout)
             sys.stdout.flush()
 
-bacpypes_debugging(ReadPropertyApplication)
 
 #
 #   ReadPropertyConsoleCmd
 #
 
+@bacpypes_debugging
 class ReadPropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
@@ -130,7 +131,6 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
         except Exception as error:
             ReadPropertyConsoleCmd._exception("exception: %r", error)
 
-bacpypes_debugging(ReadPropertyConsoleCmd)
 
 #
 #   __main__
