@@ -14,7 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -77,7 +77,7 @@ class ReadPropertyApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -110,13 +110,13 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
             datatype = get_datatype(obj_type, prop_id)
             if not datatype:
-                raise ValueError, "invalid property for object type"
+                raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
@@ -132,8 +132,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadWritePropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
     def do_write(self, args):
         """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
@@ -179,9 +179,9 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
                 elif issubclass(datatype.subtype, Atomic):
                     value = datatype.subtype(value)
                 elif not isinstance(value, datatype.subtype):
-                    raise TypeError, "invalid result datatype, expecting %s" % (datatype.subtype.__name__,)
+                    raise TypeError("invalid result datatype, expecting %s" % (datatype.subtype.__name__,))
             elif not isinstance(value, datatype):
-                raise TypeError, "invalid result datatype, expecting %s" % (datatype.__name__,)
+                raise TypeError("invalid result datatype, expecting %s" % (datatype.__name__,))
             if _debug: ReadWritePropertyConsoleCmd._debug("    - encodeable value: %r %s", value, type(value))
 
             # build a request
@@ -195,8 +195,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             request.propertyValue = Any()
             try:
                 request.propertyValue.cast_in(value)
-            except Exception, e:
-                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", e)
+            except Exception as error:
+                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", error)
 
             # optional array index
             if indx is not None:
@@ -211,8 +211,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadWritePropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
 #
 #   __main__
@@ -249,9 +249,11 @@ try:
 
     _log.debug("running")
 
+    # enable sleeping will allow handling of threads
+    enable_sleeping()
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

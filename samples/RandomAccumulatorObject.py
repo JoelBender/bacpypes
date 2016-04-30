@@ -73,7 +73,7 @@ class CurrentDateTimeProperty(Property):
 
         # get the value
         current_date = Date().now().value
-	current_time = Time().now().value
+        current_time = Time().now().value
 
         value = DateTime(date=current_date, time=current_time)
         if _debug: CurrentDateTimeProperty._debug("    - value: %r", value)

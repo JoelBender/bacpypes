@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -69,7 +69,7 @@ class ReadPropertyApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -105,13 +105,13 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
             datatype = get_datatype(obj_type, prop_id)
             if not datatype:
-                raise ValueError, "invalid property for object type"
+                raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
@@ -127,8 +127,8 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadPropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadPropertyConsoleCmd._exception("exception: %r", error)
 
 bacpypes_debugging(ReadPropertyConsoleCmd)
 
@@ -167,9 +167,11 @@ try:
 
     _log.debug("running")
 
+    # enable sleeping will allow handling of threads
+    enable_sleeping()
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

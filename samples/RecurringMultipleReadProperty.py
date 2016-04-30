@@ -92,7 +92,7 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
 
             # dump out the results
             for request, response in zip(point_list, self.response_values):
-                print request, response
+                print(request, response)
 
             # no longer busy
             self.is_busy = False
@@ -129,7 +129,7 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: PrairieDog._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -189,7 +189,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

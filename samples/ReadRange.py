@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -68,7 +68,7 @@ class ReadRangeApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadRangeApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # cast out of the single Any element into the datatype
             value = apdu.itemData[0].cast_out(datatype)
@@ -97,13 +97,13 @@ class ReadRangeConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
 
             obj_inst = int(obj_inst)
 
             datatype = get_datatype(obj_type, prop_id)
             if not datatype:
-                raise ValueError, "invalid property for object type"
+                raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadRangeRequest(
@@ -119,8 +119,8 @@ class ReadRangeConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadRangeConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadRangeConsoleCmd._exception("exception: %r", error)
 
 #
 #   __main__
@@ -157,9 +157,11 @@ try:
 
     _log.debug("running")
 
+    # enable sleeping will allow handling of threads
+    enable_sleeping()
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

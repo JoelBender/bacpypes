@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -99,7 +99,7 @@ class ReadPropertyMultipleApplication(BIPSimpleApplication):
                         datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
                         if _debug: ReadPropertyMultipleApplication._debug("    - datatype: %r", datatype)
                         if not datatype:
-                            raise TypeError, "unknown datatype"
+                            raise TypeError("unknown datatype")
 
                         # special case for array parts, others are managed by cast_out
                         if issubclass(datatype, Array) and (propertyArrayIndex is not None):
@@ -139,7 +139,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                 if obj_type.isdigit():
                     obj_type = int(obj_type)
                 elif not get_object_class(obj_type):
-                    raise ValueError, "unknown object type"
+                    raise ValueError("unknown object type")
                 
                 obj_inst = int(args[i])
                 i += 1
@@ -156,7 +156,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                     else:
                         datatype = get_datatype(obj_type, prop_id)
                         if not datatype:
-                            raise ValueError, "invalid property for object type"
+                            raise ValueError("invalid property for object type")
 
                     # build a property reference
                     prop_reference = PropertyReference(
@@ -173,7 +173,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
                 # check for at least one property
                 if not prop_reference_list:
-                    raise ValueError, "provide at least one property"
+                    raise ValueError("provide at least one property")
 
                 # build a read access specification
                 read_access_spec = ReadAccessSpecification(
@@ -186,7 +186,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
             # check for at least one
             if not read_access_spec_list:
-                raise RuntimeError, "at least one read access specification required"
+                raise RuntimeError("at least one read access specification required")
 
             # build the request
             request = ReadPropertyMultipleRequest(
@@ -198,8 +198,8 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadPropertyMultipleConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadPropertyMultipleConsoleCmd._exception("exception: %r", error)
 
 #
 #   __main__
@@ -236,9 +236,11 @@ try:
 
     _log.debug("running")
 
+    # enable sleeping will allow handling of threads
+    enable_sleeping()
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
