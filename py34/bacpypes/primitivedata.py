@@ -1499,6 +1499,8 @@ class ObjectIdentifier(Atomic):
     _app_tag = Tag.objectIdentifierAppTag
     objectTypeClass = ObjectType
 
+    maximum_instance_number = 0x003FFFFF
+
     def __init__(self, *args):
         self.value = ('analogInput', 0)
 
@@ -1532,6 +1534,10 @@ class ObjectIdentifier(Atomic):
                 raise ValueError("unrecognized object type '%s'" % (objType,))
         else:
             raise TypeError("invalid datatype for objType: %r, %r" % (type(objType), objType))
+
+        # check for valid instance number
+        if (objInstance < 0) or (objInstance > ObjectIdentifier.maximum_instance_number):
+            raise ValueError("instance number out of range")
 
         # pack the components together
         self.value = (objType, objInstance)

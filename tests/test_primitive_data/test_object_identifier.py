@@ -94,6 +94,14 @@ class TestObjectIdentifier(unittest.TestCase):
         assert obj.value == ('analogOutput', 2)
         assert str(obj) == "ObjectIdentifier(analogOutput,2)"
 
+    def test_object_identifier_tuple(self):
+        if _debug: TestObjectIdentifier._debug("test_object_identifier_tuple")
+
+        with self.assertRaises(ValueError):
+            ObjectIdentifier((0, -1))
+        with self.assertRaises(ValueError):
+            ObjectIdentifier((0, ObjectIdentifier.maximum_instance_number + 1))
+
     def test_object_identifier_tag(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_tag")
 
