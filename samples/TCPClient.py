@@ -31,6 +31,7 @@ default_server_port = 9000
 #   MiddleMan
 #
 
+@bacpypes_debugging
 class MiddleMan(Client, Server):
     """
     An instance of this class sits between the TCPClientDirector and the
@@ -57,12 +58,12 @@ class MiddleMan(Client, Server):
         # pass it along
         self.response(pdu)
 
-bacpypes_debugging(MiddleMan)
 
 #
 #   MiddleManASE
 #
 
+@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
 
     def indication(self, addPeer=None, delPeer=None):
@@ -83,8 +84,6 @@ class MiddleManASE(ApplicationServiceElement):
         if not self.elementService.clients:
             if _debug: MiddleManASE._debug("    - quitting")
             stop()
-
-bacpypes_debugging(MiddleManASE)
 
 
 def main():

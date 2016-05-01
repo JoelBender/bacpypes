@@ -103,17 +103,17 @@ try:
 
     run()
 
-    print "----- Who Is -----"
+    print("----- Who Is -----")
     for (src, lowlim, hilim), count in sorted(who_is_counter.items()):
-        print "%-20s %8s %8s %4d" % (src, lowlim, hilim, count)
-    print
+        print("%-20s %8s %8s %4d" % (src, lowlim, hilim, count))
+    print("")
 
-    print "----- I Am -----"
+    print("----- I Am -----")
     for (src, devid), count in sorted(i_am_counter.items()):
-        print "%-20s %8d %4d" % (src, devid, count)
-    print
+        print("%-20s %8d %4d" % (src, devid, count))
+    print("")
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

@@ -3,6 +3,7 @@
 
 import os
 import sys
+import re
 
 try:
     from setuptools import setup
@@ -15,6 +16,10 @@ source_folder = "py" + str(version_info[0]) + str(version_info[1])
 if not os.path.exists(source_folder):
     raise EnvironmentError("unsupported version of Python, looking for " + repr(source_folder))
 
+# load in the project metadata
+init_py = open(os.path.join(source_folder, 'bacpypes', '__init__.py')).read()
+metadata = dict(re.findall("__([a-z]+)__ = '([^']+)'", init_py))
+
 requirements = [
     # no external requirements
 ]
@@ -25,11 +30,11 @@ test_requirements = [
 
 setup(
     name="bacpypes",
-    version="0.13.8",
-    description="Testing multiple versions of python",
-    long_description="This is a long line of text",
-    author="Joel Bender",
-    author_email="joel@carrickbender.com",
+    version=metadata['version'],
+    description="BACnet Communications Library",
+    long_description="BACpypes provides a BACnet application layer and network layer written in Python for daemons, scripting, and graphical interfaces.",
+    author=metadata['author'],
+    author_email=metadata['email'],
     url="https://github.com/JoelBender/bacpypes",
     packages=[
         'bacpypes',

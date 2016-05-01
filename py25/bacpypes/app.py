@@ -179,6 +179,10 @@ class Application(ApplicationServiceElement, Logging):
         if not object_identifier:
             raise RuntimeError("object identifier required")
 
+        # assuming the object identifier is well formed, check the instance number
+        if (object_identifier[1] >= ObjectIdentifier.maximum_instance_number):
+            raise RuntimeError("invalid object identifier")
+
         # make sure it hasn't already been defined
         if object_name in self.objectName:
             raise RuntimeError("already an object with name %r" % (object_name,))

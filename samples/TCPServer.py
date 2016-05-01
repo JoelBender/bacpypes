@@ -32,6 +32,7 @@ default_server_port = 9000
 #   EchoMaster
 #
 
+@bacpypes_debugging
 class EchoMaster(Client):
 
     def confirmation(self, pdu):
@@ -39,12 +40,12 @@ class EchoMaster(Client):
         
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
-bacpypes_debugging(EchoMaster)
 
 #
 #   MiddleManASE
 #
 
+@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
 
     def indication(self, addPeer=None, delPeer=None):
@@ -61,7 +62,6 @@ class MiddleManASE(ApplicationServiceElement):
         if delPeer:
             if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
 
-bacpypes_debugging(MiddleManASE)
 
 #
 #   __main__

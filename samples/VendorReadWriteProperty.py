@@ -74,7 +74,7 @@ class ReadPropertyApplication(BIPSimpleApplication):
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier, VendorAVObject.vendor_id)
             if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -109,7 +109,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type, VendorAVObject.vendor_id):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
             if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_type: %r", obj_type)
 
             obj_inst = int(obj_inst)
@@ -121,7 +121,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
             datatype = get_datatype(obj_type, prop_id, VendorAVObject.vendor_id)
             if not datatype:
-                raise ValueError, "invalid property for object type"
+                raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
@@ -137,8 +137,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadWritePropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
     def do_write(self, args):
         """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
@@ -153,7 +153,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type, VendorAVObject.vendor_id):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
             if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_type: %r", obj_type)
 
             obj_inst = int(obj_inst)
@@ -197,9 +197,9 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
                 elif issubclass(datatype.subtype, Atomic):
                     value = datatype.subtype(value)
                 elif not isinstance(value, datatype.subtype):
-                    raise TypeError, "invalid result datatype, expecting %s" % (datatype.subtype.__name__,)
+                    raise TypeError("invalid result datatype, expecting %s" % (datatype.subtype.__name__,))
             elif not isinstance(value, datatype):
-                raise TypeError, "invalid result datatype, expecting %s" % (datatype.__name__,)
+                raise TypeError("invalid result datatype, expecting %s" % (datatype.__name__,))
             if _debug: ReadWritePropertyConsoleCmd._debug("    - encodeable value: %r %s", value, type(value))
 
             # build a request
@@ -213,7 +213,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             request.propertyValue = Any()
             try:
                 request.propertyValue.cast_in(value)
-            except Exception, e:
+            except Exception as error:
                 ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", e)
 
             # optional array index
@@ -229,8 +229,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            ReadWritePropertyConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
 #
 #   main
@@ -274,8 +274,8 @@ def main():
 
         run()
 
-    except Exception, e:
-        main._exception("an error has occurred: %s", e)
+    except Exception as error:
+        main._exception("an error has occurred: %s", error)
     finally:
         main._debug("finally")
 

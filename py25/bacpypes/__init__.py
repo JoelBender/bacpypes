@@ -15,6 +15,14 @@ if _sys.platform not in _supported_platforms:
     _warnings.warn("unsupported platform", RuntimeWarning)
 
 #
+#   Project Metadata
+#
+
+__version__ = '0.13.8'
+__author__ = 'Joel Bender'
+__email__ = 'joel@carrickbender.com'
+
+#
 #   Communications Core Modules
 #
 

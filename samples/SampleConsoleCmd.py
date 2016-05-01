@@ -29,6 +29,7 @@ this_console = None
 #   SampleApplication
 #
 
+@bacpypes_debugging
 class SampleApplication(BIPSimpleApplication):
 
     def __init__(self, device, address):
@@ -51,12 +52,12 @@ class SampleApplication(BIPSimpleApplication):
         if _debug: SampleApplication._debug("confirmation %r", apdu)
         BIPSimpleApplication.confirmation(self, apdu)
 
-bacpypes_debugging(SampleApplication)
 
 #
 #   SampleConsoleCmd
 #
 
+@bacpypes_debugging
 class SampleConsoleCmd(ConsoleCmd):
 
     def do_nothing(self, args):
@@ -64,7 +65,6 @@ class SampleConsoleCmd(ConsoleCmd):
         args = args.split()
         if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
 
-bacpypes_debugging(SampleConsoleCmd)
 
 #
 #   __main__
@@ -103,8 +103,8 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
 

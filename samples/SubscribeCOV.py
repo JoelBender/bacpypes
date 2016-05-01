@@ -40,6 +40,7 @@ rsvp = (True, None, None)
 #   SubscribeCOVApplication
 #
 
+@bacpypes_debugging
 class SubscribeCOVApplication(BIPSimpleApplication):
 
     def __init__(self, *args):
@@ -95,12 +96,12 @@ class SubscribeCOVApplication(BIPSimpleApplication):
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 
-bacpypes_debugging(SubscribeCOVApplication)
 
 #
 #   SubscribeCOVConsoleCmd
 #
 
+@bacpypes_debugging
 class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
@@ -117,7 +118,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             if obj_type.isdigit():
                 obj_type = int(obj_type)
             elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
+                raise ValueError("unknown object type")
             obj_inst = int(obj_inst)
 
             if len(args) >= 5:
@@ -158,7 +159,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
+        except Exception as e:
             SubscribeCOVConsoleCmd._exception("exception: %r", e)
 
     def do_ack(self, args):
@@ -188,7 +189,6 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
 
         rsvp = (False, None, args[0])
 
-bacpypes_debugging(SubscribeCOVConsoleCmd)
 
 #
 #   __main__
@@ -227,7 +227,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

@@ -34,6 +34,7 @@ this_console = None
 #   WhoIsIAmApplication
 #
 
+@bacpypes_debugging
 class WhoIsIAmApplication(BIPSimpleApplication):
 
     def __init__(self, *args):
@@ -64,7 +65,7 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         if (isinstance(self._request, WhoIsRequest)) and (isinstance(apdu, IAmRequest)):
             device_type, device_instance = apdu.iAmDeviceIdentifier
             if device_type != 'device':
-                raise DecodingError, "invalid object type"
+                raise DecodingError("invalid object type")
 
             if (self._request.deviceInstanceRangeLowLimit is not None) and \
                 (device_instance < self._request.deviceInstanceRangeLowLimit):
@@ -84,12 +85,12 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # forward it along
         BIPSimpleApplication.indication(self, apdu)
 
-bacpypes_debugging(WhoIsIAmApplication)
 
 #
 #   WhoIsIAmConsoleCmd
 #
 
+@bacpypes_debugging
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
@@ -114,8 +115,8 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            WhoIsIAmConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            WhoIsIAmConsoleCmd._exception("exception: %r", error)
 
     def do_iam(self, args):
         """iam"""
@@ -137,8 +138,8 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            WhoIsIAmConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            WhoIsIAmConsoleCmd._exception("exception: %r", error)
 
     def do_rtn(self, args):
         """rtn <addr> <net> ... """
@@ -156,7 +157,6 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         # pass along to the service access point
         this_application.nsap.add_router_references(adapter, router_address, network_list)
 
-bacpypes_debugging(WhoIsIAmConsoleCmd)
 
 #
 #   __main__
@@ -205,8 +205,8 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")
 

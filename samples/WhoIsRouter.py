@@ -75,7 +75,7 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
             request = InitializeRoutingTable()
             request.pduDestination = Address(args[0])
         except:
-            print "invalid arguments"
+            print("invalid arguments")
             return
 
         # give it to the application
@@ -93,7 +93,7 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
             if (len(args) > 1):
                 request.wirtnNetwork = int(args[1])
         except:
-            print "invalid arguments"
+            print("invalid arguments")
             return
 
         # give it to the application
@@ -122,7 +122,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as error:
+    _log.exception("an error has occurred: %s", error)
 finally:
     _log.debug("finally")

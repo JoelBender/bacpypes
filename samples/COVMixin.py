@@ -51,6 +51,7 @@ test_application = None
 #   SubscriptionList
 #
 
+@bacpypes_debugging
 class SubscriptionList:
 
     def __init__(self):
@@ -93,7 +94,6 @@ class SubscriptionList:
         for cov in self.cov_subscriptions:
             yield cov
 
-bacpypes_debugging(SubscriptionList)
 
 #
 #   Subscription
@@ -881,6 +881,7 @@ class SubscribeCOVApplication(COVApplicationMixin, BIPSimpleApplication):
 #   COVConsoleCmd
 #
 
+@bacpypes_debugging
 class COVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
@@ -1090,8 +1091,6 @@ class COVConsoleCmd(ConsoleCmd):
             print(COVConsoleCmd.do_write.__doc__)
         except Exception as err:
             print("exception: %s" % (err,))
-
-bacpypes_debugging(COVConsoleCmd)
 
 
 def main():

@@ -132,8 +132,8 @@ def main():
 
         run()
 
-    except Exception, e:
-        main._exception("an error has occurred: %s", e)
+    except Exception as error:
+        main._exception("an error has occurred: %s", error)
     finally:
         if _debug: main._debug("finally")
 

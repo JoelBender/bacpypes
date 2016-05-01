@@ -125,8 +125,8 @@ class TestConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            TestConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            TestConsoleCmd._exception("exception: %r", error)
 
     def do_readstream(self, args):
         """readstream <addr> <inst> <start> <count>"""
@@ -157,8 +157,8 @@ class TestConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            TestConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            TestConsoleCmd._exception("exception: %r", error)
 
     def do_writerecord(self, args):
         """writerecord <addr> <inst> <start> <count> [ <data> ... ]"""
@@ -191,8 +191,8 @@ class TestConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            TestConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            TestConsoleCmd._exception("exception: %r", error)
 
     def do_writestream(self, args):
         """writestream <addr> <inst> <start> <data>"""
@@ -222,8 +222,8 @@ class TestConsoleCmd(ConsoleCmd):
             # give it to the application
             this_application.request(request)
 
-        except Exception, e:
-            TestConsoleCmd._exception("exception: %r", e)
+        except Exception as error:
+            TestConsoleCmd._exception("exception: %r", error)
 
 #
 #   __main__
