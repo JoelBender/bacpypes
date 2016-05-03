@@ -16,23 +16,23 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
-class TrappedState(State):
+class Trapper(object):
 
     """
-    This class is a simple wrapper around the State class that keeps the
+    This class provides a set of utility functions that keeps the
     latest copy of the pdu parameter in the before_send(), after_send(),
     before_receive(), after_receive() and unexpected_receive() calls.
     """
 
     def __init__(self, *args, **kwargs):
-        if _debug: TrappedState._debug("__init__ %r %r", args, kwargs)
-        State.__init__(self, *args, **kwargs)
+        if _debug: Trapper._debug("__init__ %r %r", args, kwargs)
+        super(Trapper, self).__init__(self, *args, **kwargs)
 
         # reset to initialize
         self.reset()
 
     def reset(self):
-        if _debug: TrappedState._debug("reset")
+        if _debug: Trapper._debug("reset")
 
         # flush the copies
         self.before_send_pdu = None
@@ -42,58 +42,81 @@ class TrappedState(State):
         self.unexpected_receive_pdu = None
 
         # continue
-        State.reset(self)
+        super(Trapper, self).reset(self)
 
     def before_send(self, pdu):
         """Called before each PDU about to be sent."""
-        if _debug: TrappedState._debug("before_send %r", pdu)
+        if _debug: Trapper._debug("before_send %r", pdu)
 
         # keep a copy
         self.before_send_pdu = pdu
 
         # continue
-        State.before_send(self, pdu)
+        super(Trapper, self).before_send(self, pdu)
 
     def after_send(self, pdu):
         """Called after each PDU sent."""
-        if _debug: TrappedState._debug("after_send %r", pdu)
+        if _debug: Trapper._debug("after_send %r", pdu)
 
         # keep a copy
         self.after_send_pdu = pdu
 
         # continue
-        State.after_send(self, pdu)
+        super(Trapper, self).after_send(self, pdu)
 
     def before_receive(self, pdu):
         """Called with each PDU received before matching."""
-        if _debug: TrappedState._debug("before_receive %r", pdu)
+        if _debug: Trapper._debug("before_receive %r", pdu)
 
         # keep a copy
         self.before_receive_pdu = pdu
 
         # continue
-        State.before_receive(self, pdu)
+        super(Trapper, self).before_receive(self, pdu)
 
     def after_receive(self, pdu):
         """Called with PDU received after match."""
-        if _debug: TrappedState._debug("after_receive %r", pdu)
+        if _debug: Trapper._debug("after_receive %r", pdu)
 
         # keep a copy
         self.after_receive_pdu = pdu
 
         # continue
-        State.after_receive(self, pdu)
+        super(Trapper, self).after_receive(self, pdu)
 
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
         state, the default behaviour is to fail."""
-        if _debug: TrappedState._debug("unexpected_receive %r", pdu)
+        if _debug: Trapper._debug("unexpected_receive %r", pdu)
 
         # keep a copy
         self.unexpected_receive_pdu = pdu
 
         # continue
-        State.unexpected_receive(self, pdu)
+        super(Trapper, self).unexpected_receive(self, pdu)
+
+
+@bacpypes_debugging
+class TrappedState(Trapper, State):
+
+    """
+    This class is a simple wrapper around the State class that keeps the
+    latest copy of the pdu parameter in the before_send(), after_send(),
+    before_receive(), after_receive() and unexpected_receive() calls.
+    """
+
+    pass
+
+@bacpypes_debugging
+class TrappedStateMachine(Trapper, StateMachine):
+
+    """
+    This class is a simple wrapper around the StateMachine class that keeps the
+    latest copy of the pdu parameter in the before_send(), after_send(),
+    before_receive(), after_receive() and unexpected_receive() calls.
+    """
+
+    pass
 
 
 @bacpypes_debugging
@@ -108,81 +131,10 @@ class TrappedStateMachine(StateMachine):
     throw an exception.
     """
 
-    def __init__(self, *args, **kwargs):
-        if _debug: TrappedStateMachine._debug("__init__ %r %r", args, kwargs)
-        StateMachine.__init__(self, *args, **kwargs)
-
-        # reset to initialize
-        self.reset()
-
-    def reset(self):
-        if _debug: TrappedStateMachine._debug("reset")
-
-        # flush the copies
-        self.before_send_pdu = None
-        self.after_send_pdu = None
-        self.before_receive_pdu = None
-        self.after_receive_pdu = None
-        self.unexpected_receive_pdu = None
-
-        # continue
-        StateMachine.reset(self)
-
-    def before_send(self, pdu):
-        """Called before each PDU about to be sent."""
-        if _debug: TrappedStateMachine._debug("before_send %r", pdu)
-
-        # keep a copy
-        self.before_send_pdu = pdu
-
-        # continue
-        StateMachine.before_send(self, pdu)
-
-    def after_send(self, pdu):
-        """Called after each PDU sent."""
-        if _debug: TrappedStateMachine._debug("after_send %r", pdu)
-
-        # keep a copy
-        self.after_send_pdu = pdu
-
-        # continue
-        StateMachine.after_send(self, pdu)
-
-    def before_receive(self, pdu):
-        """Called with each PDU received before matching."""
-        if _debug: TrappedStateMachine._debug("before_receive %r", pdu)
-
-        # keep a copy
-        self.before_receive_pdu = pdu
-
-        # continue
-        StateMachine.before_receive(self, pdu)
-
-    def after_receive(self, pdu):
-        """Called with PDU received after match."""
-        if _debug: TrappedStateMachine._debug("after_receive %r", pdu)
-
-        # keep a copy
-        self.after_receive_pdu = pdu
-
-        # continue
-        StateMachine.after_receive(self, pdu)
-
-    def unexpected_receive(self, pdu):
-        """Called with PDU that did not match.  Unless this is trapped by the
-        state, the default behavior is to fail."""
-        if _debug: TrappedStateMachine._debug("unexpected_receive %r", pdu)
-
-        # keep a copy
-        self.unexpected_receive_pdu = pdu
-
-        # continue
-        StateMachine.unexpected_receive(self, pdu)
-
     def send(self, pdu):
         """Called to send a PDU.
         """
-        if _debug: TrappedStateMachine._debug("unexpected_receive %r", pdu)
+        if _debug: TrappedStateMachine._debug("send %r", pdu)
 
         # keep a copy
         self.sent = pdu
@@ -194,11 +146,8 @@ class TrappedStateMachine(StateMachine):
         # must be identical objects
         return pdu is transition_pdu
 
-#
-#   TrappedClient
-#
 
-
+@bacpypes_debugging
 class TrappedClient(Client):
 
     """
@@ -231,14 +180,8 @@ class TrappedClient(Client):
         # a reference for checking
         self.confirmation_received = pdu
 
-bacpypes_debugging(TrappedClient)
 
-
-#
-#   TrappedServer
-#
-
-
+@bacpypes_debugging
 class TrappedServer(Server):
 
     """
@@ -270,5 +213,3 @@ class TrappedServer(Server):
 
         # continue with processing
         Server.response(self, pdu)
-
-bacpypes_debugging(TrappedServer)
