@@ -26,7 +26,7 @@ class Trapper(object):
 
     def __init__(self, *args, **kwargs):
         if _debug: Trapper._debug("__init__ %r %r", args, kwargs)
-        super(Trapper, self).__init__(self, *args, **kwargs)
+        super(Trapper, self).__init__(*args, **kwargs)
 
         # reset to initialize
         self.reset()
@@ -42,7 +42,7 @@ class Trapper(object):
         self.unexpected_receive_pdu = None
 
         # continue
-        super(Trapper, self).reset(self)
+        super(Trapper, self).reset()
 
     def before_send(self, pdu):
         """Called before each PDU about to be sent."""
@@ -52,7 +52,7 @@ class Trapper(object):
         self.before_send_pdu = pdu
 
         # continue
-        super(Trapper, self).before_send(self, pdu)
+        super(Trapper, self).before_send(pdu)
 
     def after_send(self, pdu):
         """Called after each PDU sent."""
@@ -62,7 +62,7 @@ class Trapper(object):
         self.after_send_pdu = pdu
 
         # continue
-        super(Trapper, self).after_send(self, pdu)
+        super(Trapper, self).after_send(pdu)
 
     def before_receive(self, pdu):
         """Called with each PDU received before matching."""
@@ -72,7 +72,7 @@ class Trapper(object):
         self.before_receive_pdu = pdu
 
         # continue
-        super(Trapper, self).before_receive(self, pdu)
+        super(Trapper, self).before_receive(pdu)
 
     def after_receive(self, pdu):
         """Called with PDU received after match."""
@@ -82,7 +82,7 @@ class Trapper(object):
         self.after_receive_pdu = pdu
 
         # continue
-        super(Trapper, self).after_receive(self, pdu)
+        super(Trapper, self).after_receive(pdu)
 
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
@@ -93,7 +93,7 @@ class Trapper(object):
         self.unexpected_receive_pdu = pdu
 
         # continue
-        super(Trapper, self).unexpected_receive(self, pdu)
+        super(Trapper, self).unexpected_receive(pdu)
 
 
 @bacpypes_debugging
@@ -107,20 +107,9 @@ class TrappedState(Trapper, State):
 
     pass
 
+
 @bacpypes_debugging
 class TrappedStateMachine(Trapper, StateMachine):
-
-    """
-    This class is a simple wrapper around the StateMachine class that keeps the
-    latest copy of the pdu parameter in the before_send(), after_send(),
-    before_receive(), after_receive() and unexpected_receive() calls.
-    """
-
-    pass
-
-
-@bacpypes_debugging
-class TrappedStateMachine(StateMachine):
 
     """
     This class is a simple wrapper around the StateMachine class that keeps the
