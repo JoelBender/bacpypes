@@ -70,7 +70,7 @@ class TimeoutTransition(Transition):
 #
 
 
-class State:
+class State(object):
 
     """
     State
@@ -305,7 +305,7 @@ bacpypes_debugging(State)
 #
 
 
-class StateMachine:
+class StateMachine(object):
 
     """
     StateMachine
@@ -689,7 +689,7 @@ bacpypes_debugging(StateMachine)
 #
 
 
-class StateMachineGroup:
+class StateMachineGroup(object):
 
     """
     StateMachineGroup
