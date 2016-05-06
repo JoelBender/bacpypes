@@ -14,7 +14,11 @@ except ImportError:
 version_info = sys.version_info[:2]
 source_folder = "py" + str(version_info[0]) + str(version_info[1])
 if not os.path.exists(source_folder):
-    raise EnvironmentError("unsupported version of Python, looking for " + repr(source_folder))
+    raise EnvironmentError(
+        "unsupported version of Python, looking for " +
+        repr(source_folder) + " in " +
+        os.getcwd()
+        )
 
 # load in the project metadata
 init_py = open(os.path.join(source_folder, 'bacpypes', '__init__.py')).read()
