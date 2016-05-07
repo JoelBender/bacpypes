@@ -31,6 +31,7 @@ def double_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def double_encode(obj):
     """Encode an Double object into a tag."""

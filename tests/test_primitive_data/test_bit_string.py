@@ -27,7 +27,7 @@ class SampleBitString(BitString):
         'b7': 7,
         'b8': 8,
         'b12': 12,
-    }
+        }
 
 
 @bacpypes_debugging
@@ -40,6 +40,7 @@ def bit_string_tag(x):
     if _debug: bit_string_endec._debug("    - tag: %r", tag)
 
     return tag
+
 
 @bacpypes_debugging
 def bit_string_encode(obj):
@@ -161,4 +162,3 @@ class TestBitString(unittest.TestCase):
         bit_string_endec([1] * 2, '06c0')
         bit_string_endec([0] * 10, '060000')
         bit_string_endec([1] * 10, '06ffc0')
-

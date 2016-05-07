@@ -62,6 +62,7 @@ class TestState(unittest.TestCase):
     def test_something_else(self):
         if _debug: TestState._debug("test_something_else")
 
+
 @bacpypes_debugging
 class TestStateMachine(unittest.TestCase):
 

@@ -15,6 +15,7 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
+@bacpypes_debugging
 class TestSomething(unittest.TestCase):
 
     def setUp(self):
@@ -25,5 +26,3 @@ class TestSomething(unittest.TestCase):
 
     def tearDown(self):
         if _debug: TestSomething._debug("tearDown")
-
-bacpypes_debugging(TestSomething)

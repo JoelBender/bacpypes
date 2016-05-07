@@ -194,11 +194,8 @@ class TrappedStateMachine(StateMachine):
         # must be identical objects
         return pdu is transition_pdu
 
-#
-#   TrappedClient
-#
 
-
+@bacpypes_debugging
 class TrappedClient(Client):
 
     """
@@ -231,14 +228,8 @@ class TrappedClient(Client):
         # a reference for checking
         self.confirmation_received = pdu
 
-bacpypes_debugging(TrappedClient)
 
-
-#
-#   TrappedServer
-#
-
-
+@bacpypes_debugging
 class TrappedServer(Server):
 
     """
@@ -270,5 +261,3 @@ class TrappedServer(Server):
 
         # continue with processing
         Server.response(self, pdu)
-
-bacpypes_debugging(TrappedServer)

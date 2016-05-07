@@ -32,6 +32,7 @@ def character_string_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def character_string_encode(obj):
     """Encode an CharacterString object into a tag."""

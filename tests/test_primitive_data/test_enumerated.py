@@ -29,6 +29,7 @@ def enumerated_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def enumerated_encode(obj):
     """Encode an Enumerated object into a tag."""

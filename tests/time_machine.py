@@ -20,9 +20,6 @@ _log = ModuleLogger(globals())
 # time machine
 time_machine = None
 
-#
-#   TimeMachine
-#
 
 # @bacpypes_debugging - implicit via metaclass
 class TimeMachine(_TaskManager):
@@ -113,9 +110,6 @@ class TimeMachine(_TaskManager):
 
         _TaskManager.process_task(self, task)
 
-#
-#   reset_time_machine
-#
 
 @bacpypes_debugging
 def reset_time_machine():
@@ -133,9 +127,6 @@ def reset_time_machine():
     time_machine.current_time = 0.0
     time_machine.time_limit = None
 
-#
-#   run_time_machine
-#
 
 @bacpypes_debugging
 def run_time_machine(time_limit):

@@ -22,10 +22,6 @@ from bacpypes.task import FunctionTask as _FunctionTask
 _debug = 0
 _log = ModuleLogger(globals())
 
-#
-#   Transitions
-#
-
 
 class Transition:
 
@@ -65,11 +61,7 @@ class TimeoutTransition(Transition):
         self.timeout = timeout
 
 
-#
-#   State
-#
-
-
+@bacpypes_debugging
 class State:
 
     """
@@ -297,14 +289,8 @@ class State:
             hex(id(self)),
         )
 
-bacpypes_debugging(State)
 
-
-#
-#   StateMachine
-#
-
-
+@bacpypes_debugging
 class StateMachine:
 
     """
@@ -681,14 +667,8 @@ class StateMachine:
             hex(id(self)),
         )
 
-bacpypes_debugging(StateMachine)
 
-
-#
-#   StateMachineGroup
-#
-
-
+@bacpypes_debugging
 class StateMachineGroup:
 
     """
@@ -849,14 +829,8 @@ class StateMachineGroup:
         at least one of them is in a 'fail' final state."""
         if _debug: StateMachineGroup._debug("fail")
 
-bacpypes_debugging(StateMachineGroup)
 
-
-#
-#   ClientStateMachine
-#
-
-
+@bacpypes_debugging
 class ClientStateMachine(Client, StateMachine):
 
     """
@@ -882,14 +856,8 @@ class ClientStateMachine(Client, StateMachine):
         if _debug: ClientStateMachine._debug("confirmation %r", pdu)
         self.receive(pdu)
 
-bacpypes_debugging(ClientStateMachine)
 
-
-#
-#   ServerStateMachine
-#
-
-
+@bacpypes_debugging
 class ServerStateMachine(Server, StateMachine):
 
     """
@@ -914,5 +882,3 @@ class ServerStateMachine(Server, StateMachine):
     def indication(self, pdu):
         if _debug: ServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
-
-bacpypes_debugging(ServerStateMachine)
