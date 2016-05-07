@@ -29,6 +29,7 @@ def date_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def date_encode(obj):
     """Encode an Date object into a tag."""

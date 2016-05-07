@@ -21,14 +21,9 @@ _log = ModuleLogger(globals())
 # reference to time machine
 time_machine = None
 
-#
-#   setUpModule
-#
-
-
 @bacpypes_debugging
-def setUpModule():
-    if _debug: setUpModule._debug("setUpModule")
+def setup_module(module):
+    if _debug: setup_module._debug("setup_module %r", module)
     global time_machine
 
     # this is a singleton
@@ -40,17 +35,13 @@ def setUpModule():
 
 
 @bacpypes_debugging
-def tearDownModule():
-    if _debug: tearDownModule._debug("tearDownModule")
+def teardown_module():
+    if _debug: teardown_module._debug("teardown_module")
     global time_machine
 
     # all done
     time_machine = None
 
-
-#
-#   SampleOneShotTask
-#
 
 @bacpypes_debugging
 class SampleOneShotTask(OneShotTask):
@@ -66,10 +57,6 @@ class SampleOneShotTask(OneShotTask):
         self.process_task_called += 1
 
 
-#
-#   sample_task_function
-#
-
 # flag to make sure the function was called
 sample_task_function_called = 0
 
@@ -81,10 +68,6 @@ def sample_task_function(*args, **kwargs):
     # bump the counter
     sample_task_function_called += 1
 
-
-#
-#   SampleRecurringTask
-#
 
 @bacpypes_debugging
 class SampleRecurringTask(RecurringTask):

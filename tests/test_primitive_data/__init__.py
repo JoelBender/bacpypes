@@ -5,7 +5,6 @@ Test Primitive Data Module
 """
 
 from . import test_tag
-# from . import test_tag_list
 
 from . import test_null
 from . import test_boolean

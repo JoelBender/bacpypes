@@ -28,6 +28,7 @@ def boolean_tag(value):
 
     return tag
 
+
 @bacpypes_debugging
 def boolean_encode(obj):
     """Encode an Boolean object into a tag."""
