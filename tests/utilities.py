@@ -6,7 +6,6 @@ BACpypes Testing Utilities
 """
 
 import os
-from time import time as _time
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser

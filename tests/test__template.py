@@ -9,7 +9,6 @@ Test Module Template
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from . import utilities
 
 # some debugging
 _debug = 0

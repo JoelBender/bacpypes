@@ -5,8 +5,6 @@ Testing State Machine
 ---------------------
 """
 
-import os
-
 try:
     # Python 3
     from queue import Queue
