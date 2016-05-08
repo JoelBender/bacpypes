@@ -166,7 +166,7 @@ class Tag(object):
             else:
                 # tagLVT contains length
                 self.tagData = pdu.get_data(self.tagLVT)
-        except:
+        except DecodingError:
             raise InvalidTag("invalid tag encoding")
 
     def app_to_context(self, context):
