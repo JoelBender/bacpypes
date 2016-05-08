@@ -10,6 +10,7 @@ from . import utilities
 from . import state_machine
 from . import time_machine
 from . import extended_tag_list
+from . import trapped_classes
 
 from . import test_comm
 # from . import test_objects
