@@ -149,7 +149,7 @@ class TrappedClient(Client):
 
     def __init__(self):
         if _debug: TrappedClient._debug("__init__")
-        Client.__init__(self)
+        super(TrappedClient, self).__init__()
 
         # clear out some references
         self.request_sent = None
@@ -162,7 +162,7 @@ class TrappedClient(Client):
         self.request_sent = pdu
 
         # continue with regular processing
-        Client.request(self, pdu)
+        super(TrappedClient, self).request(pdu)
 
     def confirmation(self, pdu):
         if _debug: TrappedClient._debug("confirmation %r", pdu)
@@ -183,7 +183,7 @@ class TrappedServer(Server):
 
     def __init__(self):
         if _debug: TrappedServer._debug("__init__")
-        Server.__init__(self)
+        super(TrappedServer, self).__init__()
 
         # clear out some references
         self.indication_received = None
@@ -202,4 +202,46 @@ class TrappedServer(Server):
         self.response_sent = pdu
 
         # continue with processing
-        Server.response(self, pdu)
+        super(TrappedServer, self).response(pdu)
+
+
+@bacpypes_debugging
+class TrappedClientStateMachine(TrappedClient, TrappedStateMachine):
+
+    """
+    TrappedClientStateMachine
+    ~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    def __init__(self):
+        if _debug: TrappedClientStateMachine._debug("__init__")
+        super(TrappedClientStateMachine, self).__init__()
+
+    def send(self, pdu):
+        if _debug: TrappedClientStateMachine._debug("send %r", pdu)
+        self.request(pdu)
+
+    def confirmation(self, pdu):
+        if _debug: TrappedClientStateMachine._debug("confirmation %r", pdu)
+        self.receive(pdu)
+
+
+@bacpypes_debugging
+class TrappedServerStateMachine(TrappedServer, TrappedStateMachine):
+
+    """
+    TrappedServerStateMachine
+    ~~~~~~~~~~~~~~~~~~~~~~~~~
+    """
+
+    def __init__(self):
+        if _debug: TrappedServerStateMachine._debug("__init__")
+        super(TrappedServerStateMachine, self).__init__()
+
+    def send(self, pdu):
+        if _debug: TrappedServerStateMachine._debug("send %r", pdu)
+        self.response(pdu)
+
+    def indication(self, pdu):
+        if _debug: TrappedServerStateMachine._debug("indication %r", pdu)
+        self.receive(pdu)
