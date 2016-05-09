@@ -16,8 +16,7 @@ from bacpypes.comm import bind
 
 from ..state_machine import ServerStateMachine
 from ..time_machine import reset_time_machine, run_time_machine
-
-from .trapped_classes import TrappedClient
+from ..trapped_classes import TrappedClient
 
 # some debugging
 _debug = 0
