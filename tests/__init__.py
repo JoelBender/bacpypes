@@ -6,6 +6,8 @@ BACpypes Testing
 ----------------
 """
 
+from . import test__template
+
 from . import utilities
 from . import state_machine
 from . import time_machine
