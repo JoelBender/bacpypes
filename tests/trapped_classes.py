@@ -7,7 +7,8 @@ Trapped State Machine Classes
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from bacpypes.comm import Client, Server
+from bacpypes.comm import Client, Server, \
+    ServiceAccessPoint, ApplicationServiceElement
 
 from .state_machine import State, StateMachine
 
@@ -245,3 +246,151 @@ class TrappedServerStateMachine(TrappedServer, TrappedStateMachine):
     def indication(self, pdu):
         if _debug: TrappedServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
+
+
+@bacpypes_debugging
+class TrappedServiceAccessPoint(ServiceAccessPoint):
+
+    """
+    TrappedServiceAccessPoint
+    ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Note that while this class inherits from ServiceAccessPoint, it doesn't
+    provide any stubbed behavior for sap_indication() or sap_confirmation(),
+    so if these functions are called it will still raise NotImplementedError.
+
+    To provide these functions, write a ServiceAccessPoint derived class and
+    stuff it in the inheritance sequence:
+
+        class Snort(ServiceAccessPoint):
+            def sap_indication(self, pdu):
+                ...do something...
+            def sap_confirmation(self, pdu):
+                ...do something...
+
+        class TrappedSnort(TrappedServiceAccessPoint, Snort): pass
+
+    The Snort functions will be called after the PDU is trapped.
+    """
+
+    def __init__(self, sapID=None):
+        if _debug: TrappedServiceAccessPoint._debug("__init__(%s)", sapID)
+        super(TrappedServiceAccessPoint, self).__init__(sapID)
+
+        # clear out client references
+        self.sap_request_sent = None
+        self.sap_confirmation_received = None
+
+        # clear out server references
+        self.sap_indication_received = None
+        self.sap_response_sent = None
+
+    def sap_request(self, pdu):
+        if _debug: TrappedServiceAccessPoint._debug("sap_request(%s) %r", self.serviceID, pdu)
+
+        # a reference for checking
+        self.sap_request_sent = pdu
+
+        # continue with regular processing
+        super(TrappedServiceAccessPoint, self).sap_request(pdu)
+
+    def sap_indication(self, pdu):
+        if _debug: TrappedServiceAccessPoint._debug("sap_indication(%s) %r", self.serviceID, pdu)
+
+        # a reference for checking
+        self.sap_indication_received = pdu
+
+        # continue with regular processing
+        super(TrappedServiceAccessPoint, self).sap_indication(pdu)
+
+    def sap_response(self, pdu):
+        if _debug: TrappedServiceAccessPoint._debug("sap_response(%s) %r", self.serviceID, pdu)
+
+        # a reference for checking
+        self.sap_response_sent = pdu
+
+        # continue with processing
+        super(TrappedServiceAccessPoint, self).sap_response(pdu)
+
+    def sap_confirmation(self, pdu):
+        if _debug: TrappedServiceAccessPoint._debug("sap_confirmation(%s) %r", self.serviceID, pdu)
+
+        # a reference for checking
+        self.sap_confirmation_received = pdu
+
+        # continue with regular processing
+        super(TrappedServiceAccessPoint, self).sap_confirmation(pdu)
+
+
+@bacpypes_debugging
+class TrappedApplicationServiceElement(ApplicationServiceElement):
+
+    """
+    TrappedApplicationServiceElement
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Note that while this class inherits from ApplicationServiceElement, it
+    doesn't provide any stubbed behavior for indication() or confirmation(),
+    so if these functions are called it will still raise NotImplementedError.
+
+    To provide these functions, write a ServiceAccessPoint derived class and
+    stuff it in the inheritance sequence:
+
+        class Snort(ApplicationServiceElement):
+            def indication(self, pdu):
+                ...do something...
+            def confirmation(self, pdu):
+                ...do something...
+
+        class TrappedSnort(TrappedApplicationServiceElement, Snort): pass
+
+    The Snort functions will be called after the PDU is trapped.
+    """
+
+    def __init__(self, aseID=None):
+        if _debug: TrappedApplicationServiceElement._debug("__init__(%s)", aseID)
+        super(TrappedApplicationServiceElement, self).__init__(aseID)
+
+        # clear out client references
+        self.request_sent = None
+        self.confirmation_received = None
+
+        # clear out server references
+        self.indication_received = None
+        self.response_sent = None
+
+    def request(self, pdu):
+        if _debug: TrappedApplicationServiceElement._debug("request(%s) %r", self.elementID, pdu)
+
+        # a reference for checking
+        self.request_sent = pdu
+
+        # continue with regular processing
+        super(TrappedApplicationServiceElement, self).request(pdu)
+
+    def indication(self, pdu):
+        if _debug: TrappedApplicationServiceElement._debug("indication(%s) %r", self.elementID, pdu)
+
+        # a reference for checking
+        self.indication_received = pdu
+
+        # continue with regular processing
+        super(TrappedApplicationServiceElement, self).indication(pdu)
+
+    def response(self, pdu):
+        if _debug: TrappedApplicationServiceElement._debug("response(%s) %r", self.elementID, pdu)
+
+        # a reference for checking
+        self.response_sent = pdu
+
+        # continue with processing
+        super(TrappedApplicationServiceElement, self).response(pdu)
+
+    def confirmation(self, pdu):
+        if _debug: TrappedServiceAccessPoint._debug("confirmation(%s) %r", self.elementID, pdu)
+
+        # a reference for checking
+        self.confirmation_received = pdu
+
+        # continue with regular processing
+        super(TrappedApplicationServiceElement, self).confirmation(pdu)
