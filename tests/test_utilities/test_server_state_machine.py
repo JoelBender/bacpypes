@@ -27,7 +27,7 @@ _log = ModuleLogger(globals())
 class TestServerStateMachine(unittest.TestCase):
 
     def test_server_state_machine(self):
-        if _debug: TestClientStateMachine._debug("test_server_state_machine")
+        if _debug: TestServerStateMachine._debug("test_server_state_machine")
 
         # create a client state machine, trapped server, and bind them together
         client = TrappedClient()
