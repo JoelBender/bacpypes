@@ -18,6 +18,9 @@ from ..trapped_classes import TrappedServiceAccessPoint, \
 _debug = 0
 _log = ModuleLogger(globals())
 
+# globals
+sap = None
+ase = None
 
 @bacpypes_debugging
 class EchoAccessPoint(ServiceAccessPoint):
@@ -54,6 +57,7 @@ class TrappedEchoServiceElement(TrappedApplicationServiceElement, EchoServiceEle
 @bacpypes_debugging
 def setup_module():
     if _debug: setup_module._debug("setup_module")
+    global sap, ase
 
     # verify the echo access point is trapped correctly
     assert TrappedEchoAccessPoint.__mro__ == (
@@ -64,6 +68,9 @@ def setup_module():
         object,
         )
 
+    # create an access point
+    sap = TrappedEchoAccessPoint()
+
     # verify the echo service element is trapped correctly
     assert TrappedEchoServiceElement.__mro__ == (
         TrappedEchoServiceElement,
@@ -73,19 +80,31 @@ def setup_module():
         object,
         )
 
+    # create a service element
+    ase = TrappedEchoServiceElement()
+
+    # bind them together
+    bind(ase, sap)
+
+
+@bacpypes_debugging
+def teardown_module():
+    if _debug: setup_module._debug("teardown_module")
+    global sap, ase
+
+    # toss the objects into the garbage
+    sap = None
+    ase = None
+
 
 @bacpypes_debugging
 class TestApplicationService(unittest.TestCase):
 
-    def test_application_service(self):
-        if _debug: TestApplicationService._debug("test_application_service")
+    def test_sap_request(self):
+        if _debug: TestApplicationService._debug("test_sap_request")
+        global sap, ase
 
-        # create an access point and a service element and bind them together
-        sap = TrappedEchoAccessPoint()
-        ase = TrappedEchoServiceElement()
-        bind(ase, sap)
-
-        # make pdu object
+        # make a pdu object
         pdu = object()
 
         # service access point is going to request something
@@ -99,7 +118,11 @@ class TestApplicationService(unittest.TestCase):
         assert ase.response_sent is pdu
         assert sap.sap_confirmation_received is pdu
 
-        # make another pdu object
+    def test_ase_request(self):
+        if _debug: TestApplicationService._debug("test_ase_request")
+        global sap, ase
+
+        # make a pdu object
         pdu = object()
 
         # service element is going to request something
