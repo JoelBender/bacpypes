@@ -707,6 +707,7 @@ class ErrorClass(Enumerated):
         , 'security':4
         , 'services':5
         , 'vt':6
+        , 'communication':7
         }
 
 class ErrorCode(Enumerated):
