@@ -114,7 +114,9 @@ class SSM(OneShotTask, DebugContents):
     def stop_timer(self):
         if _debug: SSM._debug("stop_timer")
 
-        self.suspend_task()
+        # if this is active, pull it
+        if self.isScheduled:
+            self.suspend_task()
 
     def restart_timer(self, msecs):
         if _debug: SSM._debug("restart_timer %r", msecs)

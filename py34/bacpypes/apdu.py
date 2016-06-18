@@ -499,17 +499,6 @@ class SegmentAckPDU(_APDU):
         if _debug: SegmentAckPDU._debug("__init__ %r %r %r %r %r %r %r", nak, srv, invokeID, sequenceNumber, windowSize, args, kwargs)
         super(SegmentAckPDU, self).__init__(*args, **kwargs)
 
-        if nak is None:
-            raise ValueError("nak is None")
-        if srv is None:
-            raise ValueError("srv is None")
-        if invokeID is None:
-            raise ValueError("invokeID is None")
-        if sequenceNumber is None:
-            raise ValueError("sequenceNumber is None")
-        if windowSize is None:
-            raise ValueError("windowSize is None")
-
         self.apduType = SegmentAckPDU.pduType
         self.apduNak = nak
         self.apduSrv = srv
