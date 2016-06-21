@@ -24,6 +24,11 @@ from bacpypes.basetypes import ServicesSupported
 _debug = 0
 _log = ModuleLogger(globals())
 
+# configuration
+RECORD_LEN = 128
+RECORD_COUNT = 100
+OCTET_COUNT = 4096
+
 #
 #   Local Record Access File Object Type
 #
@@ -44,8 +49,8 @@ class LocalRecordAccessFileObject(FileObject):
 
         self._record_data = [
             ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(10, 20)))
-            for j in range(random.randint(10, 20))
+            for i in range(RECORD_LEN))
+            for j in range(RECORD_COUNT)
             ]
         if _debug: LocalRecordAccessFileObject._debug("    - %d records",
                 len(self._record_data),
@@ -110,7 +115,7 @@ class LocalStreamAccessFileObject(FileObject):
              )
 
         self._file_data = ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(100, 200)))
+            for i in range(OCTET_COUNT))
         if _debug: LocalRecordAccessFileObject._debug("    - %d octets",
                 len(self._file_data),
                 )
