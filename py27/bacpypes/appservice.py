@@ -28,20 +28,15 @@ _log = ModuleLogger(globals())
 
 class DeviceInfo(DebugContents):
 
-    _debug_contents = ('address', 'segmentationSupported'
-        , 'maxApduLengthAccepted', 'maxSegmentsAccepted'
+    _debug_contents = (
+        'address',
+        'segmentationSupported',
+        'maxApduLengthAccepted',
+        'maxSegmentsAccepted',
         )
 
     def __init__(self, address=None, segmentationSupported='noSegmentation', maxApduLengthAccepted=1024, maxSegmentsAccepted=None):
-        if address is None:
-            pass
-        elif isinstance(address, Address):
-            pass
-        elif isinstance(address, LocalStation):
-            pass
-        elif isinstance(address, RemoteStation):
-            pass
-        else:
+        if not isinstance(address, (None.__class__, Address, LocalStation, RemoteStation)):
             raise TypeError("address")
 
         self.address = address                              # LocalStation or RemoteStation
@@ -768,15 +763,20 @@ class ServerSSM(SSM):
 
             # make sure we support segmented transmit if we need to
             if self.segmentCount > 1:
-                if _debug: ServerSSM._debug("    - segmentation required, %d segemnts", self.segmentCount)
+                if _debug: ServerSSM._debug("    - segmentation required, %d segments", self.segmentCount)
 
-                if (self.ssmSAP.segmentationSupported != 'segmentedTransmit') and (self.ssmSAP.segmentationSupported != 'segmentedBoth'):
+                # make sure we support segmented transmit
+                if self.ssmSAP.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
+                    if _debug: ServerSSM._debug("    - server can't send segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
-                    self.request(abort)
+                    self.reponse(abort)
                     return
-                if (self.remoteDevice.segmentationSupported != 'segmentedReceive') and (self.remoteDevice.segmentationSupported != 'segmentedBoth'):
+
+                # make sure client supports segmented receive
+                if self.remoteDevice.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
+                    if _debug: ServerSSM._debug("    - client can't receive segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
-                    self.request(abort)
+                    self.response(abort)
                     return
 
             ### check to make sure the client can receive that many
@@ -842,8 +842,36 @@ class ServerSSM(SSM):
         self.invokeID = apdu.apduInvokeID
         if _debug: ServerSSM._debug("    - invoke ID: %r", self.invokeID)
 
-        # get information about the device
-        self.remoteDevice = self.ssmSAP.get_device_info(apdu.pduSource)
+        # get information about the client
+        remote_device = self.ssmSAP.get_device_info(apdu.pduSource)
+        self.remoteDevice = remote_device
+
+        # make sure the device information is synced with the request
+        if apdu.apduSA:
+            if remote_device.segmentationSupported == 'noSegmentation':
+                if _debug: ServerSSM._debug("    - client supports segmented receive")
+                remote_device.segmentationSupported == 'segmentedReceive'
+
+            elif remote_device.segmentationSupported == 'segmentedTransmit':
+                if _debug: ServerSSM._debug("    - client supports both segmented transmit and receive")
+                remote_device.segmentationSupported == 'segmentedBoth'
+
+            elif remote_device.segmentationSupported == 'segmentedReceive':
+                pass
+
+            elif remote_device.segmentationSupported == 'segmentedBoth':
+                pass
+
+            else:
+                raise RuntimeError("invalid segmentation supported in device info")
+
+        if apdu.apduMaxSegs != remote_device.maxSegmentsAccepted:
+            if _debug: ServerSSM._debug("    - updating maximum segments accepted")
+            remote_device.maxSegmentsAccepted = apdu.apduMaxSegs
+
+        if apdu.apduMaxResp != remote_device.maxApduLengthAccepted:
+            if _debug: ServerSSM._debug("    - updating maximum max APDU length accepted")
+            remote_device.maxApduLengthAccepted = apdu.apduMaxResp
 
         # save the number of segments the client is willing to accept in the ack
         self.maxSegmentsAccepted = apdu.apduMaxSegs
