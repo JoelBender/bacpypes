@@ -77,7 +77,7 @@ def encode_max_apdu_response(arg):
         if (v <= arg):
             return i
 
-    raise ValueError("invalid max APDU response encoding: %d" % (arg,))
+    raise ValueError("invalid max APDU response encoding: {0}".format(arg))
 
 def decode_max_apdu_response(arg):
     return _max_apdu_response_encoding.get(arg)
