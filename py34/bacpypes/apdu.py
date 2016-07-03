@@ -68,11 +68,19 @@ def decode_max_apdu_segments(arg):
 #   encode_max_apdu_response/decode_max_apdu_response
 #
 
+_max_apdu_response_encoding = {0:50, 1:128, 2:206, 3:480, 4:1024, 5:1476}
+
 def encode_max_apdu_response(arg):
-    return {50:0, 128:1, 206:2, 480:3, 1024:4, 1476:5}.get(arg)
+    encodings = _max_apdu_response_encoding.items()
+    encodings.sort(lambda x, y: y[1] - x[1])
+    for i, v in encodings:
+        if (v <= arg):
+            return i
+
+    raise ValueError("invalid max APDU response encoding: {0}".format(arg))
 
 def decode_max_apdu_response(arg):
-    return {0:50, 1:128, 2:206, 3:480, 4:1024, 5:1476}.get(arg)
+    return _max_apdu_response_encoding.get(arg)
 
 #
 #   APCI
