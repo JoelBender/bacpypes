@@ -1496,7 +1496,7 @@ class ConfirmedPrivateTransferRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('vendorID', Unsigned, 0)
         , Element('serviceNumber', Unsigned, 1)
-        , Element('serviceParameters', Any, 2)
+        , Element('serviceParameters', Any, 2, True)
         ]
 
 register_confirmed_request_type(ConfirmedPrivateTransferRequest)
