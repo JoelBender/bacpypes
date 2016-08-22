@@ -17,6 +17,7 @@ from .apdu import AbortPDU, AbortReason, ComplexAckPDU, \
     SimpleAckPDU, UnconfirmedRequestPDU, apdu_types, \
     unconfirmed_request_types, confirmed_request_types, complex_ack_types, \
     error_types
+from .errors import RejectException, AbortException
 
 # some debugging
 _debug = 0
@@ -107,6 +108,7 @@ class SSM(OneShotTask, DebugContents):
 
         # if this is active, pull it
         if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
             self.suspend_task()
 
         # now install this
@@ -115,13 +117,17 @@ class SSM(OneShotTask, DebugContents):
     def stop_timer(self):
         if _debug: SSM._debug("stop_timer")
 
-        self.suspend_task()
+        # if this is active, pull it
+        if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
+            self.suspend_task()
 
     def restart_timer(self, msecs):
         if _debug: SSM._debug("restart_timer %r", msecs)
 
         # if this is active, pull it
         if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
             self.suspend_task()
 
         # now install this
@@ -1255,12 +1261,53 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 if _debug: ApplicationServiceAccessPoint._debug("    - no confirmed request decoder")
                 return
 
+            # assume no errors found
+            error_found = None
+
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
-                ApplicationServiceAccessPoint._exception("confirmed request decoding error: %r", err)
-                return
+            except RejectException as err:
+                ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
+                error_found = err
+            except AbortException as err:
+                ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
+                error_found = err
+
+            # no error so far, keep going
+            if not error_found:
+                if _debug: ApplicationServiceAccessPoint._debug("    - no decoding error")
+
+                try:
+                    # forward the decoded packet
+                    self.sap_request(xpdu)
+                except RejectException as err:
+                    ApplicationServiceAccessPoint._debug("    - execution reject: %r", err)
+                    error_found = err
+                except AbortException as err:
+                    ApplicationServiceAccessPoint._debug("    - execution abort: %r", err)
+                    error_found = err
+
+            # if there was an error, send it back to the client
+            if isinstance(error_found, RejectException):
+                if _debug: ApplicationServiceAccessPoint._debug("    - reject exception: %r", error_found)
+
+                reject_pdu = RejectPDU(reason=error_found.rejectReason)
+                reject_pdu.set_context(apdu)
+                if _debug: ApplicationServiceAccessPoint._debug("    - reject_pdu: %r", reject_pdu)
+
+                # send it to the client
+                self.response(reject_pdu)
+
+            elif isinstance(error_found, AbortException):
+                if _debug: ApplicationServiceAccessPoint._debug("    - abort exception: %r", error_found)
+
+                abort_pdu = AbortPDU(reason=error_found.abortReason)
+                abort_pdu.set_context(apdu)
+                if _debug: ApplicationServiceAccessPoint._debug("    - abort_pdu: %r", abort_pdu)
+
+                # send it to the client
+                self.response(abort_pdu)
 
         elif isinstance(apdu, UnconfirmedRequestPDU):
             atype = unconfirmed_request_types.get(apdu.apduService)
@@ -1271,9 +1318,20 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception as err:
-                ApplicationServiceAccessPoint._exception("unconfirmed request decoding error: %r", err)
+            except RejectException as err:
+                ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
                 return
+            except AbortException as err:
+                ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
+                return
+
+            try:
+                # forward the decoded packet
+                self.sap_request(xpdu)
+            except RejectException as err:
+                ApplicationServiceAccessPoint._debug("    - execution reject: %r", err)
+            except AbortException as err:
+                ApplicationServiceAccessPoint._debug("    - execution abort: %r", err)
 
         else:
             if _debug: ApplicationServiceAccessPoint._debug("    - unknown PDU type?!")
