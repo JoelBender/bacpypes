@@ -8,12 +8,12 @@ Test Primitive Data Tag
 
 import unittest
 
+from bacpypes.errors import InvalidTag
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob, btox
 from bacpypes.primitivedata import Tag, ApplicationTag, ContextTag, \
     OpeningTag, ClosingTag, TagList, \
     Null, Boolean, Unsigned, Integer, Real, Double, OctetString, \
-    CharacterString, BitString, Enumerated, Date, Time, ObjectIdentifier, \
-    DecodingError
+    CharacterString, BitString, Enumerated, Date, Time, ObjectIdentifier
 from bacpypes.pdu import PDUData
 
 
@@ -248,7 +248,7 @@ class TestTag(unittest.TestCase):
 
         # must have a valid encoded tag to extract from the data
         data = PDUData(xtob(''))
-        with self.assertRaises(DecodingError):
+        with self.assertRaises(InvalidTag):
             tag = Tag(data)
 
         # must have two values, class and number

@@ -6,7 +6,8 @@ Constructed Data
 
 import sys
 
-from .errors import DecodingError
+from .errors import DecodingError, \
+    MissingRequiredParameter, InvalidParameterDatatype, InvalidTag
 from .debugging import ModuleLogger, bacpypes_debugging
 
 from .primitivedata import Atomic, ClosingTag, OpeningTag, Tag, TagList, \
@@ -87,7 +88,7 @@ class Sequence(object):
             if element.optional and value is None:
                 continue
             if not element.optional and value is None:
-                raise AttributeError("'%s' is a required element of %s" % (element.name,self.__class__.__name__))
+                raise MissingRequiredParameter("%s is a missing required element of %s" % (element.name, self.__class__.__name__))
             if element.klass in _sequence_of_classes:
                 # might need to encode an opening tag
                 if element.context is not None:
@@ -129,7 +130,7 @@ class Sequence(object):
                 if element.context is not None:
                     taglist.append(ClosingTag(element.context))
             else:
-                raise TypeError("'%s' must be of type %s" % (element.name, element.klass.__name__))
+                raise TypeError("%s must be of type %s" % (element.name, element.klass.__name__))
 
     def decode(self, taglist):
         if _debug: Sequence._debug("decode %r", taglist)
@@ -150,12 +151,12 @@ class Sequence(object):
                     # empty list
                     setattr(self, element.name, [])
                 else:
-                    raise AttributeError("'%s' is a required element of %s" % (element.name,self.__class__.__name__))
+                    raise MissingRequiredParameter("%s is a missing required element of %s" % (element.name, self.__class__.__name__))
 
             # we have been enclosed in a context
             elif tag.tagClass == Tag.closingTagClass:
                 if not element.optional:
-                    raise AttributeError("'%s' is a required element of %s" % (element.name,self.__class__.__name__))
+                    raise MissingRequiredParameter("%s is a missing required element of %s" % (element.name, self.__class__.__name__))
 
                 # omitted optional element
                 setattr(self, element.name, None)
@@ -166,7 +167,7 @@ class Sequence(object):
                 if element.context is not None:
                     if tag.tagClass != Tag.openingTagClass or tag.tagNumber != element.context:
                         if not element.optional:
-                            raise DecodingError("'%s' expected opening tag %d" % (element.name, element.context))
+                            raise MissingRequiredParameter("%s expected opening tag %d" % (element.name, element.context))
                         else:
                             # omitted optional element
                             setattr(self, element.name, [])
@@ -184,7 +185,7 @@ class Sequence(object):
                 if element.context is not None:
                     tag = taglist.Pop()
                     if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                        raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                        raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
             # check for an atomic element
             elif issubclass(element.klass, Atomic):
@@ -192,7 +193,7 @@ class Sequence(object):
                 if element.context is not None:
                     if tag.tagClass != Tag.contextTagClass or tag.tagNumber != element.context:
                         if not element.optional:
-                            raise DecodingError("'%s' expected context tag %d" % (element.name, element.context))
+                            raise InvalidTag("%s expected context tag %d" % (element.name, element.context))
                         else:
                             setattr(self, element.name, None)
                             continue
@@ -220,7 +221,7 @@ class Sequence(object):
                 if element.context is not None:
                     if tag.tagClass != Tag.contextTagClass or tag.tagNumber != element.context:
                         if not element.optional:
-                            raise DecodingError("'%s' expected context tag %d" % (element.name, element.context))
+                            raise InvalidTag("%s expected context tag %d" % (element.name, element.context))
                         else:
                             setattr(self, element.name, None)
                             continue
@@ -228,7 +229,7 @@ class Sequence(object):
                 else:
                     if tag.tagClass != Tag.applicationTagClass:
                         if not element.optional:
-                            raise DecodingError("'%s' expected application tag" % (element.name,))
+                            raise InvalidParameterDatatype("%s expected application tag" % (element.name,))
                         else:
                             setattr(self, element.name, None)
                             continue
@@ -247,7 +248,7 @@ class Sequence(object):
                 if element.context is not None:
                     if tag.tagClass != Tag.openingTagClass or tag.tagNumber != element.context:
                         if not element.optional:
-                            raise DecodingError("'%s' expected opening tag %d" % (element.name, element.context))
+                            raise InvalidTag("%s expected opening tag %d" % (element.name, element.context))
                         else:
                             setattr(self, element.name, None)
                             continue
@@ -280,7 +281,7 @@ class Sequence(object):
                 if element.context is not None:
                     tag = taglist.Pop()
                     if (not tag) or tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                        raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                        raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
     def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
         global _sequence_of_classes
@@ -290,7 +291,7 @@ class Sequence(object):
             if element.optional and value is None:
                 continue
             if not element.optional and value is None:
-                file.write("%s'%s' is a required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
+                file.write("%s%s is a required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
                 continue
 
             if element.klass in _sequence_of_classes:
@@ -306,7 +307,7 @@ class Sequence(object):
                 value.debug_contents(indent+1, file, _ids)
 
             else:
-                file.write("%s'%s' must be a %s\n" % ("    " * indent, element.name, element.klass.__name__))
+                file.write("%s%s must be a %s\n" % ("    " * indent, element.name, element.klass.__name__))
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -831,7 +832,7 @@ class Choice(object):
                 break
 
             else:
-                raise TypeError("'%s' must be a %s" % (element.name, element.klass.__name__))
+                raise TypeError("%s must be a %s" % (element.name, element.klass.__name__))
         else:
             raise AttributeError("missing choice of %s" % (self.__class__.__name__,))
 
@@ -872,7 +873,7 @@ class Choice(object):
                 # check for context closing tag
                 tag = taglist.Pop()
                 if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                    raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                    raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
                 # done
                 if _debug: Choice._debug("    - found choice (sequence)")
@@ -921,7 +922,7 @@ class Choice(object):
                 # check for the correct closing tag
                 tag = taglist.Pop()
                 if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                    raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                    raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
                 # done
                 if _debug: Choice._debug("    - found choice (structure)")

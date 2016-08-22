@@ -20,7 +20,10 @@ from .object import Property, PropertyError, DeviceObject, \
     registered_object_types, register_object_type
 from .apdu import ConfirmedRequestPDU, SimpleAckPDU, RejectPDU, RejectReason
 from .apdu import IAmRequest, ReadPropertyACK, Error
-from .errors import ExecutionError
+from .errors import ExecutionError, \
+    RejectException, UnrecognizedService, MissingRequiredParameter, \
+        ParameterOutOfRange, \
+    AbortException
 
 # for computing protocol services supported
 from .apdu import confirmed_request_types, unconfirmed_request_types, \
@@ -420,14 +423,18 @@ class Application(ApplicationServiceElement):
         # send back a reject for unrecognized services
         if not helperFn:
             if isinstance(apdu, ConfirmedRequestPDU):
-                response = RejectPDU( apdu.apduInvokeID, RejectReason.UNRECOGNIZEDSERVICE, context=apdu)
-                self.response(response)
+                raise UnrecognizedService("no function %s" % (helperName,))
             return
 
         # pass the apdu on to the helper function
         try:
             helperFn(apdu)
-
+        except RejectException, err:
+            if _debug: Application._debug("    - reject exception: %r", err)
+            raise
+        except AbortException, err:
+            if _debug: Application._debug("    - abort exception: %r", err)
+            raise
         except ExecutionError, err:
             if _debug: Application._debug("    - execution error: %r", err)
 
@@ -448,12 +455,28 @@ class Application(ApplicationServiceElement):
         """Respond to a Who-Is request."""
         if _debug: Application._debug("do_WhoIsRequest %r", apdu)
 
-        # may be a restriction
-        if (apdu.deviceInstanceRangeLowLimit is not None) and \
-                (apdu.deviceInstanceRangeHighLimit is not None):
-            if (self.localDevice.objectIdentifier[1] < apdu.deviceInstanceRangeLowLimit):
+        # extract the parameters
+        low_limit = apdu.deviceInstanceRangeLowLimit
+        high_limit = apdu.deviceInstanceRangeHighLimit
+
+        # check for consistent parameters
+        if (low_limit is not None):
+            if (high_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
+            if (low_limit < 0) or (low_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
+        if (high_limit is not None):
+            if (low_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
+            if (high_limit < 0) or (high_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
+
+        # see we should respond
+        if (low_limit is not None):
+            if (self.localDevice.objectIdentifier[1] < low_limit):
                 return
-            if (self.localDevice.objectIdentifier[1] > apdu.deviceInstanceRangeHighLimit):
+        if (high_limit is not None):
+            if (self.localDevice.objectIdentifier[1] > high_limit):
                 return
 
         # create a I-Am "response" back to the source

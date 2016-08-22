@@ -16,8 +16,7 @@ from bacpypes.comm import bind
 
 from ..state_machine import ServerStateMachine
 from ..time_machine import reset_time_machine, run_time_machine
-
-from .trapped_classes import TrappedClient
+from ..trapped_classes import TrappedClient
 
 # some debugging
 _debug = 0
@@ -28,7 +27,7 @@ _log = ModuleLogger(globals())
 class TestServerStateMachine(unittest.TestCase):
 
     def test_server_state_machine(self):
-        if _debug: TestClientStateMachine._debug("test_server_state_machine")
+        if _debug: TestServerStateMachine._debug("test_server_state_machine")
 
         # create a client state machine, trapped server, and bind them together
         client = TrappedClient()

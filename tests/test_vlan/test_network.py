@@ -47,7 +47,7 @@ class TestCaseTemplate(unittest.TestCase):
         if _debug: TestCaseTemplate._debug("teardown_class")
 
     def setup_method(self, method):
-        if _debug: TestCaseTemplate._debug("setup_method %r", method)
+        if _debug: TestCaseTemplate._debug("setup_module %r", method)
 
     def teardown_method(self, method):
         if _debug: TestCaseTemplate._debug("teardown_method %r", method)
