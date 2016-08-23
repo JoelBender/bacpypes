@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
 """
-ReadWriteFileServer.py
-
-This sample application is a BACnet device that has one record access file at
-('file', 1) and one stream access file at ('file', 2).
+This sample application is a BACnet device that has one record access file
+('file', 1) and one stream access file ('file', 2).
 """
 
+import os
 import random
 import string
 
@@ -25,9 +24,9 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # configuration
-RECORD_LEN = 128
-RECORD_COUNT = 100
-OCTET_COUNT = 4096
+RECORD_LEN = int(os.getenv('RECORD_LEN', 128))
+RECORD_COUNT = int(os.getenv('RECORD_COUNT', 100))
+OCTET_COUNT = int(os.getenv('OCTET_COUNT', 4096))
 
 #
 #   Local Record Access File Object Type
@@ -76,6 +75,10 @@ class LocalRecordAccessFileObject(FileObject):
 
     def WriteFile(self, start_record, record_count, record_data):
         """ Write a number of records, starting at a specific record. """
+        if _debug: LocalRecordAccessFileObject._debug("WriteFile %r %r %r",
+                start_record, record_count, record_data,
+                )
+
         # check for append
         if (start_record < 0):
             start_record = len(self._record_data)
@@ -140,6 +143,10 @@ class LocalStreamAccessFileObject(FileObject):
 
     def WriteFile(self, start_position, data):
         """ Write a number of octets, starting at a specific offset. """
+        if _debug: LocalStreamAccessFileObject._debug("WriteFile %r %r",
+                start_position, data,
+                )
+
         # check for append
         if (start_position < 0):
             start_position = len(self._file_data)
