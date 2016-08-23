@@ -264,10 +264,11 @@ try:
     # make a console
     this_console = ReadWritePropertyConsoleCmd()
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
-    # enable sleeping will allow handling of threads
-    enable_sleeping()
     run()
 
 except Exception as error:

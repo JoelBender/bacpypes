@@ -10,7 +10,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 # some debugging
 _debug = 0
@@ -56,10 +56,12 @@ def main():
     # make a console
     this_console = ConsoleCmdTemplate(prompt=args.prompt)
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
     run()
-
 
 if __name__ == "__main__":
     main()

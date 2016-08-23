@@ -11,7 +11,7 @@ from bacpypes.debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 from bacpypes.task import OneShotTask, TaskManager
 from bacpypes.pdu import Address
 
@@ -1159,6 +1159,9 @@ def main():
     if args.console:
         test_console = COVConsoleCmd()
         _log.debug("    - test_console: %r", test_console)
+
+        # enable sleeping will help with threads
+        enable_sleeping()
 
     _log.debug("running")
 

@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -222,6 +222,9 @@ try:
 
     # make a console
     this_console = SubscribeCOVConsoleCmd()
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 
