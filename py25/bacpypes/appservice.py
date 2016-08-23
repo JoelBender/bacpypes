@@ -1074,8 +1074,11 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         # server settings
         self.serverTransactions = []
 
-        # segmentation settings
+        # confirmed request settings
+        self.retryCount = 3
         self.retryTimeout = 3000
+
+        # segmentation settings
         self.segmentTimeout = 1500
         self.maxSegmentsAccepted = 8
 
