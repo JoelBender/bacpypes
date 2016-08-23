@@ -48,7 +48,7 @@ class LocalRecordAccessFileObject(FileObject):
 
         self._record_data = [
             ''.join(random.choice(string.ascii_letters)
-            for i in range(RECORD_LEN))
+            for i in range(RECORD_LEN)).encode('utf-8')
             for j in range(RECORD_COUNT)
             ]
         if _debug: LocalRecordAccessFileObject._debug("    - %d records",
@@ -118,7 +118,7 @@ class LocalStreamAccessFileObject(FileObject):
              )
 
         self._file_data = ''.join(random.choice(string.ascii_letters)
-            for i in range(OCTET_COUNT))
+            for i in range(OCTET_COUNT)).encode('utf-8')
         if _debug: LocalRecordAccessFileObject._debug("    - %d octets",
                 len(self._file_data),
                 )

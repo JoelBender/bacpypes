@@ -172,7 +172,7 @@ class TestConsoleCmd(ConsoleCmd):
             obj_inst = int(obj_inst)
             start_record = int(start_record)
             record_count = int(record_count)
-            record_data = list(args[4:])
+            record_data = [arg.encode('utf-8') for arg in list(args[4:])]
 
             # build a request
             request = AtomicWriteFileRequest(
@@ -205,6 +205,7 @@ class TestConsoleCmd(ConsoleCmd):
             obj_type = 'file'
             obj_inst = int(obj_inst)
             start_position = int(start_position)
+            data = data.encode('utf-8')
 
             # build a request
             request = AtomicWriteFileRequest(
@@ -262,7 +263,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")
