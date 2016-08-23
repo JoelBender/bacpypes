@@ -195,7 +195,7 @@ class Property(Logging):
             if not self.mutable:
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
-            # if it's atomic assume correct datatype
+            # if it's atomic, make sure it's valid
             if issubclass(self.datatype, Atomic):
                 if _debug: Property._debug("    - property is atomic, checking value")
                 if not self.datatype.is_valid(value):
@@ -438,8 +438,6 @@ class Object(Logging):
 
         # get the property
         prop = self._properties.get(propid)
-        if _debug: Object._debug("    - prop: %r", prop)
-
         if not prop:
             raise PropertyError(propid)
 
@@ -451,8 +449,6 @@ class Object(Logging):
 
         # get the property
         prop = self._properties.get(propid)
-        if _debug: Object._debug("    - prop: %r", prop)
-
         if not prop:
             raise PropertyError(propid)
 
@@ -488,11 +484,20 @@ class Object(Logging):
             properties.extend(getattr(c, 'properties', []))
 
         # print out the values
+        properties_seen = set()
         for prop in properties:
+            # see if we've seen something with this name
+            if prop.identifier in properties_seen:
+                continue
+            else:
+                properties_seen.add(prop.identifier)
+
+            # get the value
             value = prop.ReadProperty(self)
             if value is None:
                 continue
 
+            # if the value has a way to convert it to a dict, use it
             if hasattr(value, "dict_contents"):
                 value = value.dict_contents(as_class=as_class)
 

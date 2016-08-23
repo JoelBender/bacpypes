@@ -473,8 +473,8 @@ class Atomic(object):
         except (ValueError, TypeError):
             raise InvalidParameterDatatype("%s coerce error" % (cls.__name__,))
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         raise NotImplementedError("call on a derived class of Atomic")
 
@@ -512,8 +512,8 @@ class Null(Atomic):
 
         self.value = ()
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return arg is None
 
@@ -558,8 +558,8 @@ class Boolean(Atomic):
         # get the data
         self.value = bool(tag.tagLVT)
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, bool)
 
@@ -619,8 +619,8 @@ class Unsigned(Atomic):
         # save the result
         self.value = rslt
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, (int, long)) and (arg >= 0)
 
@@ -694,8 +694,8 @@ class Integer(Atomic):
         # save the result
         self.value = rslt
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, (int, long))
 
@@ -739,8 +739,8 @@ class Real(Atomic):
         # extract the data
         self.value = struct.unpack('>f',tag.tagData)[0]
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, float)
 
@@ -784,8 +784,8 @@ class Double(Atomic):
         # extract the data
         self.value = struct.unpack('>d',tag.tagData)[0]
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, float)
 
@@ -824,8 +824,8 @@ class OctetString(Atomic):
 
         self.value = tag.tagData
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, (bytes, bytearray))
 
@@ -891,8 +891,8 @@ class CharacterString(Atomic):
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, (str, unicode))
 
@@ -982,14 +982,14 @@ class BitString(Atomic):
         else:
             self.value = data
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         if isinstance(arg, list):
             allInts = allStrings = True
             for elem in arg:
                 allInts = allInts and ((elem == 0) or (elem == 1))
-                allStrings = allStrings and elem in self.bitNames
+                allStrings = allStrings and elem in cls.bitNames
 
             if allInts or allStrings:
                 return True
@@ -1169,8 +1169,8 @@ class Enumerated(Atomic):
         # save the result
         self.value = rslt
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class.  If the string
         value is wrong for the enumeration, the encoding will fail.
         """
@@ -1390,8 +1390,8 @@ class Date(Atomic):
         # rip apart the data
         self.value = tuple(ord(c) for c in tag.tagData)
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, tuple) and (len(arg) == 4)
 
@@ -1482,8 +1482,8 @@ class Time(Atomic):
         # rip apart the data
         self.value = tuple(ord(c) for c in tag.tagData)
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, tuple) and (len(arg) == 4)
 
@@ -1677,8 +1677,8 @@ class ObjectIdentifier(Atomic):
         # extract the data
         self.set_long(struct.unpack('>L',tag.tagData)[0])
 
-    @staticmethod
-    def is_valid(arg):
+    @classmethod
+    def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
         return isinstance(arg, tuple) and (len(arg) == 2)
 
