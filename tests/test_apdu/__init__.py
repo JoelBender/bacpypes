@@ -4,4 +4,4 @@
 Test BACpypes APDU Module
 """
 
-from . import test_max_apdu_response
+from . import test_max_apdu_length_accepted
