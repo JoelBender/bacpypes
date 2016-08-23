@@ -251,19 +251,16 @@ class ClientSSM(SSM):
         """This function is called when the client wants to change state."""
         if _debug: ClientSSM._debug("set_state %r (%s) timer=%r", newState, SSM.transactionLabels[newState], timer)
 
-        # pass the change down
+        # do the regular state change
         SSM.set_state(self, newState, timer)
 
-        # completed or aborted, remove tracking
+        # when completed or aborted, remove tracking
         if (newState == COMPLETED) or (newState == ABORTED):
             if _debug: ClientSSM._debug("    - remove from active transactions")
             self.ssmSAP.clientTransactions.remove(self)
 
             if _debug: ClientSSM._debug("    - release device information")
             self.ssmSAP.deviceInfoCache.release_device_info(self.remoteDevice)
-
-            # help along the garbage collector
-            self.ssmSAP = self.localDevice = self.remoteDevice = None
 
     def request(self, apdu):
         """This function is called by client transaction functions when it wants
@@ -661,7 +658,7 @@ class ServerSSM(SSM):
         """This function is called when the client wants to change state."""
         if _debug: ServerSSM._debug("set_state %r (%s) timer=%r", newState, SSM.transactionLabels[newState], timer)
 
-        # pass the change down
+        # do the regular state change
         SSM.set_state(self, newState, timer)
 
         # completed or aborted, remove tracking
@@ -671,9 +668,6 @@ class ServerSSM(SSM):
 
             if _debug: ServerSSM._debug("    - release device information")
             self.ssmSAP.deviceInfoCache.release_device_info(self.remoteDevice)
-
-            # help along the garbage collector
-            self.ssmSAP = self.localDevice = self.remoteDevice = None
 
     def request(self, apdu):
         """This function is called by transaction functions to send
