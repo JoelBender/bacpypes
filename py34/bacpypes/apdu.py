@@ -89,6 +89,8 @@ def decode_max_apdu_length_accepted(arg):
     if not v:
         raise ValueError("invalid max APDU length accepted: {0}".format(arg))
 
+    return v
+
 #
 #   APCI
 #
