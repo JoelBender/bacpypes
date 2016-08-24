@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application is a BACnet device that has one record access file
@@ -16,8 +16,6 @@ from bacpypes.core import run
 
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import FileObject, register_object_type
-
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0

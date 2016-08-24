@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application demonstrates a mix-in class for commandable properties
@@ -156,7 +156,7 @@ class CommandableDateValueObject(CommandableMixin, DateValueObject):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -193,8 +193,8 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    if _debug: _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

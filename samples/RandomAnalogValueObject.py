@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application shows how to extend one of the basic objects, an Analog
@@ -8,6 +8,7 @@ It assumes that almost all of the default behaviour of a BACpypes application is
 sufficient.
 """
 
+import os
 import random
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
@@ -24,6 +25,9 @@ from bacpypes.errors import ExecutionError
 _debug = 0
 _log = ModuleLogger(globals())
 
+# settings
+RANDOM_OBJECT_COUNT = int(os.getenv('RANDOM_OBJECT_COUNT', 10))
+
 # globals
 this_device = None
 this_application = None
@@ -37,7 +41,7 @@ class RandomValueProperty(Property):
 
     def __init__(self, identifier):
         if _debug: RandomValueProperty._debug("__init__ %r", identifier)
-        Property.__init__(self, identifier, Real, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Real, default=0.0, optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         if _debug: RandomValueProperty._debug("ReadProperty %r arrayIndex=%r", obj, arrayIndex)
@@ -77,7 +81,7 @@ register_object_type(RandomAnalogValueObject)
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -103,31 +107,24 @@ try:
     # let the device object know
     this_device.protocolServicesSupported = services_supported.value
 
-    # make a random input object
-    ravo1 = RandomAnalogValueObject(
-        objectIdentifier=('analogValue', 1), objectName='Random1'
-        )
-    _log.debug("    - ravo1: %r", ravo1)
+    # make some random input objects
+    for i in range(1, RANDOM_OBJECT_COUNT+1):
+        ravo = RandomAnalogValueObject(
+            objectIdentifier=('analogValue', i),
+            objectName='Random-%d' % (i,),
+            )
+        _log.debug("    - ravo: %r", ravo)
+        this_application.add_object(ravo)
 
-    ravo1d = ravo1._dict_contents()
-    print(ravo1d)
-
-    ravo2 = RandomAnalogValueObject(
-        objectIdentifier=('analogValue', 2), objectName='Random2'
-        )
-    _log.debug("    - ravo2: %r", ravo2)
-
-    # add it to the device
-    this_application.add_object(ravo1)
-    this_application.add_object(ravo2)
+    # make sure they are all there
     _log.debug("    - object list: %r", this_device.objectList)
 
-    print(this_device._dict_contents())
+    _log.debug("running")
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for commands.
@@ -14,7 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -24,7 +24,6 @@ from bacpypes.apdu import Error, AbortPDU, SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
 from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
 from bacpypes.constructeddata import Array, Any
-from bacpypes.basetypes import ServicesSupported
 
 import VendorAVObject
 
@@ -214,7 +213,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             try:
                 request.propertyValue.cast_in(value)
             except Exception as error:
-                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", e)
+                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", error)
 
             # optional array index
             if indx is not None:
@@ -268,6 +267,7 @@ def main():
 
     # make a console
     this_console = ReadWritePropertyConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()

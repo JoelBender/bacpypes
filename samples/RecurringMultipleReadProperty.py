@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Mutliple Read Property
@@ -22,7 +22,6 @@ from bacpypes.object import get_datatype
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0

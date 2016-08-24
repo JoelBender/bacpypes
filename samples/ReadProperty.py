@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for read commands
@@ -21,7 +21,6 @@ from bacpypes.object import get_object_class, get_datatype
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -187,6 +186,8 @@ try:
     _log.debug("running")
 
     run()
+
+    _log.debug("fini")
 
 except Exception as error:
     _log.exception("an error has occurred: %s", error)

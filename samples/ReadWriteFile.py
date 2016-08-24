@@ -1,8 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
-ReadWriteFile.py
-
 This application presents a 'console' prompt to the user asking for commands.
 
 The 'readrecord' and 'writerecord' commands are used with record oriented files,
@@ -32,7 +30,6 @@ from bacpypes.apdu import Error, AbortPDU, \
             AtomicWriteFileRequestAccessMethodChoiceRecordAccess, \
             AtomicWriteFileRequestAccessMethodChoiceStreamAccess, \
     AtomicWriteFileACK
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0

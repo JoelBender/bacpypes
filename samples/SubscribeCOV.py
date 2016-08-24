@@ -1,12 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for read commands
 which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
 and prints the value.
 """
-
-import sys
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
@@ -16,13 +14,10 @@ from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_object_class
 
-from bacpypes.apdu import SubscribeCOVRequest, SimpleAckPDU, \
-    Error, RejectPDU, AbortPDU
-from bacpypes.primitivedata import Unsigned
-from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
+from bacpypes.apdu import SubscribeCOVRequest, \
+    SimpleAckPDU, RejectPDU, AbortPDU
 
 # some debugging
 _debug = 0
