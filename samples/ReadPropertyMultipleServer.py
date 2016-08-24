@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application shows how to extend the basic functionality of a device 
@@ -14,7 +14,7 @@ from bacpypes.core import run
 
 from bacpypes.primitivedata import Atomic, Real, Unsigned
 from bacpypes.constructeddata import Array, Any
-from bacpypes.basetypes import ServicesSupported, ErrorType
+from bacpypes.basetypes import ErrorType
 from bacpypes.apdu import ReadPropertyMultipleACK, ReadAccessResult, ReadAccessResultElement, ReadAccessResultElementChoice
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, Property, PropertyError, register_object_type
@@ -262,7 +262,7 @@ class ReadPropertyMultipleApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -308,8 +308,8 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

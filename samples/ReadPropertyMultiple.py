@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for read commands
@@ -21,7 +21,7 @@ from bacpypes.object import get_object_class, get_datatype
 from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import PropertyIdentifier, ServicesSupported
+from bacpypes.basetypes import PropertyIdentifier
 
 # some debugging
 _debug = 0
@@ -205,7 +205,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -233,14 +233,17 @@ try:
 
     # make a console
     this_console = ReadPropertyMultipleConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 
-    # enable sleeping will allow handling of threads
-    enable_sleeping()
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+
+if __name__ == "__main__":
+    main()

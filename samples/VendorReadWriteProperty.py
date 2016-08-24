@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for commands.
@@ -14,7 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -24,7 +24,6 @@ from bacpypes.apdu import Error, AbortPDU, SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
 from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
 from bacpypes.constructeddata import Array, Any
-from bacpypes.basetypes import ServicesSupported
 
 import VendorAVObject
 
@@ -214,7 +213,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             try:
                 request.propertyValue.cast_in(value)
             except Exception as error:
-                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", e)
+                ReadWritePropertyConsoleCmd._exception("WriteProperty cast error: %r", error)
 
             # optional array index
             if indx is not None:
@@ -241,43 +240,41 @@ def main():
     if _debug: main._debug("initialization")
     global this_application
 
-    try:
-        # parse the command line arguments
-        args = ConfigArgumentParser(description=__doc__).parse_args()
+    # parse the command line arguments
+    args = ConfigArgumentParser(description=__doc__).parse_args()
 
-        if _debug: main._debug("initialization")
-        if _debug: main._debug("    - args: %r", args)
+    if _debug: main._debug("initialization")
+    if _debug: main._debug("    - args: %r", args)
 
-        # make a device object
-        this_device = LocalDeviceObject(
-            objectName=args.ini.objectname,
-            objectIdentifier=int(args.ini.objectidentifier),
-            maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-            segmentationSupported=args.ini.segmentationsupported,
-            vendorIdentifier=int(args.ini.vendoridentifier),
-            )
+    # make a device object
+    this_device = LocalDeviceObject(
+        objectName=args.ini.objectname,
+        objectIdentifier=int(args.ini.objectidentifier),
+        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
+        segmentationSupported=args.ini.segmentationsupported,
+        vendorIdentifier=int(args.ini.vendoridentifier),
+        )
 
-        # make a simple application
-        this_application = ReadPropertyApplication(this_device, args.ini.address)
+    # make a simple application
+    this_application = ReadPropertyApplication(this_device, args.ini.address)
 
-        # get the services supported
-        services_supported = this_application.get_services_supported()
-        if _debug: _log.debug("    - services_supported: %r", services_supported)
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
 
-        # let the device object know
-        this_device.protocolServicesSupported = services_supported.value
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
-        # make a console
-        this_console = ReadWritePropertyConsoleCmd()
+    # make a console
+    this_console = ReadWritePropertyConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
 
-        main._debug("running")
+    # enable sleeping will help with threads
+    enable_sleeping()
 
-        run()
+    main._debug("running")
 
-    except Exception as error:
-        main._exception("an error has occurred: %s", error)
-    finally:
-        main._debug("finally")
+    run()
 
 if __name__ == '__main__':
     main()

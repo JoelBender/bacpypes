@@ -30,6 +30,7 @@ def octet_string_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def octet_string_encode(obj):
     """Encode an OctetString object into a tag."""

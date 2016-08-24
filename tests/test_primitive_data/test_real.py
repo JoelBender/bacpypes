@@ -31,6 +31,7 @@ def real_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def real_encode(obj):
     """Encode an Real object into a tag."""

@@ -29,6 +29,7 @@ def time_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def time_encode(obj):
     """Encode an Time object into a tag."""

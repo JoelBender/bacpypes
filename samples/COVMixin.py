@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application shows how to extend the basic functionality of a device 
@@ -10,8 +10,9 @@ from collections import defaultdict
 from bacpypes.debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
+from bacpypes.errors import ExecutionError
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 from bacpypes.task import OneShotTask, TaskManager
 from bacpypes.pdu import Address
 
@@ -19,7 +20,8 @@ from bacpypes.constructeddata import SequenceOf, Any
 from bacpypes.basetypes import DeviceAddress, COVSubscription, PropertyValue, \
     Recipient, RecipientProcess, ObjectPropertyReference
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import Property, get_object_class, register_object_type, \
+from bacpypes.object import Object, Property, PropertyError, \
+    get_object_class, register_object_type, \
     AccessDoorObject, AccessPointObject, \
     AnalogInputObject, AnalogOutputObject,  AnalogValueObject, \
     LargeAnalogValueObject, IntegerValueObject, PositiveIntegerValueObject, \
@@ -1159,6 +1161,9 @@ def main():
     if args.console:
         test_console = COVConsoleCmd()
         _log.debug("    - test_console: %r", test_console)
+
+        # enable sleeping will help with threads
+        enable_sleeping()
 
     _log.debug("running")
 

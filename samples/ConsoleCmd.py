@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
-This application is a template for applications that use the ConsoleCmd class.
+Template application that uses the ConsoleCmd class.
 """
 
 import sys
@@ -10,14 +10,11 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-# globals
-this_console = None
 
 #
 #   ConsoleCmdTemplate
@@ -35,8 +32,6 @@ class ConsoleCmdTemplate(ConsoleCmd):
 
 
 def main():
-    global this_console
-
     # build a parser for the command line arguments
     parser = ArgumentParser(description=__doc__)
 
@@ -55,11 +50,16 @@ def main():
 
     # make a console
     this_console = ConsoleCmdTemplate(prompt=args.prompt)
+    if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 
     run()
 
+    _log.debug("fini")
 
 if __name__ == "__main__":
     main()

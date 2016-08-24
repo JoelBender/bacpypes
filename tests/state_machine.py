@@ -5,8 +5,6 @@ Testing State Machine
 ---------------------
 """
 
-import os
-
 try:
     # Python 3
     from queue import Queue
@@ -21,10 +19,6 @@ from bacpypes.task import FunctionTask as _FunctionTask
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-#
-#   Transitions
-#
 
 
 class Transition:
@@ -65,12 +59,8 @@ class TimeoutTransition(Transition):
         self.timeout = timeout
 
 
-#
-#   State
-#
-
-
-class State:
+@bacpypes_debugging
+class State(object):
 
     """
     State
@@ -297,15 +287,9 @@ class State:
             hex(id(self)),
         )
 
-bacpypes_debugging(State)
 
-
-#
-#   StateMachine
-#
-
-
-class StateMachine:
+@bacpypes_debugging
+class StateMachine(object):
 
     """
     StateMachine
@@ -681,15 +665,9 @@ class StateMachine:
             hex(id(self)),
         )
 
-bacpypes_debugging(StateMachine)
 
-
-#
-#   StateMachineGroup
-#
-
-
-class StateMachineGroup:
+@bacpypes_debugging
+class StateMachineGroup(object):
 
     """
     StateMachineGroup
@@ -715,6 +693,10 @@ class StateMachineGroup:
 
         # flag for starting up
         self._startup_flag = False
+
+        # flags for remembering success or fail
+        self.is_success_state = None
+        self.is_fail_state = None
 
     def append(self, state_machine):
         """Add a state machine to the end of the list of state machines."""
@@ -756,6 +738,10 @@ class StateMachineGroup:
         for state_machine in self.state_machines:
             if _debug: StateMachineGroup._debug("    - resetting: %r", state_machine)
             state_machine.reset()
+
+        # flags for remembering success or fail
+        self.is_success_state = False
+        self.is_fail_state = False
 
     def run(self):
         """Runs all the machines in the group."""
@@ -844,19 +830,17 @@ class StateMachineGroup:
         are all in a 'success' final state."""
         if _debug: StateMachineGroup._debug("success")
 
+        self.is_success_state = True
+
     def fail(self):
         """Called when all of the machines in the group have halted and at
         at least one of them is in a 'fail' final state."""
         if _debug: StateMachineGroup._debug("fail")
 
-bacpypes_debugging(StateMachineGroup)
+        self.is_fail_state = True
 
 
-#
-#   ClientStateMachine
-#
-
-
+@bacpypes_debugging
 class ClientStateMachine(Client, StateMachine):
 
     """
@@ -882,14 +866,8 @@ class ClientStateMachine(Client, StateMachine):
         if _debug: ClientStateMachine._debug("confirmation %r", pdu)
         self.receive(pdu)
 
-bacpypes_debugging(ClientStateMachine)
 
-
-#
-#   ServerStateMachine
-#
-
-
+@bacpypes_debugging
 class ServerStateMachine(Server, StateMachine):
 
     """
@@ -914,5 +892,3 @@ class ServerStateMachine(Server, StateMachine):
     def indication(self, pdu):
         if _debug: ServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
-
-bacpypes_debugging(ServerStateMachine)

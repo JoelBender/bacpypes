@@ -17,39 +17,11 @@ from .apdu import AbortPDU, AbortReason, ComplexAckPDU, \
     SimpleAckPDU, UnconfirmedRequestPDU, apdu_types, \
     unconfirmed_request_types, confirmed_request_types, complex_ack_types, \
     error_types
+from .errors import RejectException, AbortException
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-#
-#   DeviceInfo
-#
-
-class DeviceInfo(DebugContents):
-
-    _debug_contents = ('address', 'segmentationSupported'
-        , 'maxApduLengthAccepted', 'maxSegmentsAccepted'
-        )
-
-    def __init__(self, address=None, segmentationSupported='noSegmentation', maxApduLengthAccepted=1024, maxSegmentsAccepted=None):
-        if address is None:
-            pass
-        elif isinstance(address, Address):
-            pass
-        elif isinstance(address, LocalStation):
-            pass
-        elif isinstance(address, RemoteStation):
-            pass
-        else:
-            raise TypeError("address")
-
-        self.address = address                              # LocalStation or RemoteStation
-        self.segmentationSupported = segmentationSupported  # normally no segmentation
-        self.maxApduLengthAccepted = maxApduLengthAccepted  # how big to divide up apdu's
-        self.maxSegmentsAccepted = maxSegmentsAccepted      # limit on how many segments to recieve
-
-#----------------------------------------------------------------------
 
 #
 #   SSM - Segmentation State Machine
@@ -72,26 +44,27 @@ class SSM(OneShotTask, DebugContents):
         , 'SEGMENTED_RESPONSE', 'SEGMENTED_CONFIRMATION', 'COMPLETED', 'ABORTED'
         ]
 
-    _debug_contents = ('ssmSAP', 'remoteDevice', 'invokeID'
+    _debug_contents = ('ssmSAP', 'localDevice', 'remoteDevice', 'invokeID'
         , 'state', 'segmentAPDU', 'segmentSize', 'segmentCount', 'maxSegmentsAccepted'
         , 'retryCount', 'segmentRetryCount', 'sentAllSegments', 'lastSequenceNumber'
         , 'initialSequenceNumber', 'actualWindowSize', 'proposedWindowSize'
         )
 
-    def __init__(self, sap):
+    def __init__(self, sap, localDevice, remoteDevice):
         """Common parts for client and server segmentation."""
-        if _debug: SSM._debug("__init__ %r", sap)
+        if _debug: SSM._debug("__init__ %r %r %r", sap, localDevice, remoteDevice)
         OneShotTask.__init__(self)
 
-        self.ssmSAP = sap                   # reference to the service access point
-        self.remoteDevice = None            # remote device
+        self.ssmSAP = sap                   # service access point
+        self.localDevice = localDevice      # local device information, DeviceObject
+        self.remoteDevice = remoteDevice    # remote device information, a DeviceInfo instance
         self.invokeID = None                # invoke ID
 
         self.state = IDLE                   # initial state
         self.segmentAPDU = None             # refers to request or response
         self.segmentSize = None             # how big the pieces are
         self.segmentCount = None
-        self.maxSegmentsAccepted = None     # maximum number of segments client will accept
+        self.maxSegmentsAccepted = None     # maximum number of segments
 
         self.retryCount = None
         self.segmentRetryCount = None
@@ -101,11 +74,20 @@ class SSM(OneShotTask, DebugContents):
         self.actualWindowSize = None
         self.proposedWindowSize = None
 
+        # look for our segmentation parameters from our device object
+        if localDevice:
+            self.maxApduLengthAccepted = localDevice.maxApduLengthAccepted
+            self.segmentationSupported = localDevice.segmentationSupported
+        else:
+            self.maxApduLengthAccepted = 1024
+            self.segmentationSupported = 'noSegmentation'
+
     def start_timer(self, msecs):
         if _debug: SSM._debug("start_timer %r", msecs)
 
         # if this is active, pull it
         if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
             self.suspend_task()
 
         # now install this
@@ -114,13 +96,17 @@ class SSM(OneShotTask, DebugContents):
     def stop_timer(self):
         if _debug: SSM._debug("stop_timer")
 
-        self.suspend_task()
+        # if this is active, pull it
+        if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
+            self.suspend_task()
 
     def restart_timer(self, msecs):
         if _debug: SSM._debug("restart_timer %r", msecs)
 
         # if this is active, pull it
         if self.isScheduled:
+            if _debug: SSM._debug("    - is scheduled")
             self.suspend_task()
 
         # now install this
@@ -173,15 +159,12 @@ class SSM(OneShotTask, DebugContents):
             segAPDU = ConfirmedRequestPDU(self.segmentAPDU.apduService)
 
             segAPDU.apduMaxSegs = self.maxSegmentsAccepted
-            segAPDU.apduMaxResp = self.ssmSAP.maxApduLengthAccepted
+            segAPDU.apduMaxResp = self.maxApduLengthAccepted
             segAPDU.apduInvokeID = self.invokeID;
 
             # segmented response accepted?
-            segAPDU.apduSA = ((self.ssmSAP.segmentationSupported == 'segmentedBoth') \
-                    or (self.ssmSAP.segmentationSupported == 'segmentedReceive'))
-            if _debug:
-                SSM._debug("    - segmented response accepted: %r", segAPDU.apduSA)
-                SSM._debug("        - self.ssmSAP.segmentationSupported: %r", self.ssmSAP.segmentationSupported)
+            segAPDU.apduSA = self.segmentationSupported in ('segmentedReceive', 'segmentedBoth')
+            if _debug: SSM._debug("    - segmented response accepted: %r", segAPDU.apduSA)
 
         elif self.segmentAPDU.apduType == ComplexAckPDU.pduType:
             if _debug: SSM._debug("    - complex ack context")
@@ -257,8 +240,9 @@ bacpypes_debugging(SSM)
 
 class ClientSSM(SSM):
 
-    def __init__(self, sap):
-        SSM.__init__(self, sap)
+    def __init__(self, sap, localDevice, remoteDevice):
+        if _debug: ClientSSM._debug("__init__ %s %r %r", sap, localDevice, remoteDevice)
+        SSM.__init__(self, sap, localDevice, remoteDevice)
 
         # initialize the retry count
         self.retryCount = 0
@@ -267,12 +251,16 @@ class ClientSSM(SSM):
         """This function is called when the client wants to change state."""
         if _debug: ClientSSM._debug("set_state %r (%s) timer=%r", newState, SSM.transactionLabels[newState], timer)
 
-        # pass the change down
+        # do the regular state change
         SSM.set_state(self, newState, timer)
 
-        # completed or aborted, remove tracking
+        # when completed or aborted, remove tracking
         if (newState == COMPLETED) or (newState == ABORTED):
+            if _debug: ClientSSM._debug("    - remove from active transactions")
             self.ssmSAP.clientTransactions.remove(self)
+
+            if _debug: ClientSSM._debug("    - release device information")
+            self.ssmSAP.deviceInfoCache.release_device_info(self.remoteDevice)
 
     def request(self, apdu):
         """This function is called by client transaction functions when it wants
@@ -298,25 +286,24 @@ class ClientSSM(SSM):
         # save the request and set the segmentation context
         self.set_segmentation_context(apdu)
 
-        # save the maximum number of segments acceptable in the reply
+        # the segment size is the minimum of the maximum size I can transmit,
+        # the maximum conveyable by the internetwork to the remote device, and
+        # the maximum APDU size accepted by the remote device.
+        self.segmentSize = min(
+            self.maxApduLengthAccepted,
+            self.remoteDevice.maxNpduLength,
+            self.remoteDevice.maxApduLengthAccepted,
+            )
+        if _debug: ClientSSM._debug("    - segment size: %r", self.segmentSize)
+
+        # the maximum number of segments acceptable in the reply
         if apdu.apduMaxSegs is not None:
             # this request overrides the default
             self.maxSegmentsAccepted = apdu.apduMaxSegs
-        else:
-            # use the default in the device definition
-            self.maxSegmentsAccepted = self.ssmSAP.maxSegmentsAccepted
 
         # save the invoke ID
         self.invokeID = apdu.apduInvokeID
         if _debug: ClientSSM._debug("    - invoke ID: %r", self.invokeID)
-
-        # get information about the device
-        self.remoteDevice = self.ssmSAP.get_device_info(apdu.pduDestination)
-
-        # the segment size is the minimum of what I want to transmit and
-        # what the device can receive
-        self.segmentSize = min(self.ssmSAP.maxApduLengthAccepted, self.remoteDevice.maxApduLengthAccepted)
-        if _debug: ClientSSM._debug("    - segment size: %r", self.segmentSize)
 
         # compute the segment count ### minus the header?
         if not apdu.pduData:
@@ -331,16 +318,18 @@ class ClientSSM(SSM):
 
         # make sure we support segmented transmit if we need to
         if self.segmentCount > 1:
-            if (self.ssmSAP.segmentationSupported != 'segmentedTransmit') and (self.ssmSAP.segmentationSupported != 'segmentedBoth'):
-                if _debug: ClientSSM._debug("    - local device can't send segmented messages")
+            if self.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
+                if _debug: ClientSSM._debug("    - local device can't send segmented requests")
                 abort = self.abort(AbortReason.segmentationNotSupported)
                 self.response(abort)
                 return
-            if (self.remoteDevice.segmentationSupported != 'segmentedReceive') and (self.remoteDevice.segmentationSupported != 'segmentedBoth'):
-                if _debug: ClientSSM._debug("    - remote device can't receive segmented messages")
+            if self.remoteDevice.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
+                if _debug: ClientSSM._debug("    - remote device can't receive segmented requests")
                 abort = self.abort(AbortReason.segmentationNotSupported)
                 self.response(abort)
                 return
+
+        ### check for APDUTooLong?
 
         # send out the first segment (or the whole thing)
         if self.segmentCount == 1:
@@ -533,7 +522,7 @@ class ClientSSM(SSM):
                 self.set_state(COMPLETED)
                 self.response(apdu)
 
-            elif (self.ssmSAP.segmentationSupported != 'segmentedReceive') and (self.ssmSAP.segmentationSupported != 'segmentedBoth'):
+            elif self.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
                 if _debug: ClientSSM._debug("    - local device can't receive segmented messages")
                 abort = self.abort(AbortReason.segmentationNotSupported)
                 self.response(abort)
@@ -661,19 +650,24 @@ bacpypes_debugging(ClientSSM)
 
 class ServerSSM(SSM):
 
-    def __init__(self, sap):
-        SSM.__init__(self, sap)
+    def __init__(self, sap, localDevice, remoteDevice):
+        if _debug: ServerSSM._debug("__init__ %s %r %r", sap, localDevice, remoteDevice)
+        SSM.__init__(self, sap, localDevice, remoteDevice)
 
     def set_state(self, newState, timer=0):
         """This function is called when the client wants to change state."""
         if _debug: ServerSSM._debug("set_state %r (%s) timer=%r", newState, SSM.transactionLabels[newState], timer)
 
-        # pass the change down
+        # do the regular state change
         SSM.set_state(self, newState, timer)
 
-        # completed or aborted, remove tracking
+        # when completed or aborted, remove tracking
         if (newState == COMPLETED) or (newState == ABORTED):
+            if _debug: ServerSSM._debug("    - remove from active transactions")
             self.ssmSAP.serverTransactions.remove(self)
+
+            if _debug: ServerSSM._debug("    - release device information")
+            self.ssmSAP.deviceInfoCache.release_device_info(self.remoteDevice)
 
     def request(self, apdu):
         """This function is called by transaction functions to send
@@ -693,7 +687,7 @@ class ServerSSM(SSM):
         if _debug: ServerSSM._debug("indication %r", apdu)
 
         if self.state == IDLE:
-            self.Idle(apdu)
+            self.idle(apdu)
         elif self.state == SEGMENTED_REQUEST:
             self.segmented_request(apdu)
         elif self.state == AWAIT_RESPONSE:
@@ -720,6 +714,11 @@ class ServerSSM(SSM):
         and needs it to be sent to the client."""
         if _debug: ServerSSM._debug("confirmation %r", apdu)
 
+        # check to see we are in the correct state
+        if self.state != AWAIT_RESPONSE:
+            if _debug: ServerSSM._debug("    - warning: not expecting a response")
+
+        # abort response
         if (apdu.apduType == AbortPDU.pduType):
             if _debug: ServerSSM._debug("    - abort")
 
@@ -728,9 +727,6 @@ class ServerSSM(SSM):
             # send the response to the device
             self.response(apdu)
             return
-
-        if self.state != AWAIT_RESPONSE:
-            if _debug: ServerSSM._debug("    - warning: not expecting a response")
 
         # simple response
         if (apdu.apduType == SimpleAckPDU.pduType) or (apdu.apduType == ErrorPDU.pduType) or (apdu.apduType == RejectPDU.pduType):
@@ -743,15 +739,18 @@ class ServerSSM(SSM):
             self.response(apdu)
             return
 
+        # complex ack
         if (apdu.apduType == ComplexAckPDU.pduType):
             if _debug: ServerSSM._debug("    - complex ack")
 
             # save the response and set the segmentation context
             self.set_segmentation_context(apdu)
 
-            # the segment size is the minimum of what I want to transmit and
-            # what the device can receive
-            self.segmentSize = min(self.ssmSAP.maxApduLengthAccepted, self.remoteDevice.maxApduLengthAccepted)
+            # the segment size is the minimum of the maximum size I can transmit
+            # (assumed to have no local buffer limitations), the maximum conveyable
+            # by the internetwork to the remote device, and the maximum APDU size
+            # accepted by the remote device.
+            self.segmentSize = min(self.remoteDevice.maxNpduLength, self.remoteDevice.maxApduLengthAccepted)
             if _debug: ServerSSM._debug("    - segment size: %r", self.segmentSize)
 
             # compute the segment count ### minus the header?
@@ -767,19 +766,23 @@ class ServerSSM(SSM):
 
             # make sure we support segmented transmit if we need to
             if self.segmentCount > 1:
-                if _debug: ServerSSM._debug("    - segmentation required, %d segemnts", self.segmentCount)
+                if _debug: ServerSSM._debug("    - segmentation required, %d segments", self.segmentCount)
 
-                if (self.ssmSAP.segmentationSupported != 'segmentedTransmit') and (self.ssmSAP.segmentationSupported != 'segmentedBoth'):
+                # make sure we support segmented transmit
+                if self.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
+                    if _debug: ServerSSM._debug("    - server can't send segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
-                    self.request(abort)
-                    return
-                if (self.remoteDevice.segmentationSupported != 'segmentedReceive') and (self.remoteDevice.segmentationSupported != 'segmentedBoth'):
-                    abort = self.abort(AbortReason.segmentationNotSupported)
-                    self.request(abort)
+                    self.reponse(abort)
                     return
 
-            ### check to make sure the client can receive that many
-            ### look at apduMaxSegs
+                # make sure client supports segmented receive
+                if self.remoteDevice.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
+                    if _debug: ServerSSM._debug("    - client can't receive segmented responses")
+                    abort = self.abort(AbortReason.segmentationNotSupported)
+                    self.response(abort)
+                    return
+
+            ### check for APDUTooLong?
 
             # initialize the state
             self.segmentRetryCount = 0
@@ -830,8 +833,8 @@ class ServerSSM(SSM):
         # return an abort APDU
         return AbortPDU(True, self.invokeID, reason)
 
-    def Idle(self, apdu):
-        if _debug: ServerSSM._debug("Idle %r", apdu)
+    def idle(self, apdu):
+        if _debug: ServerSSM._debug("idle %r", apdu)
 
         # make sure we're getting confirmed requests
         if not isinstance(apdu, ConfirmedRequestPDU):
@@ -841,8 +844,29 @@ class ServerSSM(SSM):
         self.invokeID = apdu.apduInvokeID
         if _debug: ServerSSM._debug("    - invoke ID: %r", self.invokeID)
 
-        # get information about the device
-        self.remoteDevice = self.ssmSAP.get_device_info(apdu.pduSource)
+        # make sure the device information is synced with the request
+        if apdu.apduSA:
+            if self.remoteDevice.segmentationSupported == 'noSegmentation':
+                if _debug: ServerSSM._debug("    - client actually supports segmented receive")
+                self.remoteDevice.segmentationSupported = 'segmentedReceive'
+
+            elif self.remoteDevice.segmentationSupported == 'segmentedTransmit':
+                if _debug: ServerSSM._debug("    - client actually supports both segmented transmit and receive")
+                self.remoteDevice.segmentationSupported = 'segmentedBoth'
+
+            elif self.remoteDevice.segmentationSupported == 'segmentedReceive':
+                pass
+
+            elif self.remoteDevice.segmentationSupported == 'segmentedBoth':
+                pass
+
+            else:
+                raise RuntimeError("invalid segmentation supported in device info")
+
+        if apdu.apduMaxSegs != self.remoteDevice.maxSegmentsAccepted:
+            if _debug: ServerSSM._debug("    - update maximum segments accepted?")
+        if apdu.apduMaxResp != self.remoteDevice.maxApduLengthAccepted:
+            if _debug: ServerSSM._debug("    - update maximum max APDU length accepted?")
 
         # save the number of segments the client is willing to accept in the ack
         self.maxSegmentsAccepted = apdu.apduMaxSegs
@@ -854,7 +878,7 @@ class ServerSSM(SSM):
             return
 
         # make sure we support segmented requests
-        if (self.ssmSAP.segmentationSupported != 'segmentedReceive') and (self.ssmSAP.segmentationSupported != 'segmentedBoth'):
+        if self.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
             abort = self.abort(AbortReason.segmentationNotSupported)
             self.response(abort)
             return
@@ -1030,31 +1054,37 @@ bacpypes_debugging(ServerSSM)
 #   StateMachineAccessPoint
 #
 
-class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
+class StateMachineAccessPoint(Client, ServiceAccessPoint):
 
-    def __init__(self, device, sap=None, cid=None):
-        if _debug: StateMachineAccessPoint._debug("__init__ %r sap=%r cid=%r", device, sap, cid)
+    def __init__(self, localDevice=None, deviceInfoCache=None, sap=None, cid=None):
+        if _debug: StateMachineAccessPoint._debug("__init__ localDevice=%r deviceInfoCache=%r sap=%r cid=%r", localDevice, deviceInfoCache, sap, cid)
 
         # basic initialization
-        DeviceInfo.__init__(self)
         Client.__init__(self, cid)
         ServiceAccessPoint.__init__(self, sap)
 
-        # device information from the device object
-        self.segmentationSupported = device.segmentationSupported   # normally no segmentation
-        self.segmentTimeout = device.apduSegmentTimeout             # how long to wait for a segAck
-        self.maxApduLengthAccepted = device.maxApduLengthAccepted   # how big to divide up apdu's
-        self.maxSegmentsAccepted = device.maxSegmentsAccepted       # limit on how many segments to recieve
+        # save a reference to the local device object and the cache
+        self.localDevice = localDevice
+        self.deviceInfoCache = deviceInfoCache
 
         # client settings
-        self.clientTransactions = []
-        self.retryCount = device.numberOfApduRetries        # how many times to repeat the request
-        self.retryTimeout = device.apduTimeout              # how long between retrying the request
         self.nextInvokeID = 1
+        self.clientTransactions = []
 
         # server settings
         self.serverTransactions = []
-        self.applicationTimeout = device.apduTimeout        # how long the application has to respond
+
+        # confirmed request settings
+        self.retryCount = 3
+        self.retryTimeout = 3000
+
+        # segmentation settings
+        self.segmentTimeout = 1500
+        self.maxSegmentsAccepted = 8
+
+        # how long the state machine is willing to wait for the application
+        # layer to form a response and send it
+        self.applicationTimeout = 3000
 
     def get_next_invoke_id(self, addr):
         """Called by clients to get an unused invoke ID."""
@@ -1077,13 +1107,6 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
 
         return invokeID
 
-    def get_device_info(self, addr):
-        """get the segmentation supported and max APDU length accepted for a device."""
-        if _debug: StateMachineAccessPoint._debug("get_device_info %r", addr)
-
-        # return a generic info object
-        return DeviceInfo(addr)
-
     def confirmation(self, pdu):
         """Packets coming up the stack are APDU's."""
         if _debug: StateMachineAccessPoint._debug("confirmation %r", pdu)
@@ -1105,8 +1128,11 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
                 if (apdu.pduSource == tr.remoteDevice.address) and (apdu.apduInvokeID == tr.invokeID):
                     break
             else:
+                # find the remote device information
+                remoteDevice = self.deviceInfoCache.get_device_info(apdu.pduSource)
+
                 # build a server transaction
-                tr = ServerSSM(self)
+                tr = ServerSSM(self, self.localDevice, remoteDevice)
 
                 # add it to our transactions to track it
                 self.serverTransactions.append(tr)
@@ -1201,8 +1227,13 @@ class StateMachineAccessPoint(DeviceInfo, Client, ServiceAccessPoint):
             if (apdu.pduDestination.addrType != Address.localStationAddr) and (apdu.pduDestination.addrType != Address.remoteStationAddr):
                 StateMachineAccessPoint._warning("%s is not a local or remote station", apdu.pduDestination)
 
+            # find the remote device information
+            remoteDevice = self.deviceInfoCache.get_device_info(apdu.pduDestination)
+            if _debug: StateMachineAccessPoint._debug("    - remoteDevice: %r", remoteDevice)
+
             # create a client transaction state machine
-            tr = ClientSSM(self)
+            tr = ClientSSM(self, self.localDevice, remoteDevice)
+            if _debug: StateMachineAccessPoint._debug("    - client segmentation state machine: %r", tr)
 
             # add it to our transactions to track it
             self.clientTransactions.append(tr)
@@ -1258,12 +1289,53 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 if _debug: ApplicationServiceAccessPoint._debug("    - no confirmed request decoder")
                 return
 
+            # assume no errors found
+            error_found = None
+
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception, err:
-                ApplicationServiceAccessPoint._exception("confirmed request decoding error: %r", err)
-                return
+            except RejectException, err:
+                ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
+                error_found = err
+            except AbortException, err:
+                ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
+                error_found = err
+
+            # no error so far, keep going
+            if not error_found:
+                if _debug: ApplicationServiceAccessPoint._debug("    - no decoding error")
+
+                try:
+                    # forward the decoded packet
+                    self.sap_request(xpdu)
+                except RejectException, err:
+                    ApplicationServiceAccessPoint._debug("    - execution reject: %r", err)
+                    error_found = err
+                except AbortException, err:
+                    ApplicationServiceAccessPoint._debug("    - execution abort: %r", err)
+                    error_found = err
+
+            # if there was an error, send it back to the client
+            if isinstance(error_found, RejectException):
+                if _debug: ApplicationServiceAccessPoint._debug("    - reject exception: %r", error_found)
+
+                reject_pdu = RejectPDU(reason=error_found.rejectReason)
+                reject_pdu.set_context(apdu)
+                if _debug: ApplicationServiceAccessPoint._debug("    - reject_pdu: %r", reject_pdu)
+
+                # send it to the client
+                self.response(reject_pdu)
+
+            elif isinstance(error_found, AbortException):
+                if _debug: ApplicationServiceAccessPoint._debug("    - abort exception: %r", error_found)
+
+                abort_pdu = AbortPDU(reason=error_found.abortReason)
+                abort_pdu.set_context(apdu)
+                if _debug: ApplicationServiceAccessPoint._debug("    - abort_pdu: %r", abort_pdu)
+
+                # send it to the client
+                self.response(abort_pdu)
 
         elif isinstance(apdu, UnconfirmedRequestPDU):
             atype = unconfirmed_request_types.get(apdu.apduService)
@@ -1274,18 +1346,23 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception, err:
-                ApplicationServiceAccessPoint._exception("unconfirmed request decoding error: %r", err)
+            except RejectException, err:
+                ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
                 return
+            except AbortException, err:
+                ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
+                return
+
+            try:
+                # forward the decoded packet
+                self.sap_request(xpdu)
+            except RejectException, err:
+                ApplicationServiceAccessPoint._debug("    - execution reject: %r", err)
+            except AbortException, err:
+                ApplicationServiceAccessPoint._debug("    - execution abort: %r", err)
 
         else:
             if _debug: ApplicationServiceAccessPoint._debug("    - unknown PDU type?!")
-            return
-
-        if _debug: ApplicationServiceAccessPoint._debug("    - xpdu: %r", xpdu)
-
-        # forward the decoded packet
-        self.sap_request(xpdu)
 
     def sap_indication(self, apdu):
         if _debug: ApplicationServiceAccessPoint._debug("sap_indication %r", apdu)
@@ -1317,6 +1394,12 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
         # forward the encoded packet
         self.request(xpdu)
 
+        # if the upper layers of the application did not assign an invoke ID,
+        # copy the one that was assigned on its way down the stack
+        if isinstance(apdu, ConfirmedRequestPDU) and apdu.apduInvokeID is None:
+            if _debug: ApplicationServiceAccessPoint._debug("    - pass invoke ID upstream %r", xpdu.apduInvokeID)
+
+            apdu.apduInvokeID = xpdu.apduInvokeID
     def confirmation(self, apdu):
         if _debug: ApplicationServiceAccessPoint._debug("confirmation %r", apdu)
 

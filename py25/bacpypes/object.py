@@ -6,7 +6,8 @@ Object
 
 import sys
 
-from .errors import ConfigurationError, ExecutionError
+from .errors import ConfigurationError, ExecutionError, \
+    InvalidParameterDatatype
 from .debugging import function_debugging, ModuleLogger, Logging
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
@@ -194,12 +195,21 @@ class Property(Logging):
             if not self.mutable:
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
-        # if it's atomic assume correct datatype
-        if issubclass(self.datatype, Atomic):
-            if _debug: Property._debug("    - property is atomic, assumed correct type")
-        elif isinstance(value, self.datatype):
-            if _debug: Property._debug("    - correct type")
-        elif arrayIndex is not None:
+            # if it's atomic, make sure it's valid
+            if issubclass(self.datatype, Atomic):
+                if _debug: Property._debug("    - property is atomic, checking value")
+                if not self.datatype.is_valid(value):
+                    raise InvalidParameterDatatype("%s must be of type %s" % (
+                            self.identifier, self.datatype.__name__,
+                            ))
+
+            elif not isinstance(value, self.datatype):
+                if _debug: Property._debug("    - property is not atomic and wrong type")
+                raise InvalidParameterDatatype("%s must be of type %s" % (
+                        self.identifier, self.datatype.__name__,
+                        ))
+
+        if arrayIndex is not None:
             if not issubclass(self.datatype, Array):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
@@ -213,10 +223,6 @@ class Property(Logging):
             arry[arrayIndex] = value
 
             return
-        elif value is not None:
-            # coerce the value
-            value = self.datatype(value)
-            if _debug: Property._debug("    - coerced the value: %r", value)
 
         # seems to be OK
         obj._values[self.identifier] = value
@@ -323,6 +329,8 @@ class ObjectIdentifierProperty(ReadableProperty, Logging):
 
 class Object(Logging):
 
+    _debug_contents = ('_app',)
+
     properties = \
         [ ObjectIdentifierProperty('objectIdentifier', ObjectIdentifier, optional=False)
         , ReadableProperty('objectName', CharacterString, optional=False)
@@ -393,8 +401,6 @@ class Object(Logging):
 
         # get the property
         prop = self._properties.get(attr)
-        if _debug: Object._debug("    - prop: %r", prop)
-
         if not prop:
             raise PropertyError(attr)
 
@@ -472,6 +478,37 @@ class Object(Logging):
         klasses = list(self.__class__.__mro__)
         klasses.reverse()
 
+        # build a list of property identifiers "bottom up"
+        property_names = []
+        properties_seen = set()
+        for c in klasses:
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
+
+        # extract the values
+        for property_name in property_names:
+            # get the value
+            property_value = self._properties.get(property_name).ReadProperty(self)
+            if property_value is None:
+                continue
+
+            # if the value has a way to convert it to a dict, use it
+            if hasattr(property_value, "dict_contents"):
+                property_value = property_value.dict_contents(as_class=as_class)
+
+            # save the value
+            use_dict.__setitem__(property_name, property_value)
+
+        # return what we built/updated
+        return use_dict
+
+    def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
+        """Print out interesting things about the object."""
+        klasses = list(self.__class__.__mro__)
+        klasses.reverse()
+
         # print special attributes "bottom up"
         previous_attrs = ()
         for c in klasses:
@@ -486,48 +523,26 @@ class Object(Logging):
             previous_attrs = attrs
 
         # build a list of properties "bottom up"
-        properties = []
+        property_names = []
         for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
+            properties = getattr(c, 'properties', [])
+            for property in properties:
+                if property.identifier not in property_names:
+                    property_names.append(property.identifier)
 
         # print out the values
-        for prop in properties:
-            value = prop.ReadProperty(self)
-            if value is None:
-                continue
-
-            if hasattr(value, "dict_contents"):
-                value = value.dict_contents(as_class=as_class)
-
-            # save the value
-            use_dict.__setitem__(prop.identifier, value)
-
-        # return what we built/updated
-        return use_dict
-
-    def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
-        """Print out interesting things about the object."""
-        klasses = list(self.__class__.__mro__)
-        klasses.reverse()
-
-        # build a list of properties "bottom up"
-        properties = []
-        for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
-
-        # print out the values
-        for prop in properties:
-            value = prop.ReadProperty(self)
+        for property_name in property_names:
+            property_value = self._values.get(property_name, None)
 
             # printing out property values that are None is tedious
-            if value is None:
+            if property_value is None:
                 continue
 
-            if hasattr(value, "debug_contents"):
-                file.write("%s%s\n" % ("    " * indent, prop.identifier))
-                value.debug_contents(indent+1, file, _ids)
+            if hasattr(property_value, "debug_contents"):
+                file.write("%s%s\n" % ("    " * indent, property_name))
+                property_value.debug_contents(indent+1, file, _ids)
             else:
-                file.write("%s%s = %r\n" % ("    " * indent, prop.identifier, value))
+                file.write("%s%s = %r\n" % ("    " * indent, property_name, property_value))
 
 #
 #   Standard Object Types

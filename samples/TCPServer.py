@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This simple TCP server application listens for one or more client connections
@@ -7,8 +7,7 @@ incoming streams of content into a line or any other higher-layer concept
 of a packet.
 """
 
-import sys
-import logging
+import os
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
@@ -21,12 +20,12 @@ from bacpypes.tcp import TCPServerDirector
 _debug = 0
 _log = ModuleLogger(globals())
 
+# settings
+SERVER_HOST = os.getenv('SERVER_HOST', '127.0.0.1')
+SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
+
 # globals
 server_address = None
-
-# defaults
-default_server_host = '127.0.0.1'
-default_server_port = 9000
 
 #
 #   EchoMaster
@@ -37,7 +36,8 @@ class EchoMaster(Client):
 
     def confirmation(self, pdu):
         if _debug: EchoMaster._debug('confirmation %r', pdu)
-        
+
+        # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
 
@@ -73,12 +73,12 @@ def main():
     parser.add_argument(
         "--host", nargs='?',
         help="listening address of server",
-        default=default_server_host,
+        default=SERVER_HOST,
         )
     parser.add_argument(
         "--port", nargs='?', type=int,
         help="server port",
-        default=default_server_port,
+        default=SERVER_PORT,
         )
     args = parser.parse_args()
 
@@ -108,6 +108,8 @@ def main():
     _log.debug("running")
 
     run()
+
+    _log.debug("fini")
 
 
 if __name__ == "__main__":

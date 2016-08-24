@@ -29,6 +29,7 @@ def integer_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def integer_encode(obj):
     """Encode an Integer object into a tag."""

@@ -28,8 +28,13 @@ requirements = [
     # no external requirements
 ]
 
+setup_requirements = [
+    'pytest-runner',
+    ]
+
 test_requirements = [
-    'nose',
+    'pytest',
+    'bacpypes',
 ]
 
 setup(
@@ -61,6 +66,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
     ],
-    test_suite='nose.collector',
-    tests_require=test_requirements
+
+    setup_requires=setup_requirements,
+
+    test_suite='tests',
+    tests_require=test_requirements,
 )
