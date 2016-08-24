@@ -661,7 +661,7 @@ class ServerSSM(SSM):
         # do the regular state change
         SSM.set_state(self, newState, timer)
 
-        # completed or aborted, remove tracking
+        # when completed or aborted, remove tracking
         if (newState == COMPLETED) or (newState == ABORTED):
             if _debug: ServerSSM._debug("    - remove from active transactions")
             self.ssmSAP.serverTransactions.remove(self)
@@ -1363,12 +1363,6 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
 
         else:
             if _debug: ApplicationServiceAccessPoint._debug("    - unknown PDU type?!")
-            return
-
-        if _debug: ApplicationServiceAccessPoint._debug("    - xpdu: %r", xpdu)
-
-        # forward the decoded packet
-        self.sap_request(xpdu)
 
     def sap_indication(self, apdu):
         if _debug: ApplicationServiceAccessPoint._debug("sap_indication %r", apdu)

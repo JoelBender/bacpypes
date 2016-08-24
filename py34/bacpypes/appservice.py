@@ -1360,12 +1360,6 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
 
         else:
             if _debug: ApplicationServiceAccessPoint._debug("    - unknown PDU type?!")
-            return
-
-        if _debug: ApplicationServiceAccessPoint._debug("    - xpdu: %r", xpdu)
-
-        # forward the decoded packet
-        self.sap_request(xpdu)
 
     def sap_indication(self, apdu):
         if _debug: ApplicationServiceAccessPoint._debug("sap_indication %r", apdu)
