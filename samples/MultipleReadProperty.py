@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Mutliple Read Property
@@ -21,7 +21,6 @@ from bacpypes.object import get_datatype
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -120,7 +119,7 @@ class ReadPointListApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -157,7 +156,8 @@ try:
     for request, response in zip(point_list, this_application.response_values):
         print(request, response)
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+
+if __name__ == "__main__":
+    main()

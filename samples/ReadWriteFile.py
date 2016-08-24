@@ -1,8 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
-ReadWriteFile.py
-
 This application presents a 'console' prompt to the user asking for commands.
 
 The 'readrecord' and 'writerecord' commands are used with record oriented files,
@@ -16,7 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -32,7 +30,6 @@ from bacpypes.apdu import Error, AbortPDU, \
             AtomicWriteFileRequestAccessMethodChoiceRecordAccess, \
             AtomicWriteFileRequestAccessMethodChoiceStreamAccess, \
     AtomicWriteFileACK
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -172,7 +169,7 @@ class TestConsoleCmd(ConsoleCmd):
             obj_inst = int(obj_inst)
             start_record = int(start_record)
             record_count = int(record_count)
-            record_data = list(args[4:])
+            record_data = [arg.encode('utf-8') for arg in list(args[4:])]
 
             # build a request
             request = AtomicWriteFileRequest(
@@ -205,6 +202,7 @@ class TestConsoleCmd(ConsoleCmd):
             obj_type = 'file'
             obj_inst = int(obj_inst)
             start_position = int(start_position)
+            data = data.encode('utf-8')
 
             # build a request
             request = AtomicWriteFileRequest(
@@ -258,11 +256,14 @@ try:
     # make a console
     this_console = TestConsoleCmd()
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
+except Exception as err:
+    _log.exception("an error has occurred: %s", err)
 finally:
     _log.debug("finally")

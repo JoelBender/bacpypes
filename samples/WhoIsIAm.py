@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for Who-Is and I-Am
@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
@@ -200,6 +200,9 @@ try:
 
     # make a console
     this_console = WhoIsIAmConsoleCmd()
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 

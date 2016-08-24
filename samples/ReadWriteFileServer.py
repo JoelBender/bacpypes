@@ -1,12 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
-ReadWriteFileServer.py
-
-This sample application is a BACnet device that has one record access file at
-('file', 1) and one stream access file at ('file', 2).
+This sample application is a BACnet device that has one record access file
+('file', 1) and one stream access file ('file', 2).
 """
 
+import os
 import random
 import string
 
@@ -18,11 +17,14 @@ from bacpypes.core import run
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import FileObject, register_object_type
 
-from bacpypes.basetypes import ServicesSupported
-
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+# configuration
+RECORD_LEN = int(os.getenv('RECORD_LEN', 128))
+RECORD_COUNT = int(os.getenv('RECORD_COUNT', 100))
+OCTET_COUNT = int(os.getenv('OCTET_COUNT', 4096))
 
 #
 #   Local Record Access File Object Type
@@ -44,8 +46,8 @@ class LocalRecordAccessFileObject(FileObject):
 
         self._record_data = [
             ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(10, 20)))
-            for j in range(random.randint(10, 20))
+            for i in range(RECORD_LEN)).encode('utf-8')
+            for j in range(RECORD_COUNT)
             ]
         if _debug: LocalRecordAccessFileObject._debug("    - %d records",
                 len(self._record_data),
@@ -71,6 +73,10 @@ class LocalRecordAccessFileObject(FileObject):
 
     def WriteFile(self, start_record, record_count, record_data):
         """ Write a number of records, starting at a specific record. """
+        if _debug: LocalRecordAccessFileObject._debug("WriteFile %r %r %r",
+                start_record, record_count, record_data,
+                )
+
         # check for append
         if (start_record < 0):
             start_record = len(self._record_data)
@@ -110,7 +116,7 @@ class LocalStreamAccessFileObject(FileObject):
              )
 
         self._file_data = ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(100, 200)))
+            for i in range(OCTET_COUNT)).encode('utf-8')
         if _debug: LocalRecordAccessFileObject._debug("    - %d octets",
                 len(self._file_data),
                 )
@@ -135,6 +141,10 @@ class LocalStreamAccessFileObject(FileObject):
 
     def WriteFile(self, start_position, data):
         """ Write a number of octets, starting at a specific offset. """
+        if _debug: LocalStreamAccessFileObject._debug("WriteFile %r %r",
+                start_position, data,
+                )
+
         # check for append
         if (start_position < 0):
             start_position = len(self._file_data)
@@ -162,7 +172,7 @@ register_object_type(LocalStreamAccessFileObject)
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -208,7 +218,5 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+if __name__ == "__main__":
+    main()

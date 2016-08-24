@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application presents itself as a router between two
@@ -81,7 +81,7 @@ class IP2IPRouter:
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
 
@@ -113,13 +113,14 @@ try:
 
     # create the router
     router = IP2IPRouter(Address(args.addr1), args.net1, Address(args.addr2), args.net2)
+    if _debug: _log.debug("    - router: %r", router)
 
     _log.debug("running")
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

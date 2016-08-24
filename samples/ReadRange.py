@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for readrange commands
@@ -17,9 +17,7 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
-
 from bacpypes.apdu import Error, AbortPDU, ReadRangeRequest, ReadRangeACK
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -155,10 +153,11 @@ try:
     # make a console
     this_console = ReadRangeConsoleCmd()
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
-    # enable sleeping will allow handling of threads
-    enable_sleeping()
     run()
 
 except Exception as error:

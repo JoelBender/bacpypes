@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for commands.
@@ -24,7 +24,6 @@ from bacpypes.apdu import Error, AbortPDU, SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
 from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
 from bacpypes.constructeddata import Array, Any
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -264,10 +263,11 @@ try:
     # make a console
     this_console = ReadWritePropertyConsoleCmd()
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
-    # enable sleeping will allow handling of threads
-    enable_sleeping()
     run()
 
 except Exception as error:

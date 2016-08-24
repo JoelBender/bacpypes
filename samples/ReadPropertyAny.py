@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for read commands
@@ -16,12 +16,10 @@ from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_object_class
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Tag
-from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
 
 # some debugging
 _debug = 0
@@ -137,7 +135,7 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -155,6 +153,7 @@ try:
 
     # make a simple application
     this_application = ReadPropertyAnyApplication(this_device, args.ini.address)
+    if _debug: _log.debug("    - this_application: %r", this_application)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -165,14 +164,16 @@ try:
 
     # make a console
     this_console = ReadPropertyAnyConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 
-    # enable sleeping will allow handling of threads
-    enable_sleeping()
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

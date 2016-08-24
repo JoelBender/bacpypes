@@ -1,10 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This simple TCP client application connects to a server and sends the text
 entered in the console.  There is no conversion from incoming streams of
 content into a line or any other higher-layer concept of a packet.
 """
+
+import os
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
@@ -20,12 +22,12 @@ from bacpypes.tcp import TCPClientDirector
 _debug = 0
 _log = ModuleLogger(globals())
 
+# settings
+SERVER_HOST = os.getenv('SERVER_HOST', '127.0.0.1')
+SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
+
 # globals
 server_address = None
-
-# defaults
-default_server_host = '127.0.0.1'
-default_server_port = 9000
 
 #
 #   MiddleMan
@@ -97,12 +99,12 @@ def main():
     parser.add_argument(
         "host", nargs='?',
         help="address of host",
-        default=default_server_host,
+        default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
         help="server port",
-        default=default_server_port,
+        default=SERVER_PORT,
         )
     args = parser.parse_args()
 

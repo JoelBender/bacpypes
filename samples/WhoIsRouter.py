@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application has just a network stack, not a full application,
@@ -9,7 +9,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork
@@ -117,6 +117,9 @@ try:
     # make a console
     this_console = WhoIsRouterConsoleCmd()
     if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 

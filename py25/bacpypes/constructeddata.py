@@ -201,7 +201,7 @@ class Sequence(object):
                 else:
                     if tag.tagClass != Tag.applicationTagClass or tag.tagNumber != element.klass._app_tag:
                         if not element.optional:
-                            raise DecodingError("'%s' expected application tag %s" % (element.name, Tag._app_tag_name[element.klass._app_tag]))
+                            raise InvalidParameterDatatype("'%s' expected application tag %s" % (element.name, Tag._app_tag_name[element.klass._app_tag]))
                         else:
                             setattr(self, element.name, None)
                             continue
