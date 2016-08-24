@@ -478,31 +478,28 @@ class Object(Logging):
         klasses = list(self.__class__.__mro__)
         klasses.reverse()
 
-        # build a list of properties "bottom up"
-        properties = []
-        for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
-
-        # print out the values
+        # build a list of property identifiers "bottom up"
+        property_names = []
         properties_seen = set()
-        for prop in properties:
-            # see if we've seen something with this name
-            if prop.identifier in properties_seen:
-                continue
-            else:
-                properties_seen.add(prop.identifier)
+        for c in klasses:
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
+        # extract the values
+        for property_name in property_names:
             # get the value
-            value = prop.ReadProperty(self)
-            if value is None:
+            property_value = self._properties.get(property_name).ReadProperty(self)
+            if property_value is None:
                 continue
 
             # if the value has a way to convert it to a dict, use it
-            if hasattr(value, "dict_contents"):
-                value = value.dict_contents(as_class=as_class)
+            if hasattr(property_value, "dict_contents"):
+                property_value = property_value.dict_contents(as_class=as_class)
 
             # save the value
-            use_dict.__setitem__(prop.identifier, value)
+            use_dict.__setitem__(property_name, property_value)
 
         # return what we built/updated
         return use_dict

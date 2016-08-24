@@ -8,7 +8,7 @@ import sys
 
 from .errors import ConfigurationError, ExecutionError, \
     InvalidParameterDatatype
-from .debugging import function_debugging, ModuleLogger, Logging
+from .debugging import bacpypes_debugging, ModuleLogger
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
     Double, Integer, ObjectIdentifier, ObjectType, OctetString, Real, Time, \
@@ -59,7 +59,7 @@ registered_object_types = {}
 #   register_object_type
 #
 
-@function_debugging
+@bacpypes_debugging
 def register_object_type(cls=None, vendor_id=0):
     if _debug: register_object_type._debug("register_object_type %s vendor_id=%s", repr(cls), vendor_id)
 
@@ -100,7 +100,7 @@ def register_object_type(cls=None, vendor_id=0):
 #   get_object_class
 #
 
-@function_debugging
+@bacpypes_debugging
 def get_object_class(object_type, vendor_id=0):
     """Return the class associated with an object type."""
     if _debug: get_object_class._debug("get_object_class %r vendor_id=%r", object_type, vendor_id)
@@ -120,7 +120,7 @@ def get_object_class(object_type, vendor_id=0):
 #   get_datatype
 #
 
-@function_debugging
+@bacpypes_debugging
 def get_datatype(object_type, propid, vendor_id=0):
     """Return the datatype for the property of an object."""
     if _debug: get_datatype._debug("get_datatype %r %r vendor_id=%r", object_type, propid, vendor_id)
@@ -142,7 +142,8 @@ def get_datatype(object_type, propid, vendor_id=0):
 #   Property
 #
 
-class Property(Logging):
+@bacpypes_debugging
+class Property:
 
     def __init__(self, identifier, datatype, default=None, optional=True, mutable=True):
         if _debug:
@@ -231,7 +232,8 @@ class Property(Logging):
 #   StandardProperty
 #
 
-class StandardProperty(Property, Logging):
+@bacpypes_debugging
+class StandardProperty(Property):
 
     def __init__(self, identifier, datatype, default=None, optional=True, mutable=True):
         if _debug:
@@ -254,7 +256,8 @@ class StandardProperty(Property, Logging):
 #   OptionalProperty
 #
 
-class OptionalProperty(StandardProperty, Logging):
+@bacpypes_debugging
+class OptionalProperty(StandardProperty):
 
     """The property is required to be present and readable using BACnet services."""
 
@@ -271,7 +274,8 @@ class OptionalProperty(StandardProperty, Logging):
 #   ReadableProperty
 #
 
-class ReadableProperty(StandardProperty, Logging):
+@bacpypes_debugging
+class ReadableProperty(StandardProperty):
 
     """The property is required to be present and readable using BACnet services."""
 
@@ -288,7 +292,8 @@ class ReadableProperty(StandardProperty, Logging):
 #   WritableProperty
 #
 
-class WritableProperty(StandardProperty, Logging):
+@bacpypes_debugging
+class WritableProperty(StandardProperty):
 
     """The property is required to be present, readable, and writable using BACnet services."""
 
@@ -305,7 +310,8 @@ class WritableProperty(StandardProperty, Logging):
 #   ObjectIdentifierProperty
 #
 
-class ObjectIdentifierProperty(ReadableProperty, Logging):
+@bacpypes_debugging
+class ObjectIdentifierProperty(ReadableProperty):
 
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         if _debug: ObjectIdentifierProperty._debug("WriteProperty %r %r arrayIndex=%r priority=%r", obj, value, arrayIndex, priority)
@@ -327,7 +333,8 @@ class ObjectIdentifierProperty(ReadableProperty, Logging):
 #   Object
 #
 
-class Object(Logging):
+@bacpypes_debugging
+class Object:
 
     _debug_contents = ('_app',)
 
@@ -478,31 +485,28 @@ class Object(Logging):
         klasses = list(self.__class__.__mro__)
         klasses.reverse()
 
-        # build a list of properties "bottom up"
-        properties = []
-        for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
-
-        # print out the values
+        # build a list of property identifiers "bottom up"
+        property_names = []
         properties_seen = set()
-        for prop in properties:
-            # see if we've seen something with this name
-            if prop.identifier in properties_seen:
-                continue
-            else:
-                properties_seen.add(prop.identifier)
+        for c in klasses:
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
+        # extract the values
+        for property_name in property_names:
             # get the value
-            value = prop.ReadProperty(self)
-            if value is None:
+            property_value = self._properties.get(property_name).ReadProperty(self)
+            if property_value is None:
                 continue
 
             # if the value has a way to convert it to a dict, use it
-            if hasattr(value, "dict_contents"):
-                value = value.dict_contents(as_class=as_class)
+            if hasattr(property_value, "dict_contents"):
+                property_value = property_value.dict_contents(as_class=as_class)
 
             # save the value
-            use_dict.__setitem__(prop.identifier, value)
+            use_dict.__setitem__(property_name, property_value)
 
         # return what we built/updated
         return use_dict
@@ -525,13 +529,14 @@ class Object(Logging):
                 file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
             previous_attrs = attrs
 
-        # build a list of properties "bottom up"
+        # build a list of property identifiers "bottom up"
         property_names = []
+        properties_seen = set()
         for c in klasses:
-            properties = getattr(c, 'properties', [])
-            for property in properties:
-                if property.identifier not in property_names:
-                    property_names.append(property.identifier)
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
         # print out the values
         for property_name in property_names:
