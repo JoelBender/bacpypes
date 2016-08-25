@@ -21,7 +21,7 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # settings
-SERVER_HOST = os.getenv('SERVER_HOST', '127.0.0.1')
+SERVER_HOST = os.getenv('SERVER_HOST', 'any')
 SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
 
 # globals
@@ -71,13 +71,13 @@ def main():
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--host", nargs='?',
-        help="listening address of server",
+        "host", nargs='?',
+        help="listening address of server or 'any' (default {!r})".format(SERVER_HOST),
         default=SERVER_HOST,
         )
     parser.add_argument(
-        "--port", nargs='?', type=int,
-        help="server port",
+        "port", nargs='?', type=int,
+        help="server port (default {!r})".format(SERVER_PORT),
         default=SERVER_PORT,
         )
     args = parser.parse_args()
