@@ -850,9 +850,15 @@ class ServerSSM(SSM):
                 if _debug: ServerSSM._debug("    - client actually supports segmented receive")
                 self.remoteDevice.segmentationSupported = 'segmentedReceive'
 
+                if _debug: ServerSSM._debug("    - tell the cache the info has been updated")
+                self.ssmSAP.deviceInfoCache.update_device_info(self.remoteDevice)
+
             elif self.remoteDevice.segmentationSupported == 'segmentedTransmit':
                 if _debug: ServerSSM._debug("    - client actually supports both segmented transmit and receive")
                 self.remoteDevice.segmentationSupported = 'segmentedBoth'
+
+                if _debug: ServerSSM._debug("    - tell the cache the info has been updated")
+                self.ssmSAP.deviceInfoCache.update_device_info(self.remoteDevice)
 
             elif self.remoteDevice.segmentationSupported == 'segmentedReceive':
                 pass
