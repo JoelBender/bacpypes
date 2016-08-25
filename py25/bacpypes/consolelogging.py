@@ -4,8 +4,10 @@
 Console Logging
 """
 
+import os
 import sys
 import logging
+import logging.handlers
 
 try:
     from argparse import ArgumentParser as _ArgumentParser
@@ -22,12 +24,17 @@ from ConfigParser import ConfigParser as _ConfigParser
 _debug = 0
 _log = ModuleLogger(globals())
 
+# configuration
+BACPYPES_DEBUG = os.getenv('BACPYPES_DEBUG', '')
+BACPYPES_MAXBYTES = int(os.getenv('BACPYPES_MAXBYTES', 1048576))
+BACPYPES_BACKUPCOUNT = int(os.getenv('BACPYPES_BACKUPCOUNT', 5))
+
 #
 #   ConsoleLogHandler
 #
 
-def ConsoleLogHandler(loggerRef='', level=logging.DEBUG, color=None):
-    """Add a stream handler to stderr with our custom formatter to a logger."""
+def ConsoleLogHandler(loggerRef='', handler=None, level=logging.DEBUG, color=None):
+    """Add a handler to stderr with our custom formatter to a logger."""
     if isinstance(loggerRef, logging.Logger):
         pass
 
@@ -52,15 +59,16 @@ def ConsoleLogHandler(loggerRef='', level=logging.DEBUG, color=None):
     elif hasattr(loggerRef.parent, 'globs'):
         loggerRef.parent.globs['_debug'] += 1
 
-    # make a debug handler
-    hdlr = logging.StreamHandler()
-    hdlr.setLevel(level)
+    # make a handler if one wasn't provided
+    if not handler:
+        handler = logging.StreamHandler()
+        handler.setLevel(level)
 
     # use our formatter
-    hdlr.setFormatter(LoggingFormatter(color))
+    handler.setFormatter(LoggingFormatter(color))
 
     # add it to the logger
-    loggerRef.addHandler(hdlr)
+    loggerRef.addHandler(handler)
 
     # make sure the logger has at least this level
     loggerRef.setLevel(level)
@@ -76,7 +84,7 @@ class ArgumentParser(_ArgumentParser):
     by adding the common command line arguments found in BACpypes applications.
 
         --buggers                       list the debugging logger names
-        --debug [DBEUG [DEBUG ...]]     attach a console to loggers
+        --debug [DEBUG [DEBUG ...]]     attach a handler to loggers
         --color                         debug in color
     """
 
@@ -97,7 +105,7 @@ class ArgumentParser(_ArgumentParser):
 
         # add a way to attach debuggers
         self.add_argument('--debug', nargs='*',
-            help="add console log handler to each debugging logger",
+            help="add a log handler to each debugging logger",
             )
 
         # add a way to turn on color debugging
@@ -123,21 +131,54 @@ class ArgumentParser(_ArgumentParser):
         # check for debug
         if result_args.debug is None:
             # --debug not specified
-            bug_list = []
+            result_args.debug = []
         elif not result_args.debug:
             # --debug, but no arguments
-            bug_list = ["__main__"]
-        else:
-            # --debug with arguments
-            bug_list = result_args.debug
+            result_args.debug = ["__main__"]
 
-        # attach any that are specified
-        if result_args.color:
-            for i, debug_name in enumerate(bug_list):
-                ConsoleLogHandler(debug_name, color=(i % 6) + 2)
-        else:
-            for debug_name in bug_list:
-                ConsoleLogHandler(debug_name)
+        # check for debugging from the environment
+        if BACPYPES_DEBUG:
+            result_args.debug.extend(BACPYPES_DEBUG.split())
+
+        # keep track of which files are going to be used
+        file_handlers = {}
+
+        # loop through the bug list
+        for i, debug_name in enumerate(result_args.debug):
+            color = (i % 6) + 2 if result_args.color else None
+
+            debug_specs = debug_name.split(':')
+            if len(debug_specs) == 1:
+                ConsoleLogHandler(debug_name, color=color)
+            else:
+                # the debugger name is just the first component
+                debug_name = debug_specs[0]
+
+                # if the file is already being used, use the already created handler
+                file_name = debug_specs[1]
+                if file_name in file_handlers:
+                    handler = file_handlers[file_name]
+                else:
+                    if len(debug_specs) >= 3:
+                        maxBytes = int(debug_specs[2])
+                    else:
+                        maxBytes = BACPYPES_MAXBYTES
+                    if len(debug_specs) >= 4:
+                        backupCount = int(debug_specs[3])
+                    else:
+                        backupCount = BACPYPES_BACKUPCOUNT
+
+                    # create a handler
+                    handler = logging.handlers.RotatingFileHandler(
+                        file_name, maxBytes=maxBytes, backupCount=backupCount,
+                        )
+                    handler.setLevel(logging.DEBUG)
+
+                    # save it for more than one instance
+                    file_handlers[file_name] = handler
+
+                # use this handler, no color
+                ConsoleLogHandler(debug_name, handler=handler)
 
         # return what was parsed
         return result_args
