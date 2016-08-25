@@ -246,7 +246,7 @@ bacpypes_debugging(PDU)
 #   Client
 #
 
-class Client:
+class Client(object):
 
     def __init__(self, cid=None):
         if _debug: Client._debug("__init__ cid=%r", cid)
@@ -282,7 +282,7 @@ bacpypes_debugging(Client)
 #   Server
 #
 
-class Server:
+class Server(object):
 
     def __init__(self, sid=None):
         if _debug: Server._debug("__init__ sid=%r", sid)
@@ -391,7 +391,7 @@ bacpypes_debugging(Echo)
 #   at the same time.
 #
 
-class ServiceAccessPoint:
+class ServiceAccessPoint(object):
 
     def __init__(self, sapID=None):
         if _debug: ServiceAccessPoint._debug("__init__(%s)", sapID)
@@ -438,7 +438,7 @@ bacpypes_debugging(ServiceAccessPoint)
 #   ApplicationServiceElement
 #
 
-class ApplicationServiceElement:
+class ApplicationServiceElement(object):
 
     def __init__(self, aseID=None):
         if _debug: ApplicationServiceElement._debug("__init__(%s)", aseID)

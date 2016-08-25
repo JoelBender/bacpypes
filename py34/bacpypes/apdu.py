@@ -53,26 +53,43 @@ def register_error_type(klass):
     error_types[klass.serviceChoice] = klass
 
 #
-#   encode_max_apdu_segments/decode_max_apdu_segments
+#   encode_max_segments_accepted/decode_max_segments_accepted
 #
 
-def encode_max_apdu_segments(arg):
-    if (arg > 64): return 7
-    return {None:0, 0:0, 2:1, 4:2, 8:3, 16:4, 32:5, 64:6}.get(arg)
+def encode_max_segments_accepted(arg):
+    """Encode the maximum number of segments the device will accept, Section
+    20.1.2.4"""
+    w = 0
+    while (arg and not arg & 1):
+        w += 1
+        arg = (arg >> 1)
+    return w
 
-def decode_max_apdu_segments(arg):
-    if (arg >= 7): return 128
-    return {0:None, 1:2, 2:4, 3:8, 4:16, 5:32, 6:64}.get(arg)
+def decode_max_segments_accepted(arg):
+    """Decode the maximum number of segments the device will accept, Section
+    20.1.2.4"""
+    return arg and (1 << arg) or None
 
 #
-#   encode_max_apdu_response/decode_max_apdu_response
+#   encode_max_apdu_length_accepted/decode_max_apdu_length_accepted
 #
 
-def encode_max_apdu_response(arg):
-    return {50:0, 128:1, 206:2, 480:3, 1024:4, 1476:5}.get(arg)
+_max_apdu_response_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
+    None, None, None, None, None, None, None, None]
 
-def decode_max_apdu_response(arg):
-    return {0:50, 1:128, 2:206, 3:480, 4:1024, 5:1476}.get(arg)
+def encode_max_apdu_length_accepted(arg):
+    for i, v in enumerate(_max_apdu_response_encoding):
+        if (v <= arg):
+            return i
+
+    raise ValueError("invalid max APDU length accepted: {0}".format(arg))
+
+def decode_max_apdu_length_accepted(arg):
+    v = _max_apdu_response_encoding[arg]
+    if not v:
+        raise ValueError("invalid max APDU length accepted: {0}".format(arg))
+
+    return v
 
 #
 #   APCI
@@ -155,7 +172,7 @@ class APCI(PCI, DebugContents):
             if self.apduSA:
                 buff += 0x02
             pdu.put(buff)
-            pdu.put((encode_max_apdu_segments(self.apduMaxSegs) << 4) + encode_max_apdu_response(self.apduMaxResp))
+            pdu.put((encode_max_segments_accepted(self.apduMaxSegs) << 4) + encode_max_apdu_length_accepted(self.apduMaxResp))
             pdu.put(self.apduInvokeID)
             if self.apduSeg:
                 pdu.put(self.apduSeq)
@@ -236,8 +253,8 @@ class APCI(PCI, DebugContents):
             self.apduMor = ((buff & 0x04) != 0)
             self.apduSA  = ((buff & 0x02) != 0)
             buff = pdu.get()
-            self.apduMaxSegs = decode_max_apdu_segments( (buff >> 4) & 0x07 )
-            self.apduMaxResp = decode_max_apdu_response( buff & 0x0F )
+            self.apduMaxSegs = decode_max_segments_accepted( (buff >> 4) & 0x07 )
+            self.apduMaxResp = decode_max_apdu_length_accepted( buff & 0x0F )
             self.apduInvokeID = pdu.get()
             if self.apduSeg:
                 self.apduSeq = pdu.get()
@@ -499,17 +516,6 @@ class SegmentAckPDU(_APDU):
         if _debug: SegmentAckPDU._debug("__init__ %r %r %r %r %r %r %r", nak, srv, invokeID, sequenceNumber, windowSize, args, kwargs)
         super(SegmentAckPDU, self).__init__(*args, **kwargs)
 
-        if nak is None:
-            raise ValueError("nak is None")
-        if srv is None:
-            raise ValueError("srv is None")
-        if invokeID is None:
-            raise ValueError("invokeID is None")
-        if sequenceNumber is None:
-            raise ValueError("sequenceNumber is None")
-        if windowSize is None:
-            raise ValueError("windowSize is None")
-
         self.apduType = SegmentAckPDU.pduType
         self.apduNak = nak
         self.apduSrv = srv
@@ -678,6 +684,10 @@ class APCISequence(APCI, Sequence):
 
         # pass the taglist to the Sequence for additional decoding
         Sequence.decode(self, self._tag_list)
+
+        # trailing unmatched tags
+        if self._tag_list:
+            if _debug: APCISequence._debug("    - trailing unmatched tags")
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -1290,8 +1300,8 @@ class SubscribeCOVRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('subscriberProcessIdentifier', Unsigned, 0)
         , Element('monitoredObjectIdentifier', ObjectIdentifier, 1)
-        , Element('issueConfirmedNotifications', Boolean, 2)
-        , Element('lifetime', Unsigned, 3)
+        , Element('issueConfirmedNotifications', Boolean, 2, True)
+        , Element('lifetime', Unsigned, 3, True)
         ]
 
 register_confirmed_request_type(SubscribeCOVRequest)
@@ -1492,7 +1502,7 @@ class ConfirmedPrivateTransferRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('vendorID', Unsigned, 0)
         , Element('serviceNumber', Unsigned, 1)
-        , Element('serviceParameters', Any, 2)
+        , Element('serviceParameters', Any, 2, True)
         ]
 
 register_confirmed_request_type(ConfirmedPrivateTransferRequest)
@@ -1502,7 +1512,7 @@ class ConfirmedPrivateTransferACK(ComplexAckSequence):
     sequenceElements = \
         [ Element('vendorID', Unsigned, 0)
         , Element('serviceNumber', Unsigned, 1)
-        , Element('resultBlock', Any, 2)
+        , Element('resultBlock', Any, 2, True)
         ]
 
 register_complex_ack_type(ConfirmedPrivateTransferACK)
@@ -1612,18 +1622,12 @@ class AuthenticateRequest(ConfirmedRequestSequence):
         , Element('startEncipheredSession', Boolean, 4)
         ]
 
-register_confirmed_request_type(AuthenticateRequest)
-
 # removed in version 1, revision 11
 class AuthenticateACK(ComplexAckSequence):
     serviceChoice = 24
     sequenceElements = \
         [ Element('modifiedRandomNumber', Unsigned)
         ]
-
-register_complex_ack_type(AuthenticateACK)
-
-#-----
 
 # removed in version 1, revision 11
 class RequestKeyRequest(ConfirmedRequestSequence):
@@ -1634,8 +1638,6 @@ class RequestKeyRequest(ConfirmedRequestSequence):
         , Element('remoteDeviceIdentifier', ObjectIdentifier)
         , Element('remoteDeviceAddress', DeviceAddress)
         ]
-
-register_confirmed_request_type(RequestKeyRequest)
 
 #-----------------------------------
 
@@ -1679,6 +1681,8 @@ class ConfirmedServiceChoice(Enumerated):
         'vtData':23,
         }
 
+expand_enumerations(ConfirmedServiceChoice)
+
 class UnconfirmedServiceChoice(Enumerated):
     enumerations = {
         'iAm':0,
@@ -1694,3 +1698,4 @@ class UnconfirmedServiceChoice(Enumerated):
         'writeGroup':10,
         }
 
+expand_enumerations(UnconfirmedServiceChoice)

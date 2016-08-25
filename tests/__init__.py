@@ -6,12 +6,17 @@ BACpypes Testing
 ----------------
 """
 
+from . import test__template
+
 from . import utilities
+from . import state_machine
+from . import time_machine
+from . import extended_tag_list
+from . import trapped_classes
 
-
-def setUpPackage():
-    utilities.setUpPackage()
-
-
-def tearDownPackage():
-    utilities.tearDownPackage()
+from . import test_comm
+# from . import test_objects
+from . import test_pdu
+from . import test_primitive_data
+from . import test_utilities
+from . import test_vlan

@@ -11,7 +11,7 @@ import re
 
 from .debugging import ModuleLogger, btox
 
-from .errors import DecodingError
+from .errors import DecodingError, InvalidTag, InvalidParameterDatatype
 from .pdu import PDUData
 
 # some debugging
@@ -23,6 +23,7 @@ _log = ModuleLogger(globals())
 #
 
 class Tag(object):
+
     applicationTagClass     = 0
     contextTagClass         = 1
     openingTagClass         = 2
@@ -92,17 +93,14 @@ class Tag(object):
         self.tagData = tdata
 
     def encode(self, pdu):
-        # check for special encoding of open and close tags
-        if (self.tagClass == Tag.openingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0E)
-            return
-        if (self.tagClass == Tag.closingTagClass):
-            pdu.put(((self.tagNumber & 0x0F) << 4) + 0x0F)
-            return
-
-        # check for context encoding
+        """Encode a tag on the end of the PDU."""
+        # check for special encoding
         if (self.tagClass == Tag.contextTagClass):
             data = 0x08
+        elif (self.tagClass == Tag.openingTagClass):
+            data = 0x0E
+        elif (self.tagClass == Tag.closingTagClass):
+            data = 0x0F
         else:
             data = 0x00
 
@@ -138,38 +136,42 @@ class Tag(object):
         pdu.put_data(self.tagData)
 
     def decode(self, pdu):
-        tag = pdu.get()
+        """Decode a tag from the PDU."""
+        try:
+            tag = pdu.get()
 
-        # extract the type
-        self.tagClass = (tag >> 3) & 0x01
+            # extract the type
+            self.tagClass = (tag >> 3) & 0x01
 
-        # extract the tag number
-        self.tagNumber = (tag >> 4)
-        if (self.tagNumber == 0x0F):
-            self.tagNumber = pdu.get()
+            # extract the tag number
+            self.tagNumber = (tag >> 4)
+            if (self.tagNumber == 0x0F):
+                self.tagNumber = pdu.get()
 
-        # extract the length
-        self.tagLVT = tag & 0x07
-        if (self.tagLVT == 5):
-            self.tagLVT = pdu.get()
-            if (self.tagLVT == 254):
-                self.tagLVT = pdu.get_short()
-            elif (self.tagLVT == 255):
-                self.tagLVT = pdu.get_long()
-        elif (self.tagLVT == 6):
-            self.tagClass = Tag.openingTagClass
-            self.tagLVT = 0
-        elif (self.tagLVT == 7):
-            self.tagClass = Tag.closingTagClass
-            self.tagLVT = 0
+            # extract the length
+            self.tagLVT = tag & 0x07
+            if (self.tagLVT == 5):
+                self.tagLVT = pdu.get()
+                if (self.tagLVT == 254):
+                    self.tagLVT = pdu.get_short()
+                elif (self.tagLVT == 255):
+                    self.tagLVT = pdu.get_long()
+            elif (self.tagLVT == 6):
+                self.tagClass = Tag.openingTagClass
+                self.tagLVT = 0
+            elif (self.tagLVT == 7):
+                self.tagClass = Tag.closingTagClass
+                self.tagLVT = 0
 
-        # application tagged boolean has no more data
-        if (self.tagClass == Tag.applicationTagClass) and (self.tagNumber == Tag.booleanAppTag):
-            # tagLVT contains value
-            self.tagData = b''
-        else:
-            # tagLVT contains length
-            self.tagData = pdu.get_data(self.tagLVT)
+            # application tagged boolean has no more data
+            if (self.tagClass == Tag.applicationTagClass) and (self.tagNumber == Tag.booleanAppTag):
+                # tagLVT contains value
+                self.tagData = b''
+            else:
+                # tagLVT contains length
+                self.tagData = pdu.get_data(self.tagLVT)
+        except DecodingError:
+            raise InvalidTag("invalid tag encoding")
 
     def app_to_context(self, context):
         """Return a context encoded tag."""
@@ -189,7 +191,7 @@ class Tag(object):
 
         # context booleans have value in data
         if (dataType == Tag.booleanAppTag):
-            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('b', self.tagData)[0], b'')
+            return Tag(Tag.applicationTagClass, Tag.booleanAppTag, struct.unpack('B', self.tagData)[0], b'')
         else:
             return ApplicationTag(dataType, self.tagData)
 
@@ -272,7 +274,7 @@ class ApplicationTag(Tag):
         if len(args) == 1 and isinstance(args[0], PDUData):
             Tag.__init__(self, args[0])
             if self.tagClass != Tag.applicationTagClass:
-                raise DecodingError("application tag not decoded")
+                raise InvalidTag("application tag not decoded")
         elif len(args) == 2:
             tnum, tdata = args
             Tag.__init__(self, Tag.applicationTagClass, tnum, len(tdata), tdata)
@@ -289,7 +291,7 @@ class ContextTag(Tag):
         if len(args) == 1 and isinstance(args[0], PDUData):
             Tag.__init__(self, args[0])
             if self.tagClass != Tag.contextTagClass:
-                raise DecodingError("context tag not decoded")
+                raise InvalidTag("context tag not decoded")
         elif len(args) == 2:
             tnum, tdata = args
             Tag.__init__(self, Tag.contextTagClass, tnum, len(tdata), tdata)
@@ -306,7 +308,7 @@ class OpeningTag(Tag):
         if isinstance(context, PDUData):
             Tag.__init__(self, context)
             if self.tagClass != Tag.openingTagClass:
-                raise DecodingError("opening tag not decoded")
+                raise InvalidTag("opening tag not decoded")
         elif isinstance(context, int):
             Tag.__init__(self, Tag.openingTagClass, context)
         else:
@@ -322,7 +324,7 @@ class ClosingTag(Tag):
         if isinstance(context, PDUData):
             Tag.__init__(self, context)
             if self.tagClass != Tag.closingTagClass:
-                raise DecodingError("closing tag not decoded")
+                raise InvalidTag("closing tag not decoded")
         elif isinstance(context, int):
             Tag.__init__(self, Tag.closingTagClass, context)
         else:
@@ -414,13 +416,13 @@ class TagList(object):
 
                 # make sure everything balances
                 if lvl >= 0:
-                    raise DecodingError("mismatched open/close tags")
+                    raise InvalidTag("mismatched open/close tags")
 
                 # get everything we need?
                 if keeper:
                     return TagList(rslt)
             else:
-                raise DecodingError("unexpected tag")
+                raise InvalidTag("unexpected tag")
 
             # try the next tag
             i += 1
@@ -451,6 +453,8 @@ class Atomic(object):
     _app_tag = None
 
     def __cmp__(self, other):
+        # sys.stderr.write("__cmp__ %r %r\n" % (self, other))
+
         # hoop jump it
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
@@ -462,6 +466,39 @@ class Atomic(object):
             return 1
         else:
             return 0
+
+    def __lt__(self, other):
+        # sys.stderr.write("__lt__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return (self.value < other.value)
+
+    def __eq__(self, other):
+        # sys.stderr.write("__eq__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return self.value == other.value
+
+    @classmethod
+    def coerce(cls, arg):
+        """Given an arg, return the appropriate value given the class."""
+        try:
+            return cls(arg).value
+        except (ValueError, TypeError):
+            raise InvalidParameterDatatype("%s coerce error" % (cls.__name__,))
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        raise NotImplementedError("call on a derived class of Atomic")
 
 #
 #   Null
@@ -491,9 +528,16 @@ class Null(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.nullAppTag):
-            raise ValueError("null application tag required")
+            raise InvalidTag("null application tag required")
+        if len(tag.tagData) != 0:
+            raise InvalidTag("invalid tag length")
 
         self.value = ()
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return arg is None
 
     def __str__(self):
         return "Null"
@@ -529,10 +573,17 @@ class Boolean(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.booleanAppTag):
-            raise ValueError("boolean application tag required")
+            raise InvalidTag("boolean application tag required")
+        if (tag.tagLVT > 1):
+            raise InvalidTag("invalid tag value")
 
         # get the data
         self.value = bool(tag.tagLVT)
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, bool)
 
     def __str__(self):
         return "Boolean(%s)" % (str(self.value), )
@@ -574,7 +625,9 @@ class Unsigned(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.unsignedAppTag):
-            raise ValueError("unsigned application tag required")
+            raise InvalidTag("unsigned application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # get the data
         rslt = 0
@@ -583,6 +636,11 @@ class Unsigned(Atomic):
 
         # save the result
         self.value = rslt
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, (int, long)) and (arg >= 0)
 
     def __str__(self):
         return "Unsigned(%s)" % (self.value, )
@@ -635,7 +693,9 @@ class Integer(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.integerAppTag):
-            raise ValueError("integer application tag required")
+            raise InvalidTag("integer application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # byte array easier to deal with
         tag_data = bytearray(tag.tagData)
@@ -649,6 +709,11 @@ class Integer(Atomic):
 
         # save the result
         self.value = rslt
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, int)
 
     def __str__(self):
         return "Integer(%s)" % (self.value, )
@@ -683,10 +748,17 @@ class Real(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.realAppTag):
-            raise ValueError("real application tag required")
+            raise InvalidTag("real application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.value = struct.unpack('>f',tag.tagData)[0]
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, float)
 
     def __str__(self):
         return "Real(%g)" % (self.value,)
@@ -721,10 +793,17 @@ class Double(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.doubleAppTag):
-            raise ValueError("double application tag required")
+            raise InvalidTag("double application tag required")
+        if len(tag.tagData) != 8:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.value = struct.unpack('>d',tag.tagData)[0]
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, float)
 
     def __str__(self):
         return "Double(%g)" % (self.value,)
@@ -738,7 +817,7 @@ class OctetString(Atomic):
     _app_tag = Tag.octetStringAppTag
 
     def __init__(self, arg=None):
-        self.value = ''
+        self.value = bytes()
 
         if arg is None:
             pass
@@ -757,9 +836,14 @@ class OctetString(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.octetStringAppTag):
-            raise ValueError("octet string application tag required")
+            raise InvalidTag("octet string application tag required")
 
         self.value = tag.tagData
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, (bytes, bytearray))
 
     def __str__(self):
         return "OctetString(X'" + btox(self.value) + "')"
@@ -775,14 +859,15 @@ class CharacterString(Atomic):
     def __init__(self, arg=None):
         self.value = ''
         self.strEncoding = 0
-        self.strValue = ''
+        self.strValue = b''
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, str):
-            self.strValue = self.value = arg
+            self.value = arg
+            self.strValue = arg.encode('utf-8')
         elif isinstance(arg, CharacterString):
             self.value = arg.value
             self.strEncoding = arg.strEncoding
@@ -792,11 +877,13 @@ class CharacterString(Atomic):
 
     def encode(self, tag):
         # encode the tag
-        tag.set_app_data(Tag.characterStringAppTag, (chr(self.strEncoding)+self.strValue.encode('latin-1')))
+        tag.set_app_data(Tag.characterStringAppTag, bytes([self.strEncoding]) + self.strValue)
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.characterStringAppTag):
-            raise ValueError("character string application tag required")
+            raise InvalidTag("character string application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # byte array easier to deal with
         tag_data = bytearray(tag.tagData)
@@ -807,26 +894,23 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf-8')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf-8')
         elif (self.strEncoding == 3):
-            udata = self.strValue.decode('utf_32be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
-            udata = self.strValue.decode('utf_16be')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('utf_16be')
         elif (self.strEncoding == 5):
-            udata = self.strValue.decode('latin_1')
-            self.value = str(udata)
-            #self.value = str(udata.encode('ascii', 'backslashreplace'))
+            self.value = self.strValue.decode('latin_1')
         else:
             self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
 
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, str)
+
     def __str__(self):
-        return "CharacterString(%d," % (self.strEncoding,) + repr(self.strValue) + ")"
+        return "CharacterString(%d,X'%s')" % (self.strEncoding, btox(self.strValue))
 
 #
 #   BitString
@@ -887,7 +971,9 @@ class BitString(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.bitStringAppTag):
-            raise ValueError("bit string application tag required")
+            raise InvalidTag("bit string application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         tag_data = bytearray(tag.tagData)
 
@@ -908,6 +994,19 @@ class BitString(Atomic):
             self.value = data[:-unused]
         else:
             self.value = data
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        if isinstance(arg, list):
+            allInts = allStrings = True
+            for elem in arg:
+                allInts = allInts and ((elem == 0) or (elem == 1))
+                allStrings = allStrings and elem in cls.bitNames
+
+            if allInts or allStrings:
+                return True
+        return False
 
     def __str__(self):
         # flip the bit names
@@ -1015,7 +1114,7 @@ class Enumerated(Atomic):
     def keylist(self):
         """Return a list of names in order by value."""
         items = self.enumerations.items()
-        items.sort(lambda a, b: cmp(a[1], b[1]))
+        items.sort(lambda a, b: self.cmp(a[1], b[1]))
 
         # last item has highest value
         rslt = [None] * (items[-1][1] + 1)
@@ -1066,7 +1165,9 @@ class Enumerated(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.enumeratedAppTag):
-            raise ValueError("enumerated application tag required")
+            raise InvalidTag("enumerated application tag required")
+        if len(tag.tagData) == 0:
+            raise InvalidTag("invalid tag length")
 
         # get the data
         rslt = 0
@@ -1079,8 +1180,16 @@ class Enumerated(Atomic):
         # save the result
         self.value = rslt
 
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class.  If the string
+        value is wrong for the enumeration, the encoding will fail.
+        """
+        return (isinstance(arg, int) and (arg >= 0)) or \
+            isinstance(arg, str)
+
     def __str__(self):
-        return "Enumerated(%s)" % (self.value,)
+        return "%s(%s)" % (self.__class__.__name__, self.value)
 
 #
 #   expand_enumerations
@@ -1089,13 +1198,17 @@ class Enumerated(Atomic):
 def expand_enumerations(klass):
     # build a value dictionary
     xlateTable = {}
-    for name, value in klass.enumerations.items():
-        # save the results
-        xlateTable[name] = value
-        xlateTable[value] = name
 
-        # save the name in the class
-        setattr(klass, name, value)
+    for c in klass.__mro__:
+        enumerations = getattr(c, 'enumerations', {})
+        if enumerations:
+            for name, value in enumerations.items():
+                # save the results
+                xlateTable[name] = value
+                xlateTable[value] = name
+
+                # save the name in the class
+                setattr(klass, name, value)
 
     # save the dictionary in the class
     setattr(klass, '_xlate_table', xlateTable)
@@ -1104,83 +1217,173 @@ def expand_enumerations(klass):
 #   Date
 #
 
+_mm = r'(?P<month>0?[1-9]|1[0-4]|odd|even|255|[*])'
+_dd = r'(?P<day>[0-3]?\d|last|odd|even|255|[*])'
+_yy = r'(?P<year>\d{2}|255|[*])'
+_yyyy = r'(?P<year>\d{4}|255|[*])'
+_dow = r'(?P<dow>[1-7]|mon|tue|wed|thu|fri|sat|sun|255|[*])'
+
+_special_mon = {'*': 255, 'odd': 13, 'even': 14, None: 255}
+_special_mon_inv = {255: '*', 13: 'odd', 14: 'even'}
+
+_special_day = {'*': 255, 'last': 32, 'odd': 33, 'even': 34, None: 255}
+_special_day_inv = {255: '*', 32: 'last', 33: 'odd', 34: 'even'}
+
+_special_dow = {'*': 255, 'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 7}
+_special_dow_inv = {255: '*', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 7: 'sun'}
+
+def _merge(*args):
+    """Create a composite pattern and compile it."""
+    return re.compile(r'^' + r'[/-]'.join(args) + r'(?:\s+' + _dow + ')?$')
+
+# make a list of compiled patterns
+_date_patterns = [
+    _merge(_yyyy, _mm, _dd),
+    _merge(_mm, _dd, _yyyy),
+    _merge(_dd, _mm, _yyyy),
+    _merge(_yy, _mm, _dd),
+    _merge(_mm, _dd, _yy),
+    _merge(_dd, _mm, _yy),
+    ]
+
+
 class Date(Atomic):
 
     _app_tag = Tag.dateAppTag
-    _date_regex = re.compile(r"^([*]|\d+)[/]([*]|\d+)[/]([*]|\d+)(?:\s([*]|\w+))?$")
-    _day_names = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-    DONT_CARE = 255
-
-    def __init__(self, arg=None, year=255, month=255, day=255, dayOfWeek=255):
-        self.value = (year, month, day, dayOfWeek)
-
+    def __init__(self, arg=None, year=255, month=255, day=255, day_of_week=255):
+        self.value = (year, month, day, day_of_week)
+        
         if arg is None:
             pass
-        elif isinstance(arg,Tag):
+        elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, tuple):
             self.value = arg
         elif isinstance(arg, str):
-            date_match = Date._date_regex.match(arg)
-            if not date_match:
-                raise ValueError("invalid date pattern")
-            date_groups = date_match.groups()
+            # lower case everything
+            arg = arg.lower()
 
-            # day/month/year
-            tup_list = []
-            for s in date_groups[:3]:
-                if s == '*':
-                    tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
-                else:
-                    tup_list.append(int(s))
+            # make a list of the contents from matching patterns
+            matches = []
+            for p in _date_patterns:
+                m = p.match(arg)
+                if m:
+                    matches.append(m.groupdict())
 
-            # clean up the year
-            if (tup_list[2] < 100):
-                tup_list[2] += 2000
-            tup_list[2] -= 1900
+            # try to find a good one
+            match = None
+            if not matches:
+                raise ValueError("unmatched")
 
-            # day-of-week madness
-            dow = date_groups[3]
-            if dow is None:
-                tup_list.append(0)
-            elif (dow == '*'):
-                tup_list.append(255)
-            elif dow.isdigit():
-                tup_list.append(int(dow))
+            # if there is only one, success
+            if len(matches) == 1:
+                match = matches[0]
             else:
-                dow = dow.title()
-                if dow not in Date._day_names:
-                    raise ValueError("invalid day name")
-                tup_list.append(Date._day_names.index(dow))
+                # check to see if they really are the same
+                for a, b in zip(matches[:-1],matches[1:]):
+                    if a != b:
+                        raise ValueError("ambiguous")
+                        break
+                else:
+                    match = matches[0]
 
-            self.value = tuple(tup_list)
+            # extract the year and normalize
+            year = match['year']
+            if (year == '*') or (not year):
+                year = 255
+            else:
+                year = int(year)
+                if (year == 255):
+                    pass
+                elif year < 35:
+                    year += 2000
+                elif year < 100:
+                    year += 1900
+                elif year < 1900:
+                    raise ValueError("invalid year")
+
+            # extract the month and normalize
+            month = match['month']
+            if month in _special_mon:
+                month = _special_mon[month]
+            else:
+                month = int(month)
+                if (month == 255):
+                    pass
+                elif (month == 0) or (month > 14):
+                    raise ValueError("invalid month")
+
+            # extract the day and normalize
+            day = match['day']
+            if day in _special_day:
+                day = _special_day[day]
+            else:
+                day = int(day)
+                if (day == 255):
+                    pass
+                elif (day == 0) or (day > 34):
+                    raise ValueError("invalid day")
+
+            # extract the day-of-week and normalize
+            day_of_week = match['dow']
+            if day_of_week in _special_dow:
+                day_of_week = _special_dow[day_of_week]
+            elif not day_of_week:
+                pass
+            else:
+                day_of_week = int(day_of_week)
+                if (day_of_week == 255):
+                    pass
+                elif day_of_week > 7:
+                    raise ValueError("invalid day of week")
+
+            # year becomes the correct octet
+            if year != 255:
+                year -= 1900
+
+            # save the value
+            self.value = (year, month, day, day_of_week)
+
+            # calculate the day of the week
+            if not day_of_week:
+                self.CalcDayOfWeek()
+
         elif isinstance(arg, Date):
             self.value = arg.value
+
         else:
             raise TypeError("invalid constructor datatype")
-
-    def now(self):
-        tup = time.localtime()
-
-        self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
-
-        return self
 
     def CalcDayOfWeek(self):
         """Calculate the correct day of the week."""
         # rip apart the value
-        year, month, day, dayOfWeek = self.value
+        year, month, day, day_of_week = self.value
 
-        # make sure all the components are defined
-        if (year != 255) and (month != 255) and (day != 255):
-            today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
-            dayOfWeek = time.gmtime(today)[6] + 1
+        # assume the worst
+        day_of_week = 255
+
+        # check for special values
+        if year == 255:
+            pass
+        elif month in _special_mon_inv:
+            pass
+        elif day in _special_day_inv:
+            pass
+        else:
+            try:            
+                today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
+                day_of_week = time.gmtime(today)[6] + 1
+            except OverflowError:
+                pass
 
         # put it back together
-        self.value = (year, month, day, dayOfWeek)
+        self.value = (year, month, day, day_of_week)
+
+    def now(self):
+        tup = time.localtime()
+        self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
+        return self
 
     def encode(self, tag):
         # encode the tag
@@ -1188,34 +1391,34 @@ class Date(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.dateAppTag):
-            raise ValueError("date application tag required")
+            raise InvalidTag("date application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # rip apart the data
         self.value = tuple(tag.tagData)
 
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, tuple) and (len(arg) == 4)
+
     def __str__(self):
+        """String representation of the date."""
         # rip it apart
-        year, month, day, dayOfWeek = self.value
+        year, month, day, day_of_week = self.value
 
-        rslt = "Date("
-        if month == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (month,)
-        if day == 255:
-            rslt += "*/"
-        else:
-            rslt += "%d/" % (day,)
         if year == 255:
-            rslt += "* "
+            year = "*"
         else:
-            rslt += "%d " % (year + 1900,)
-        if dayOfWeek == 255:
-            rslt += "*)"
-        else:
-            rslt += Date._day_names[dayOfWeek] + ")"
+            year = str(year + 1900)
 
-        return rslt
+        month = _special_mon_inv.get(month, str(month))
+        day = _special_day_inv.get(day, str(day))
+        day_of_week = _special_dow_inv.get(day_of_week, str(day_of_week))
+
+        return "%s(%s-%s-%s %s)" % (self.__class__.__name__, year, month, day, day_of_week)
+
 
 #
 #   Time
@@ -1244,11 +1447,15 @@ class Time(Atomic):
                 raise ValueError("invalid time pattern")
 
             tup_list = []
-            for s in tup_match:
+            tup_items = list(tup_match.groups())
+            for s in tup_items:
                 if s == '*':
                     tup_list.append(255)
-                elif s in None:
-                    tup_list.append(0)
+                elif s is None:
+                    if '*' in tup_items:
+                        tup_list.append(255)
+                    else:
+                        tup_list.append(0)
                 else:
                     tup_list.append(int(s))
 
@@ -1276,10 +1483,17 @@ class Time(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.timeAppTag):
-            raise ValueError("time application tag required")
+            raise InvalidTag("time application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # rip apart the data
         self.value = tuple(tag.tagData)
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, tuple) and (len(arg) == 4)
 
     def __str__(self):
         # rip it apart
@@ -1374,6 +1588,8 @@ class ObjectIdentifier(Atomic):
     _app_tag = Tag.objectIdentifierAppTag
     objectTypeClass = ObjectType
 
+    maximum_instance_number = 0x003FFFFF
+
     def __init__(self, *args):
         self.value = ('analogInput', 0)
 
@@ -1387,12 +1603,12 @@ class ObjectIdentifier(Atomic):
                 self.set_long(arg)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
+            elif isinstance(arg, ObjectIdentifier):
+                self.value = arg.value
             else:
                 raise TypeError("invalid constructor datatype")
         elif len(args) == 2:
             self.set_tuple(*args)
-        elif isinstance(arg, ObjectIdentifier):
-            self.value = arg.value
         else:
             raise ValueError("invalid constructor parameters")
 
@@ -1407,6 +1623,10 @@ class ObjectIdentifier(Atomic):
                 raise ValueError("unrecognized object type '%s'" % (objType,))
         else:
             raise TypeError("invalid datatype for objType: %r, %r" % (type(objType), objType))
+
+        # check for valid instance number
+        if (objInstance < 0) or (objInstance > ObjectIdentifier.maximum_instance_number):
+            raise ValueError("instance number out of range")
 
         # pack the components together
         self.value = (objType, objInstance)
@@ -1452,10 +1672,17 @@ class ObjectIdentifier(Atomic):
 
     def decode(self, tag):
         if (tag.tagClass != Tag.applicationTagClass) or (tag.tagNumber != Tag.objectIdentifierAppTag):
-            raise ValueError("object identifier application tag required")
+            raise InvalidTag("object identifier application tag required")
+        if len(tag.tagData) != 4:
+            raise InvalidTag("invalid tag length")
 
         # extract the data
         self.set_long(struct.unpack('>L',tag.tagData)[0])
+
+    @classmethod
+    def is_valid(cls, arg):
+        """Return True if arg is valid value for the class."""
+        return isinstance(arg, tuple) and (len(arg) == 2)
 
     def __str__(self):
         # rip it apart

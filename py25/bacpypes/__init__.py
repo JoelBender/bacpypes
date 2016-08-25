@@ -3,6 +3,26 @@
 """BACnet Python Package"""
 
 #
+#   Platform Check
+#
+
+import sys as _sys
+import warnings as _warnings
+
+_supported_platforms = ('linux2', 'win32', 'darwin')
+
+if _sys.platform not in _supported_platforms:
+    _warnings.warn("unsupported platform", RuntimeWarning)
+
+#
+#   Project Metadata
+#
+
+__version__ = '0.14.0'
+__author__ = 'Joel Bender'
+__email__ = 'joel@carrickbender.com'
+
+#
 #   Communications Core Modules
 #
 

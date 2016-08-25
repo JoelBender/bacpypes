@@ -4,6 +4,7 @@
 BACnet Virtual Link Layer Service
 """
 
+import sys
 import struct
 from time import time as _time
 
@@ -14,7 +15,8 @@ from .task import OneShotTask, RecurringTask
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .pdu import Address, LocalBroadcast, LocalStation, PDU
+from .pdu import Address, LocalBroadcast, LocalStation, PDU, \
+    unpack_ip_addr
 from .bvll import BVLPDU, DeleteForeignDeviceTableEntry, \
     DistributeBroadcastToNetwork, FDTEntry, ForwardedNPDU, \
     OriginalBroadcastNPDU, OriginalUnicastNPDU, \
@@ -89,8 +91,8 @@ class UDPMultiplexer:
         self.directPort = UDPDirector(self.addrTuple)
         bind(self.direct, self.directPort)
 
-        # create and bind the broadcast address
-        if specialBroadcast and (not noBroadcast):
+        # create and bind the broadcast address for non-Windows
+        if specialBroadcast and (not noBroadcast) and sys.platform in ('linux2', 'darwin'):
             self.broadcast = _MultiplexClient(self)
             self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
             bind(self.direct, self.broadcastPort)
@@ -109,7 +111,7 @@ class UDPMultiplexer:
             dest = self.addrBroadcastTuple
             if _debug: UDPMultiplexer._debug("    - requesting local broadcast: %r", dest)
         elif pdu.pduDestination.addrType == Address.localStationAddr:
-            dest = pdu.pduDestination.addrTuple
+            dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)
         else:
             raise RuntimeError("invalid destination address type")
@@ -141,7 +143,8 @@ class UDPMultiplexer:
             return
 
         # extract the first octet
-        msg_type = struct.unpack('b', pdu.pduData[:1])[0]
+        msg_type = struct.unpack('B', pdu.pduData[:1])[0]
+        if _debug: UDPMultiplexer._debug("    - msg_type: %r", msg_type)
 
         # check for the message type
         if msg_type == 0x01:
@@ -288,7 +291,7 @@ class BIPSAP(ServiceAccessPoint):
 
     def __init__(self, sap=None):
         """A BIP service access point."""
-        if _debug: BIPSimple._debug("__init__ sap=%r", sap)
+        if _debug: BIPSAP._debug("__init__ sap=%r", sap)
         ServiceAccessPoint.__init__(self, sap)
 
     def sap_indication(self, pdu):

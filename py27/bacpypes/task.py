@@ -21,7 +21,7 @@ _task_manager = None
 _unscheduled_tasks = []
 
 # only defined for linux platforms
-if 'linux' in sys.platform:
+if sys.platform in ('linux2', 'darwin'):
     from .event import WaitableEvent
     #
     #   _Trigger
@@ -39,6 +39,8 @@ if 'linux' in sys.platform:
             # read in the character, highlander
             data = self.recv(1)
             if _debug: _Trigger._debug("    - data: %r", data)
+else:
+    _Trigger = None
 
 #
 #   _Task
@@ -52,8 +54,15 @@ class _Task(DebugContents, Logging):
         self.taskTime = None
         self.isScheduled = False
 
-    def install_task(self, when=None):
+    def install_task(self, when=None, delta=None):
         global _task_manager, _unscheduled_tasks
+
+        # check for delta from now
+        if (when is None) and (delta is not None):
+            if not _task_manager:
+                raise RuntimeError("no task manager")
+
+            when = _task_manager.get_time() + delta
 
         # fallback to the inited value
         if when is None:
@@ -85,6 +94,9 @@ class _Task(DebugContents, Logging):
 
         _task_manager.resume_task(self)
 
+    def __lt__(self, other):
+        return id(self) < id(other)
+
 #
 #   OneShotTask
 #
@@ -111,12 +123,20 @@ class OneShotDeleteTask(_Task):
 
 @bacpypes_debugging
 def OneShotFunction(fn, *args, **kwargs):
+
     class OneShotFunctionTask(OneShotDeleteTask):
+
         def process_task(self):
             OneShotFunction._debug("process_task %r %s %s", fn, repr(args), repr(kwargs))
             fn(*args, **kwargs)
-    task = OneShotFunctionTask(_time())
-    task.install_task()
+
+    task = OneShotFunctionTask()
+
+    # if there is no task manager, postpone the install
+    if not _task_manager:
+        _unscheduled_tasks.append(task)
+    else:
+        task.install_task(_task_manager.get_time())
 
     return task
 
@@ -128,9 +148,11 @@ def FunctionTask(fn, *args, **kwargs):
     _log.debug("FunctionTask %r %r %r", fn, args, kwargs)
 
     class _FunctionTask(OneShotDeleteTask):
+
         def process_task(self):
             _log.debug("process_task (%r %r %r)", fn, args, kwargs)
             fn(*args, **kwargs)
+
     task = _FunctionTask()
     _log.debug("    - task: %r", task)
 
@@ -140,36 +162,43 @@ def FunctionTask(fn, *args, **kwargs):
 #   RecurringTask
 #
 
+@bacpypes_debugging
 class RecurringTask(_Task):
 
     _debug_contents = ('taskInterval',)
 
     def __init__(self, interval=None):
+        if _debug: RecurringTask._debug("__init__ interval=%r", interval)
         _Task.__init__(self)
+
+        # save the interval, but do not automatically install
         self.taskInterval = interval
-        if interval is None:
-            self.taskTime = None
-        else:
-            self.taskTime = _time() + (self.taskInterval / 1000)
 
     def install_task(self, interval=None):
+        if _debug: RecurringTask._debug("install_task interval=%r", interval)
         global _task_manager, _unscheduled_tasks
 
         # set the interval if it hasn't already been set
         if interval is not None:
             self.taskInterval = interval
-        if not self.taskInterval:
+        if self.taskInterval is None:
             raise RuntimeError("interval unset, use ctor or install_task parameter")
+        if self.taskInterval <= 0.0:
+            raise RuntimeError("interval must be greater than zero")
 
-        # get ready for the next interval (aligned)
-        now = _time()
-        interval = self.taskInterval / 1000.0
-        self.taskTime = now + interval - (now % interval)
-
-        # pass along to the task manager
+        # if there is no task manager, postpone the install
         if not _task_manager:
+            if _debug: RecurringTask._debug("    - no task manager")
             _unscheduled_tasks.append(self)
+
         else:
+            # get ready for the next interval (aligned)
+            now = _task_manager.get_time()
+            interval = self.taskInterval / 1000.0
+            self.taskTime = now + interval - (now % interval)
+            if _debug: RecurringTask._debug("    - task time: %r", self.taskTime)
+
+            # install it
             _task_manager.install_task(self)
 
 #
@@ -226,7 +255,7 @@ class TaskManager(SingletonLogging):
 
         # initialize
         self.tasks = []
-        if 'linux' in sys.platform:
+        if _Trigger:
             self.trigger = _Trigger()
         else:
             self.trigger = None
@@ -238,10 +267,20 @@ class TaskManager(SingletonLogging):
         # because a task manager wasn't created yet.
         if _unscheduled_tasks:
             for task in _unscheduled_tasks:
-                self.install_task(task)
+                task.install_task()
+
+    def get_time(self):
+        if _debug: TaskManager._debug("get_time")
+
+        # return the real time
+        return _time()
 
     def install_task(self, task):
-        if _debug: TaskManager._debug("install_task %r %r", task, task.taskTime)
+        if _debug: TaskManager._debug("install_task %r @ %r", task, task.taskTime)
+
+        # if the taskTime is None is hasn't been computed correctly
+        if task.taskTime is None:
+            raise RuntimeError("task time is None")
 
         # if this is already installed, suspend it
         if task.isScheduled:

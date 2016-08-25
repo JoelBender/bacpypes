@@ -7,24 +7,6 @@ Application Service
 
 This is a long line of text.
 
-Device Information
-------------------
-
-This is a long line of text.
-
-.. class:: DeviceInfo
-
-    This is a long line of text.
-
-    .. method:: __init__(address=None, segmentationSupported='no-segmentation', maxApduLengthAccepted=1024, maxSegmentsAccepted=None)
-
-        :param Address localAddress: the local address
-        :param segmentationSupported: enumeration :class:`basetypes.BACnetSegmentation`
-        :param maxApduLengthAccepted: maximum APDU length
-        :param maxSegmentsAccepted: segmentation parameter
-
-        This is a long line of text.
-
 Segmentation State Machine
 --------------------------
 

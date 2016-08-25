@@ -4,10 +4,10 @@
 Application Module
 """
 
-from .debugging import ModuleLogger, Logging
+from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
 
-from .pdu import Address
+from .pdu import Address, LocalStation, RemoteStation
 
 from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
 from .constructeddata import Any, Array, ArrayOf
@@ -20,7 +20,15 @@ from .object import Property, PropertyError, DeviceObject, \
     registered_object_types, register_object_type
 from .apdu import ConfirmedRequestPDU, SimpleAckPDU, RejectPDU, RejectReason
 from .apdu import IAmRequest, ReadPropertyACK, Error
-from .errors import ExecutionError
+from .errors import ExecutionError, \
+    RejectException, UnrecognizedService, MissingRequiredParameter, \
+        ParameterOutOfRange, \
+    AbortException
+
+# for computing protocol services supported
+from .apdu import confirmed_request_types, unconfirmed_request_types, \
+    ConfirmedServiceChoice, UnconfirmedServiceChoice
+from .basetypes import ServicesSupported
 
 from .apdu import \
     AtomicReadFileACK, \
@@ -32,6 +40,152 @@ from .apdu import \
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+#
+#   DeviceInfo
+#
+
+@bacpypes_debugging
+class DeviceInfo(DebugContents):
+
+    _debug_contents = (
+        'deviceIdentifier',
+        'address',
+        'maxApduLengthAccepted',
+        'segmentationSupported',
+        'vendorID',
+        'maxNpduLength',
+        'maxSegmentsAccepted',
+        )
+
+    def __init__(self):
+        # this information is from an IAmRequest
+        self.deviceIdentifier = None                    # device identifier
+        self.address = None                             # LocalStation or RemoteStation
+        self.maxApduLengthAccepted = 1024               # maximum APDU device will accept
+        self.segmentationSupported = 'noSegmentation'   # normally no segmentation
+        self.vendorID = None                            # vendor identifier
+
+        self.maxNpduLength = 1497           # maximum we can send in transit
+        self.maxSegmentsAccepted = None     # value for proposed/actual window size
+
+#
+#   DeviceInfoCache
+#
+
+@bacpypes_debugging
+class DeviceInfoCache:
+
+    def __init__(self):
+        if _debug: DeviceInfoCache._debug("__init__")
+
+        # empty cache
+        self.cache = {}
+
+    def has_device_info(self, key):
+        """Return true iff cache has information about the device."""
+        if _debug: DeviceInfoCache._debug("has_device_info %r", key)
+
+        return key in self.cache
+
+    def add_device_info(self, apdu):
+        """Create a device information record based on the contents of an
+        IAmRequest and put it in the cache."""
+        if _debug: DeviceInfoCache._debug("add_device_info %r", apdu)
+
+        # get the existing cache record by identifier
+        info = self.get_device_info(apdu.iAmDeviceIdentifier[1])
+        if _debug: DeviceInfoCache._debug("    - info: %r", info)
+
+        # update existing record
+        if info:
+            if (info.address == apdu.pduSource):
+                return
+
+            info.address = apdu.pduSource
+        else:
+            # get the existing record by address (creates a new record)
+            info = self.get_device_info(apdu.pduSource)
+            if _debug: DeviceInfoCache._debug("    - info: %r", info)
+
+            info.deviceIdentifier = apdu.iAmDeviceIdentifier[1]
+
+        # update the rest of the values
+        info.maxApduLengthAccepted = apdu.maxApduLengthAccepted
+        info.segmentationSupported = apdu.segmentationSupported
+        info.vendorID = apdu.vendorID
+
+        # say this is an updated record
+        self.update_device_info(info)
+
+    def get_device_info(self, key):
+        """Return the known information about the device.  If the key is the
+        address of an unknown device, build a generic device information record
+        add put it in the cache."""
+        if _debug: DeviceInfoCache._debug("get_device_info %r", key)
+
+        if isinstance(key, int):
+            current_info = self.cache.get(key, None)
+
+        elif not isinstance(key, Address):
+            raise TypeError("key must be integer or an address")
+
+        elif key.addrType not in (Address.localStationAddr, Address.remoteStationAddr):
+            raise TypeError("address must be a local or remote station")
+
+        else:
+            current_info = self.cache.get(key, None)
+            if not current_info:
+                current_info = DeviceInfo()
+                current_info.address = key
+                current_info._cache_keys = (None, key)
+
+                self.cache[key] = current_info
+
+        if _debug: DeviceInfoCache._debug("    - current_info: %r", current_info)
+
+        return current_info
+
+    def update_device_info(self, info):
+        """The application has updated one or more fields in the device
+        information record and the cache needs to be updated to reflect the
+        changes.  If this is a cached version of a persistent record then this 
+        is the opportunity to update the database."""
+        if _debug: DeviceInfoCache._debug("update_device_info %r", info)
+
+        cache_id, cache_address = info._cache_keys
+
+        if (cache_id is not None) and (info.deviceIdentifier != cache_id):
+            if _debug: DeviceInfoCache._debug("    - device identifier updated")
+
+            # remove the old reference, add the new one
+            del self.cache[cache_id]
+            self.cache[info.deviceIdentifier] = info
+
+            cache_id = info.deviceIdentifier
+
+        if (cache_address is not None) and (info.address != cache_address):
+            if _debug: DeviceInfoCache._debug("    - device address updated")
+
+            # remove the old reference, add the new one
+            del self.cache[cache_address]
+            self.cache[info.address] = info
+
+            cache_address = info.address
+
+        # update the keys
+        info._cache_keys = (cache_id, cache_address)
+
+    def release_device_info(self, info):
+        """This function is called by the segmentation state machine when it
+        has finished with the device information."""
+        if _debug: DeviceInfoCache._debug("release_device_info %r", info)
+
+        cache_id, cache_address = info._cache_keys
+        if cache_id is not None:
+            del self.cache[cache_id]
+        if cache_address is not None:
+            del self.cache[cache_address]
 
 #
 #   CurrentDateProperty
@@ -81,7 +235,8 @@ class CurrentTimeProperty(Property):
 #   LocalDeviceObject
 #
 
-class LocalDeviceObject(DeviceObject, Logging):
+@bacpypes_debugging
+class LocalDeviceObject(DeviceObject):
 
     properties = \
         [ CurrentTimeProperty('localTime')
@@ -137,14 +292,24 @@ class LocalDeviceObject(DeviceObject, Logging):
 #   Application
 #
 
-class Application(ApplicationServiceElement, Logging):
+@bacpypes_debugging
+class Application(ApplicationServiceElement):
 
-    def __init__(self, localDevice, localAddress, aseID=None):
-        if _debug: Application._debug("__init__ %r %r aseID=%r", localDevice, localAddress, aseID)
+    def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
+        if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
 
         # keep track of the local device
         self.localDevice = localDevice
+
+        # use the provided cache or make a default one
+        if deviceInfoCache:
+            self.deviceInfoCache = deviceInfoCache
+        else:
+            self.deviceInfoCache = DeviceInfoCache()
+
+        # bind the device object to this application
+        localDevice._app = self
 
         # allow the address to be cast to the correct type
         if isinstance(localAddress, Address):
@@ -168,6 +333,10 @@ class Application(ApplicationServiceElement, Logging):
         if not object_identifier:
             raise RuntimeError("object identifier required")
 
+        # assuming the object identifier is well formed, check the instance number
+        if (object_identifier[1] >= ObjectIdentifier.maximum_instance_number):
+            raise RuntimeError("invalid object identifier")
+
         # make sure it hasn't already been defined
         if object_name in self.objectName:
             raise RuntimeError("already an object with name {0!r}".format(object_name))
@@ -180,6 +349,9 @@ class Application(ApplicationServiceElement, Logging):
 
         # append the new object's identifier to the device's object list
         self.localDevice.objectList.append(object_identifier)
+
+        # let the object know which application stack it belongs to
+        obj._app = self
 
     def delete_object(self, obj):
         """Add an object to the local collection."""
@@ -197,6 +369,9 @@ class Application(ApplicationServiceElement, Logging):
         indx = self.localDevice.objectList.index(object_identifier)
         del self.localDevice.objectList[indx]
 
+        # make sure the object knows it's detached from an application
+        obj._app = None
+
     def get_object_id(self, objid):
         """Return a local object or None."""
         return self.objectIdentifier.get(objid, None)
@@ -208,6 +383,30 @@ class Application(ApplicationServiceElement, Logging):
     def iter_objects(self):
         """Iterate over the objects."""
         return iter(self.objectIdentifier.values())
+
+    def get_services_supported(self):
+        """Return a ServicesSupported bit string based in introspection, look
+        for helper methods that match confirmed and unconfirmed services."""
+        if _debug: Application._debug("get_services_supported")
+
+        services_supported = ServicesSupported()
+
+        # look through the confirmed services
+        for service_choice, service_request_class in confirmed_request_types.items():
+            service_helper = "do_" + service_request_class.__name__
+            if hasattr(self, service_helper):
+                service_supported = ConfirmedServiceChoice._xlate_table[service_choice]
+                services_supported[service_supported] = 1
+
+        # look through the unconfirmed services
+        for service_choice, service_request_class in unconfirmed_request_types.items():
+            service_helper = "do_" + service_request_class.__name__
+            if hasattr(self, service_helper):
+                service_supported = UnconfirmedServiceChoice._xlate_table[service_choice]
+                services_supported[service_supported] = 1
+
+        # return the bit list
+        return services_supported
 
     #-----
 
@@ -222,14 +421,18 @@ class Application(ApplicationServiceElement, Logging):
         # send back a reject for unrecognized services
         if not helperFn:
             if isinstance(apdu, ConfirmedRequestPDU):
-                response = RejectPDU( apdu.apduInvokeID, RejectReason.UNRECOGNIZEDSERVICE, context=apdu)
-                self.response(response)
+                raise UnrecognizedService("no function %s" % (helperName,))
             return
 
         # pass the apdu on to the helper function
         try:
             helperFn(apdu)
-
+        except RejectException as err:
+            if _debug: Application._debug("    - reject exception: %r", err)
+            raise
+        except AbortException as err:
+            if _debug: Application._debug("    - abort exception: %r", err)
+            raise
         except ExecutionError as err:
             if _debug: Application._debug("    - execution error: %r", err)
 
@@ -250,12 +453,28 @@ class Application(ApplicationServiceElement, Logging):
         """Respond to a Who-Is request."""
         if _debug: Application._debug("do_WhoIsRequest %r", apdu)
 
-        # may be a restriction
-        if (apdu.deviceInstanceRangeLowLimit is not None) and \
-                (apdu.deviceInstanceRangeHighLimit is not None):
-            if (self.localDevice.objectIdentifier[1] < apdu.deviceInstanceRangeLowLimit):
+        # extract the parameters
+        low_limit = apdu.deviceInstanceRangeLowLimit
+        high_limit = apdu.deviceInstanceRangeHighLimit
+
+        # check for consistent parameters
+        if (low_limit is not None):
+            if (high_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
+            if (low_limit < 0) or (low_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
+        if (high_limit is not None):
+            if (low_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
+            if (high_limit < 0) or (high_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
+
+        # see we should respond
+        if (low_limit is not None):
+            if (self.localDevice.objectIdentifier[1] < low_limit):
                 return
-            if (self.localDevice.objectIdentifier[1] > apdu.deviceInstanceRangeHighLimit):
+        if (high_limit is not None):
+            if (self.localDevice.objectIdentifier[1] > high_limit):
                 return
 
         # create a I-Am "response" back to the source
@@ -269,6 +488,10 @@ class Application(ApplicationServiceElement, Logging):
 
         # away it goes
         self.request(iAm)
+
+    def do_IAmRequest(self, apdu):
+        """Respond to an I-Am request."""
+        if _debug: Application._debug("do_IAmRequest %r", apdu)
 
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""
@@ -559,11 +782,12 @@ class Application(ApplicationServiceElement, Logging):
 #   BIPSimpleApplication
 #
 
-class BIPSimpleApplication(Application, Logging):
+@bacpypes_debugging
+class BIPSimpleApplication(Application):
 
-    def __init__(self, localDevice, localAddress, aseID=None):
-        if _debug: BIPSimpleApplication._debug("__init__ %r %r aseID=%r", localDevice, localAddress, aseID)
-        Application.__init__(self, localDevice, localAddress, aseID)
+    def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
+        if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
+        Application.__init__(self, localDevice, localAddress, deviceInfoCache, aseID)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -571,6 +795,10 @@ class BIPSimpleApplication(Application, Logging):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(localDevice)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -598,7 +826,8 @@ class BIPSimpleApplication(Application, Logging):
 #   BIPForeignApplication
 #
 
-class BIPForeignApplication(Application, Logging):
+@bacpypes_debugging
+class BIPForeignApplication(Application):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
@@ -637,7 +866,8 @@ class BIPForeignApplication(Application, Logging):
 #   BIPNetworkApplication
 #
 
-class BIPNetworkApplication(NetworkServiceElement, Logging):
+@bacpypes_debugging
+class BIPNetworkApplication(NetworkServiceElement):
 
     def __init__(self, localAddress, eID=None):
         if _debug: BIPNetworkApplication._debug("__init__ %r eID=%r", localAddress, eID)

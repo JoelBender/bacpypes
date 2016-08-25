@@ -8,7 +8,6 @@ import sys
 import types
 import os
 import gc
-import readline
 import signal
 import cmd
 import logging
@@ -19,6 +18,12 @@ from .debugging import bacpypes_debugging, function_debugging, Logging, ModuleLo
 from .consolelogging import ConsoleLogHandler
 
 from . import core
+
+# readline is used for history files
+try:
+    import readline
+except ImportError:
+    readline = None
 
 # some debugging
 _debug = 0
@@ -39,14 +44,19 @@ def console_interrupt(*args):
 
 class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
-    def __init__(self, prompt="> ", allow_exec=False, stdin=None, stdout=None):
+    def __init__(self, prompt="> ", stdin=None, stdout=None):
         if _debug: ConsoleCmd._debug("__init__")
         cmd.Cmd.__init__(self, stdin=stdin, stdout=stdout)
         Thread.__init__(self, name="ConsoleCmd")
 
-        # save the prompt and exec option
-        self.prompt = prompt
-        self.allow_exec = allow_exec
+        # check to see if this is running interactive
+        self.interactive = sys.__stdin__.isatty()
+
+        # save the prompt for interactive sessions, otherwise be quiet
+        if self.interactive:
+            self.prompt = prompt
+        else:
+            self.prompt = ''
 
         # gc counters
         self.type2count = {}
@@ -54,10 +64,6 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
         # logging handlers
         self.handlers = {}
-
-        # execution space for the user
-        self._locals  = {}
-        self._globals = {}
 
         # set a INT signal handler, ^C will only get sent to the
         # main thread and there's no way to break the readline
@@ -76,7 +82,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         if _debug: ConsoleCmd._debug("    - done cmdloop")
 
         # tell the main thread to stop, this thread will exit
-        core.stop()
+        core.deferred(core.stop)
 
     def onecmd(self, cmdString):
         if _debug: ConsoleCmd._debug('onecmd %r', cmdString)
@@ -231,6 +237,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
     def do_exit(self, args):
         """Exits from the console."""
         if _debug: ConsoleCmd._debug("do_exit %r", args)
+
         return -1
 
     def do_EOF(self, args):
@@ -240,6 +247,8 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
 
     def do_shell(self, args):
         """Pass command to a system shell when line begins with '!'"""
+        if _debug: ConsoleCmd._debug("do_shell %r", args)
+
         os.system(args)
 
     def do_help(self, args):
@@ -247,7 +256,9 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         'help' or '?' with no arguments prints a list of commands for which help is available
         'help <command>' or '? <command>' gives help on <command>
         """
-        ## The only reason to define this method is for the help text in the doc string
+        if _debug: ConsoleCmd._debug("do_help %r", args)
+
+        # the only reason to define this method is for the help text in the doc string
         cmd.Cmd.do_help(self, args)
 
     def preloop(self):
@@ -257,7 +268,8 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         cmd.Cmd.preloop(self)   ## sets up command completion
 
         try:
-            readline.read_history_file(sys.argv[0] + ".history")
+            if readline:
+                readline.read_history_file(sys.argv[0] + ".history")
         except Exception, err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
@@ -267,15 +279,20 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         Despite the claims in the Cmd documentaion, Cmd.postloop() is not a stub.
         """
         try:
-            readline.write_history_file(sys.argv[0]+".history")
+            if readline:
+                readline.write_history_file(sys.argv[0] + ".history")
         except Exception, err:
             if not isinstance(err, IOError):
                 self.stdout.write("history error: %s\n" % err)
 
-        cmd.Cmd.postloop(self)   ## Clean up command completion
+        # clean up command completion
+        cmd.Cmd.postloop(self)
 
-        self.stdout.write("Exiting...\n")
-        core.stop()
+        if self.interactive:
+            self.stdout.write("Exiting...\n")
+
+        # tell the core we have stopped
+        core.deferred(core.stop)
 
     def precmd(self, line):
         """ This method is called after the line has been input but before
@@ -293,17 +310,5 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
     def emptyline(self):
         """Do nothing on empty input line"""
         pass
-
-    def default(self, line):
-        """Called on an input line when the command prefix is not recognized.
-        If allow_exec is enabled, execute the line as Python code.
-        """
-        if not self.allow_exec:
-            return cmd.Cmd.default(self, line)
-
-        try:
-            exec(line) in self._locals, self._globals
-        except Exception, err:
-            self.stdout.write("%s : %s\n" % (err.__class__, err))
 
 bacpypes_debugging(ConsoleCmd)
