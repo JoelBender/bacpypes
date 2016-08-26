@@ -248,7 +248,7 @@ class LocalDeviceObject(DeviceObject):
         { 'maxApduLengthAccepted': 1024
         , 'segmentationSupported': 'segmentedBoth'
         , 'maxSegmentsAccepted': 16
-        , 'apduSegmentTimeout': 20000
+        , 'apduSegmentTimeout': 5000
         , 'apduTimeout': 3000
         , 'numberOfApduRetries': 3
         }
