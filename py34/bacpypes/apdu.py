@@ -78,12 +78,13 @@ _max_apdu_response_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
     None, None, None, None, None, None, None, None]
 
 def encode_max_apdu_length_accepted(arg):
-    try:
-        for i, v in enumerate(_max_apdu_response_encoding):
-            if (arg <= v):
-                return i
-    except TypeError:
-        raise ValueError("invalid max APDU length accepted: {0}".format(arg))
+    """Return the encoding of the highest encodable value less than the
+    value of the arg."""
+    for i in range(5, -1, -1):
+        if (arg >= _max_apdu_response_encoding[i]):
+            return i
+
+    raise ValueError("invalid max APDU length accepted: {0}".format(arg))
 
 def decode_max_apdu_length_accepted(arg):
     v = _max_apdu_response_encoding[arg]
@@ -306,10 +307,6 @@ class APCI(PCI, DebugContents):
         else:
             raise DecodingError("invalid APDU type")
 
-        if _debug: APCI._debug("decode %r | max segment : %r" % (pdu, self.apduMaxSegs))
-
-
-
     def apci_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
         if _debug: APCI._debug("apci_contents use_dict=%r as_class=%r", use_dict, as_class)
@@ -323,7 +320,6 @@ class APCI(PCI, DebugContents):
             use_dict.__setitem__('source', str(self.pduSource))
         if self.pduDestination:
             use_dict.__setitem__('destination', str(self.pduDestination))
-
 
         # loop through the elements
         for attr in APCI._debug_contents:
