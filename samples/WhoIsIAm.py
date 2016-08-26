@@ -26,9 +26,7 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
-this_console = None
 
 #
 #   WhoIsIAmApplication
@@ -162,7 +160,9 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -200,6 +200,7 @@ try:
 
     # make a console
     this_console = WhoIsIAmConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()
@@ -208,8 +209,7 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+if __name__ == "__main__":
+    main()

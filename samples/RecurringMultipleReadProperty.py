@@ -27,11 +27,6 @@ from bacpypes.constructeddata import Array
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-this_device = None
-this_application = None
-this_console = None
-
 # point list
 point_list = [
     ('1.2.3.4', 'analogValue', 1, 'presentValue'),
@@ -150,7 +145,7 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     parser = ConfigArgumentParser(description=__doc__)
 
@@ -176,6 +171,7 @@ try:
 
     # make a dog
     this_application = PrairieDog(args.interval, this_device, args.ini.address)
+    if _debug: _log.debug("    - this_application: %r", this_application)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -188,7 +184,7 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

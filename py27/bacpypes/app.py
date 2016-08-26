@@ -111,7 +111,7 @@ class DeviceInfoCache:
             info.deviceIdentifier = apdu.iAmDeviceIdentifier[1]
 
         # update the rest of the values
-        info.maxApduLengthAccepted = apdu.maxApduLengthAccepted
+        info.maxApduLengthAccepted = apdu.maxAPDULengthAccepted
         info.segmentationSupported = apdu.segmentationSupported
         info.vendorID = apdu.vendorID
 
@@ -247,7 +247,7 @@ class LocalDeviceObject(DeviceObject):
         { 'maxApduLengthAccepted': 1024
         , 'segmentationSupported': 'segmentedBoth'
         , 'maxSegmentsAccepted': 16
-        , 'apduSegmentTimeout': 20000
+        , 'apduSegmentTimeout': 5000
         , 'apduTimeout': 3000
         , 'numberOfApduRetries': 3
         }
@@ -271,6 +271,13 @@ class LocalDeviceObject(DeviceObject):
             raise RuntimeError("localDate is provided by LocalDeviceObject and cannot be overridden")
         if 'localTime' in kwargs:
             raise RuntimeError("localTime is provided by LocalDeviceObject and cannot be overridden")
+
+        # check for a minimum value
+        if kwargs['maxApduLengthAccepted'] < 50:
+            raise ValueError("invalid max APDU length accepted")
+
+        # dump the updated attributes
+        if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
 
         # proceed as usual
         DeviceObject.__init__(self, **kwargs)

@@ -78,8 +78,10 @@ _max_apdu_response_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
     None, None, None, None, None, None, None, None]
 
 def encode_max_apdu_length_accepted(arg):
-    for i, v in enumerate(_max_apdu_response_encoding):
-        if (v <= arg):
+    """Return the encoding of the highest encodable value less than the
+    value of the arg."""
+    for i in range(5, -1, -1):
+        if (arg >= _max_apdu_response_encoding[i]):
             return i
 
     raise ValueError("invalid max APDU length accepted: {0}".format(arg))

@@ -98,12 +98,12 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         "host", nargs='?',
-        help="address of host",
+        help="address of host (default {!r})".format(SERVER_HOST),
         default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
-        help="server port",
+        help="server port (default {!r})".format(SERVER_PORT),
         default=SERVER_PORT,
         )
     args = parser.parse_args()

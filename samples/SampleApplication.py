@@ -25,10 +25,6 @@ from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-this_device = None
-this_application = None
-
 #
 #   SampleApplication
 #
@@ -61,7 +57,7 @@ class SampleApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -93,8 +89,7 @@ try:
 
     run()
 
-except Exception as err:
-    _log.exception("an error has occurred: %s", err)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+if __name__ == "__main__":
+    main()
