@@ -24,9 +24,6 @@ _log = ModuleLogger(globals())
 SERVER_HOST = os.getenv('SERVER_HOST', 'any')
 SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
 
-# globals
-server_address = None
-
 #
 #   EchoMaster
 #
@@ -89,8 +86,7 @@ def main():
     host = args.host
     if host == "any":
         host = ''
-    port = args.port
-    server_address = (host, port)
+    server_address = (host, args.port)
     if _debug: _log.debug("    - server_address: %r", server_address)
 
     # create a director listening to the address
@@ -114,4 +110,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

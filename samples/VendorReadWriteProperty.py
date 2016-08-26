@@ -31,6 +31,9 @@ import VendorAVObject
 _debug = 0
 _log = ModuleLogger(globals())
 
+# globals
+this_application = None
+
 #
 #   ReadPropertyApplication
 #
@@ -97,8 +100,6 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
         """read <addr> <type> <inst> <prop> [ <indx> ]"""
-        global this_application
-
         args = args.split()
         if _debug: ReadWritePropertyConsoleCmd._debug("do_read %r", args)
 
@@ -141,8 +142,6 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
     def do_write(self, args):
         """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
-        global this_application
-
         args = args.split()
         ReadWritePropertyConsoleCmd._debug("do_write %r", args)
 
@@ -235,16 +234,14 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 #   main
 #
 
-@bacpypes_debugging
 def main():
-    if _debug: main._debug("initialization")
     global this_application
 
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
-    if _debug: main._debug("initialization")
-    if _debug: main._debug("    - args: %r", args)
+    if _debug: _log.debug("initialization")
+    if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
     this_device = LocalDeviceObject(
@@ -272,10 +269,11 @@ def main():
     # enable sleeping will help with threads
     enable_sleeping()
 
-    main._debug("running")
+    _log.debug("running")
 
     run()
 
+    _log.debug("fini")
+
 if __name__ == '__main__':
     main()
-

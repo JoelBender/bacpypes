@@ -26,13 +26,7 @@ from bacpypes.constructeddata import Array
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-this_device = None
-this_application = None
-this_console = None
-
-# point list
-# set according to your device
+# point list, set according to your device
 point_list = [
     ('1.2.3.4', 'analogValue', 1, 'presentValue'),
     ('1.2.3.4', 'analogValue', 2, 'presentValue'),

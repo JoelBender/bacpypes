@@ -28,7 +28,6 @@ _log = ModuleLogger(globals())
 # globals
 this_device = None
 this_application = None
-this_console = None
 
 #
 #   WhoIsIAmApplication
@@ -163,7 +162,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 #
 
 def main():
-    global this_device, this_application, this_console
+    global this_device, this_application
 
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
@@ -217,7 +216,8 @@ def main():
 
     run()
 
-    _log.debug("finally")
+    _log.debug("fini")
+
 
 if __name__ == "__main__":
     main()
