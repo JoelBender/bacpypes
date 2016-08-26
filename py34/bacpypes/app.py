@@ -276,6 +276,9 @@ class LocalDeviceObject(DeviceObject):
         if kwargs['maxApduLengthAccepted'] < 50:
             raise ValueError("invalid max APDU length accepted")
 
+        # dump the updated attributes
+        if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
+
         # proceed as usual
         DeviceObject.__init__(self, **kwargs)
 
