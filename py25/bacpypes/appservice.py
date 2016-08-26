@@ -78,6 +78,8 @@ class SSM(OneShotTask, DebugContents):
         if localDevice:
             self.maxApduLengthAccepted = localDevice.maxApduLengthAccepted
             self.segmentationSupported = localDevice.segmentationSupported
+            if localDevice.segmentationSupported != 'noSegmentation':
+                self.maxSegmentsAccepted = localDevice.maxSegmentsAccepted
         else:
             self.maxApduLengthAccepted = 1024
             self.segmentationSupported = 'noSegmentation'
