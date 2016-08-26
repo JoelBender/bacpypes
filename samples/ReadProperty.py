@@ -27,7 +27,6 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
 this_console = None
 
@@ -151,7 +150,9 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -189,7 +190,5 @@ try:
 
     _log.debug("fini")
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+if __name__ == "__main__":
+    main()

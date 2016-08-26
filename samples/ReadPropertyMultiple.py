@@ -206,6 +206,8 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 #
 
 def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 

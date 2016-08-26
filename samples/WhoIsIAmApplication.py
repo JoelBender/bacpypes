@@ -20,10 +20,6 @@ from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-this_device = None
-this_application = None
-
 # counters
 who_is_counter = defaultdict(int)
 i_am_counter = defaultdict(int)
@@ -73,7 +69,7 @@ class WhoIsIAmApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -103,6 +99,8 @@ try:
 
     run()
 
+    _log.debug("fini")
+
     print("----- Who Is -----")
     for (src, lowlim, hilim), count in sorted(who_is_counter.items()):
         print("%-20s %8s %8s %4d" % (src, lowlim, hilim, count))
@@ -113,7 +111,5 @@ try:
         print("%-20s %8d %4d" % (src, devid, count))
     print("")
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+if __name__ == "__main__":
+    main()

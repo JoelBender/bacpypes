@@ -44,7 +44,7 @@ class PrairieDog(RecurringTask):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
 
@@ -68,7 +68,7 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()
