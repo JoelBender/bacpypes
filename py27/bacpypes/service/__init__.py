@@ -5,3 +5,5 @@ Service Subpackage
 """
 
 from . import test
+
+from . import file
