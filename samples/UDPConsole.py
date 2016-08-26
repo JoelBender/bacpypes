@@ -175,7 +175,7 @@ class BroadcastReceiver(Client):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
     parser.add_argument("address",
@@ -235,7 +235,7 @@ try:
 
     run()
 
-except Exception as e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

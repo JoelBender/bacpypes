@@ -26,9 +26,7 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
-this_console = None
 
 #
 #   ReadPropertyAnyApplication
@@ -136,6 +134,8 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
 #
 
 def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
