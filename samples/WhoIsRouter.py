@@ -103,7 +103,9 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -125,7 +127,7 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

@@ -28,10 +28,6 @@ _log = ModuleLogger(globals())
 # settings
 RANDOM_OBJECT_COUNT = int(os.getenv('RANDOM_OBJECT_COUNT', 10))
 
-# globals
-this_device = None
-this_application = None
-
 #
 #   RandomValueProperty
 #
@@ -124,7 +120,6 @@ def main():
     run()
 
     _log.debug("fini")
-
 
 if __name__ == "__main__":
     main()

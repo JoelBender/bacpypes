@@ -218,5 +218,7 @@ def main():
 
     run()
 
+    _log.debug("fini")
+
 if __name__ == "__main__":
     main()
