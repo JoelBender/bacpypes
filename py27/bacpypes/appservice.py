@@ -1075,6 +1075,7 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         # confirmed request defaults
         self.retryCount = 3
         self.retryTimeout = 3000
+        self.maxApduLengthAccepted = 1024
 
         # segmentation defaults
         self.segmentationSupported = 'noSegmentation'
@@ -1088,6 +1089,7 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
             self.segmentationSupported = localDevice.segmentationSupported
             self.segmentTimeout = localDevice.apduSegmentTimeout
             self.maxSegmentsAccepted = localDevice.maxSegmentsAccepted
+            self.maxApduLengthAccepted = localDevice.maxApduLengthAccepted
 
         # how long the state machine is willing to wait for the application
         # layer to form a response and send it
