@@ -762,7 +762,7 @@ class ServerSSM(SSM):
                 if _debug: ServerSSM._debug("    - segmentation required, %d segments", self.segmentCount)
 
                 # make sure we support segmented transmit
-                if self.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
+                if self.ssmSAP.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
                     if _debug: ServerSSM._debug("    - server can't send segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
                     self.reponse(abort)
