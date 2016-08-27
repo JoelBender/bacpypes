@@ -24,6 +24,8 @@ class LocalRecordAccessFileObject(FileObject):
         if 'fileAccessMethod' in kwargs:
             if kwargs['fileAccessMethod'] != 'recordAccess':
                 raise ValueError("inconsistent file access method")
+        else:
+            kwargs['fileAccessMethod'] = 'recordAccess'
 
         FileObject.__init__(self,
             fileAccessMethod='recordAccess',
@@ -34,13 +36,13 @@ class LocalRecordAccessFileObject(FileObject):
         """ Return the number of records. """
         raise NotImplementedError("__len__")
 
-    def read_file(self, start_record, record_count):
+    def read_record(self, start_record, record_count):
         """ Read a number of records starting at a specific record. """
-        raise NotImplementedError("read_file")
+        raise NotImplementedError("read_record")
 
-    def write_file(self, start_record, record_count, record_data):
+    def write_record(self, start_record, record_count, record_data):
         """ Write a number of records, starting at a specific record. """
-        raise NotImplementedError("write_file")
+        raise NotImplementedError("write_record")
 
 #
 #   Local Stream Access File Object Type
@@ -59,9 +61,10 @@ class LocalStreamAccessFileObject(FileObject):
         if 'fileAccessMethod' in kwargs:
             if kwargs['fileAccessMethod'] != 'streamAccess':
                 raise ValueError("inconsistent file access method")
+        else:
+            kwargs['fileAccessMethod'] = 'streamAccess'
 
         FileObject.__init__(self,
-            fileAccessMethod='streamAccess',
              **kwargs
              )
 
@@ -69,157 +72,131 @@ class LocalStreamAccessFileObject(FileObject):
         """ Return the number of octets in the file. """
         raise NotImplementedError("write_file")
 
-    def read_file(self, start_position, octet_count):
+    def read_stream(self, start_position, octet_count):
         """ Read a chunk of data out of the file. """
-        raise NotImplementedError("write_file")
+        raise NotImplementedError("read_stream")
 
-    def write_file(self, start_position, data):
+    def write_stream(self, start_position, data):
         """ Write a number of octets, starting at a specific offset. """
-        raise NotImplementedError("write_file")
+        raise NotImplementedError("write_stream")
 
 #
 #   File Application Mixin
 #
 
 @bacpypes_debugging
-class FileApplicationMixin(object):
+class FileServices(Capability):
 
-    def __init__(self, *args, **kwargs):
-        if _debug: FileApplicationMixin._debug("__init__")
-        super(FileApplicationMixin, self).__init__(*args, **kwargs)
+    def __init__(self):
+        if _debug: FileServices._debug("__init__")
+        Capability.__init__(self)
 
     def do_AtomicReadFileRequest(self, apdu):
         """Return one of our records."""
-        if _debug: FileApplicationMixin._debug("do_AtomicReadFileRequest %r", apdu)
+        if _debug: FileServices._debug("do_AtomicReadFileRequest %r", apdu)
 
         if (apdu.fileIdentifier[0] != 'file'):
-            resp = Error(errorClass='services', errorCode='inconsistentObjectType', context=apdu)
-            if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-            self.response(resp)
-            return
+            raise ExecutionError('services', 'inconsistentObjectType')
 
         # get the object
         obj = self.get_object_id(apdu.fileIdentifier)
-        if _debug: FileApplicationMixin._debug("    - object: %r", obj)
+        if _debug: FileServices._debug("    - object: %r", obj)
 
         if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        elif apdu.accessMethod.recordAccess:
+            raise ExecutionError('object', 'unknownObject')
+
+        if apdu.accessMethod.recordAccess:
             # check against the object
             if obj.fileAccessMethod != 'recordAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-            ### verify start is valid - double check this (empty files?)
-            elif (apdu.accessMethod.recordAccess.fileStartRecord < 0) or \
-                    (apdu.accessMethod.recordAccess.fileStartRecord >= len(obj)):
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileStartPosition',
-                    context=apdu
-                    )
-            else:
-                # pass along to the object
-                end_of_file, record_data = obj.ReadFile(
-                    apdu.accessMethod.recordAccess.fileStartRecord,
-                    apdu.accessMethod.recordAccess.requestedRecordCount,
-                    )
-                if _debug: FileApplicationMixin._debug("    - record_data: %r", record_data)
+                raise ExecutionError('services', 'invalidFileAccessMethod')
 
-                # this is an ack
-                resp = AtomicReadFileACK(context=apdu,
-                    endOfFile=end_of_file,
-                    accessMethod=AtomicReadFileACKAccessMethodChoice(
-                        recordAccess=AtomicReadFileACKAccessMethodRecordAccess(
-                            fileStartRecord=apdu.accessMethod.recordAccess.fileStartRecord,
-                            returnedRecordCount=len(record_data),
-                            fileRecordData=record_data,
-                            ),
+            ### verify start is valid - double check this (empty files?)
+            if (apdu.accessMethod.recordAccess.fileStartRecord < 0) or \
+                    (apdu.accessMethod.recordAccess.fileStartRecord >= len(obj)):
+                raise ExecutionError('services', 'invalidFileStartPosition')
+
+            # pass along to the object
+            end_of_file, record_data = obj.read_record(
+                apdu.accessMethod.recordAccess.fileStartRecord,
+                apdu.accessMethod.recordAccess.requestedRecordCount,
+                )
+            if _debug: FileServices._debug("    - record_data: %r", record_data)
+
+            # this is an ack
+            resp = AtomicReadFileACK(context=apdu,
+                endOfFile=end_of_file,
+                accessMethod=AtomicReadFileACKAccessMethodChoice(
+                    recordAccess=AtomicReadFileACKAccessMethodRecordAccess(
+                        fileStartRecord=apdu.accessMethod.recordAccess.fileStartRecord,
+                        returnedRecordCount=len(record_data),
+                        fileRecordData=record_data,
                         ),
-                    )
+                    ),
+                )
 
         elif apdu.accessMethod.streamAccess:
             # check against the object
             if obj.fileAccessMethod != 'streamAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
+                raise ExecutionError('services', 'invalidFileAccessMethod')
+
             ### verify start is valid - double check this (empty files?)
-            elif (apdu.accessMethod.streamAccess.fileStartPosition < 0) or \
+            if (apdu.accessMethod.streamAccess.fileStartPosition < 0) or \
                     (apdu.accessMethod.streamAccess.fileStartPosition >= len(obj)):
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileStartPosition',
-                    context=apdu
-                    )
-            else:
-                # pass along to the object
-                end_of_file, record_data = obj.ReadFile(
-                    apdu.accessMethod.streamAccess.fileStartPosition,
-                    apdu.accessMethod.streamAccess.requestedOctetCount,
-                    )
-                if _debug: FileApplicationMixin._debug("    - record_data: %r", record_data)
+                raise ExecutionError('services', 'invalidFileStartPosition')
 
-                # this is an ack
-                resp = AtomicReadFileACK(context=apdu,
-                    endOfFile=end_of_file,
-                    accessMethod=AtomicReadFileACKAccessMethodChoice(
-                        streamAccess=AtomicReadFileACKAccessMethodStreamAccess(
-                            fileStartPosition=apdu.accessMethod.streamAccess.fileStartPosition,
-                            fileData=record_data,
-                            ),
+            # pass along to the object
+            end_of_file, record_data = obj.read_stream(
+                apdu.accessMethod.streamAccess.fileStartPosition,
+                apdu.accessMethod.streamAccess.requestedOctetCount,
+                )
+            if _debug: FileServices._debug("    - record_data: %r", record_data)
+
+            # this is an ack
+            resp = AtomicReadFileACK(context=apdu,
+                endOfFile=end_of_file,
+                accessMethod=AtomicReadFileACKAccessMethodChoice(
+                    streamAccess=AtomicReadFileACKAccessMethodStreamAccess(
+                        fileStartPosition=apdu.accessMethod.streamAccess.fileStartPosition,
+                        fileData=record_data,
                         ),
-                    )
+                    ),
+                )
 
-        if _debug: FileApplicationMixin._debug("    - resp: %r", resp)
+        if _debug: FileServices._debug("    - resp: %r", resp)
 
         # return the result
         self.response(resp)
 
     def do_AtomicWriteFileRequest(self, apdu):
         """Return one of our records."""
-        if _debug: FileApplicationMixin._debug("do_AtomicWriteFileRequest %r", apdu)
+        if _debug: FileServices._debug("do_AtomicWriteFileRequest %r", apdu)
 
         if (apdu.fileIdentifier[0] != 'file'):
-            resp = Error(errorClass='services', errorCode='inconsistentObjectType', context=apdu)
-            if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-            self.response(resp)
-            return
+            raise ExecutionError('services', 'inconsistentObjectType')
 
         # get the object
         obj = self.get_object_id(apdu.fileIdentifier)
-        if _debug: FileApplicationMixin._debug("    - object: %r", obj)
+        if _debug: FileServices._debug("    - object: %r", obj)
 
         if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        elif apdu.accessMethod.recordAccess:
+            raise ExecutionError('object', 'unknownObject')
+
+        if apdu.accessMethod.recordAccess:
             # check against the object
             if obj.fileAccessMethod != 'recordAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-                if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
+                raise ExecutionError('services', 'invalidFileAccessMethod')
 
             # check for read-only
             if obj.readOnly:
-                resp = Error(errorClass='services',
-                    errorCode='fileAccessDenied',
-                    context=apdu
-                    )
-                if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
+                raise ExecutionError('services', 'fileAccessDenied')
 
             # pass along to the object
-            start_record = obj.WriteFile(
+            start_record = obj.write_record(
                 apdu.accessMethod.recordAccess.fileStartRecord,
                 apdu.accessMethod.recordAccess.recordCount,
                 apdu.accessMethod.recordAccess.fileRecordData,
                 )
-            if _debug: FileApplicationMixin._debug("    - start_record: %r", start_record)
+            if _debug: FileServices._debug("    - start_record: %r", start_record)
 
             # this is an ack
             resp = AtomicWriteFileACK(context=apdu,
@@ -229,37 +206,25 @@ class FileApplicationMixin(object):
         elif apdu.accessMethod.streamAccess:
             # check against the object
             if obj.fileAccessMethod != 'streamAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-                if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
+                raise ExecutionError('services', 'invalidFileAccessMethod')
 
             # check for read-only
             if obj.readOnly:
-                resp = Error(errorClass='services',
-                    errorCode='fileAccessDenied',
-                    context=apdu
-                    )
-                if _debug: FileApplicationMixin._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
+                raise ExecutionError('services', 'fileAccessDenied')
 
             # pass along to the object
-            start_position = obj.WriteFile(
+            start_position = obj.write_stream(
                 apdu.accessMethod.streamAccess.fileStartPosition,
                 apdu.accessMethod.streamAccess.fileData,
                 )
-            if _debug: FileApplicationMixin._debug("    - start_position: %r", start_position)
+            if _debug: FileServices._debug("    - start_position: %r", start_position)
 
             # this is an ack
             resp = AtomicWriteFileACK(context=apdu,
                 fileStartPosition=start_position,
                 )
 
-        if _debug: FileApplicationMixin._debug("    - resp: %r", resp)
+        if _debug: FileServices._debug("    - resp: %r", resp)
 
         # return the result
         self.response(resp)

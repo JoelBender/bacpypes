@@ -29,6 +29,7 @@ __email__ = 'joel@carrickbender.com'
 from . import comm
 from . import task
 from . import singleton
+from . import capability
 
 #
 #   Link Layer Modules
