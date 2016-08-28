@@ -12,6 +12,7 @@ from .pdu import Address, LocalStation, RemoteStation
 from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
 from .constructeddata import Any, Array, ArrayOf
 
+from .capability import Collector
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
@@ -300,11 +301,12 @@ class LocalDeviceObject(DeviceObject):
 #
 
 @bacpypes_debugging
-class Application(ApplicationServiceElement):
+class Application(ApplicationServiceElement, Collector):
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
+        Collector.__init__(self)
 
         # keep track of the local device
         self.localDevice = localDevice
@@ -452,50 +454,6 @@ class Application(ApplicationServiceElement):
             if isinstance(apdu, ConfirmedRequestPDU):
                 resp = Error(errorClass='device', errorCode='operationalProblem', context=apdu)
                 self.response(resp)
-
-    def do_WhoIsRequest(self, apdu):
-        """Respond to a Who-Is request."""
-        if _debug: Application._debug("do_WhoIsRequest %r", apdu)
-
-        # extract the parameters
-        low_limit = apdu.deviceInstanceRangeLowLimit
-        high_limit = apdu.deviceInstanceRangeHighLimit
-
-        # check for consistent parameters
-        if (low_limit is not None):
-            if (high_limit is None):
-                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
-            if (low_limit < 0) or (low_limit > 4194303):
-                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
-        if (high_limit is not None):
-            if (low_limit is None):
-                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
-            if (high_limit < 0) or (high_limit > 4194303):
-                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
-
-        # see we should respond
-        if (low_limit is not None):
-            if (self.localDevice.objectIdentifier[1] < low_limit):
-                return
-        if (high_limit is not None):
-            if (self.localDevice.objectIdentifier[1] > high_limit):
-                return
-
-        # create a I-Am "response" back to the source
-        iAm = IAmRequest()
-        iAm.pduDestination = apdu.pduSource
-        iAm.iAmDeviceIdentifier = self.localDevice.objectIdentifier
-        iAm.maxAPDULengthAccepted = self.localDevice.maxApduLengthAccepted
-        iAm.segmentationSupported = self.localDevice.segmentationSupported
-        iAm.vendorID = self.localDevice.vendorIdentifier
-        if _debug: Application._debug("    - iAm: %r", iAm)
-
-        # away it goes
-        self.request(iAm)
-
-    def do_IAmRequest(self, apdu):
-        """Respond to an I-Am request."""
-        if _debug: Application._debug("do_IAmRequest %r", apdu)
 
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""

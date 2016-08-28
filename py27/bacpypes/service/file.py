@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from bacpypes.object import FileObject
+from ..debugging import bacpypes_debugging, ModuleLogger
+from ..capability import Capability
+
+from ..object import FileObject
 
 # some debugging
 _debug = 0
@@ -228,3 +230,25 @@ class FileServices(Capability):
 
         # return the result
         self.response(resp)
+
+#
+#   FileServicesClient
+#
+
+class FileServicesClient(Capability):
+
+    def read_record(self, address, fileIdentifier, start_record, record_count):
+        """ Read a number of records starting at a specific record. """
+        raise NotImplementedError("read_record")
+
+    def write_record(self, address, fileIdentifier, start_record, record_count, record_data):
+        """ Write a number of records, starting at a specific record. """
+        raise NotImplementedError("write_record")
+
+    def read_stream(self, address, fileIdentifier, start_position, octet_count):
+        """ Read a chunk of data out of the file. """
+        raise NotImplementedError("read_stream")
+
+    def write_stream(self, address, fileIdentifier, start_position, data):
+        """ Write a number of octets, starting at a specific offset. """
+        raise NotImplementedError("write_stream")

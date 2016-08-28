@@ -6,4 +6,5 @@ Service Subpackage
 
 from . import test
 
+from . import device
 from . import file
