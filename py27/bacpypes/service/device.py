@@ -4,7 +4,17 @@ from ..debugging import bacpypes_debugging, ModuleLogger
 from ..capability import Capability
 
 from ..pdu import GlobalBroadcast
-from ..apdu import WhoIsRequest, IAmRequest
+from ..basetypes import ErrorType
+from ..primitivedata import Atomic, Null, Unsigned
+from ..constructeddata import Any, Array
+
+from ..apdu import Error, WhoIsRequest, IAmRequest, \
+    SimpleAckPDU, ReadPropertyACK, ReadPropertyMultipleACK, \
+    ReadAccessResult, ReadAccessResultElement, ReadAccessResultElementChoice
+from ..errors import ExecutionError, InconsistentParameters, \
+    MissingRequiredParameter, ParameterOutOfRange
+    
+from ..object import PropertyError
 
 # some debugging
 _debug = 0
@@ -159,6 +169,8 @@ class WhoHasIHaveServices(Capability):
     def who_has(self, thing, address=None):
         if _debug: WhoHasIHaveServices._debug("who_has %r address=%r", thing, address)
 
+        raise NotImplementedError("i_have")
+
     def do_WhoHasRequest(self, apdu):
         """Respond to a Who-Has request."""
         if _debug: WhoHasIHaveServices._debug("do_WhoHasRequest, %r", apdu)
@@ -168,18 +180,23 @@ class WhoHasIHaveServices(Capability):
             if _debug: WhoIsIAmServices._debug("    - no local device")
             return
 
-        key = (str(apdu.pduSource),)
+        # find the object
         if apdu.object.objectIdentifier is not None:
-            key += (str(apdu.object.objectIdentifier),)
+            obj = self.objectIdentifier.get(apdu.object.objectIdentifier, None)
         elif apdu.object.objectName is not None:
-            key += (apdu.object.objectName,)
+            obj = self.objectName.get(apdu.object.objectName, None)
         else:
             raise InconsistentParameters("object identifier or object name required")
+        if not obj:
+            raise Error(errorClass='object', errorCode='unknownObject')
 
-        ### check the objects for a match, call self.i_have(obj, address=apdu.pduSource)
+#       # send out the response
+#       self.i_have(obj, address=apdu.pduSource)
 
     def i_have(self, thing, address=None):
         if _debug: WhoHasIHaveServices._debug("i_have %r address=%r", thing, address)
+
+        raise NotImplementedError("i_have")
 
     def do_IHaveRequest(self, apdu):
         """Respond to a I-Have request."""
@@ -203,109 +220,108 @@ class ReadWritePropertyServices(Capability):
 
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""
-        if _debug: Application._debug("do_ReadPropertyRequest %r", apdu)
+        if _debug: ReadWritePropertyServices._debug("do_ReadPropertyRequest %r", apdu)
 
         # extract the object identifier
         objId = apdu.objectIdentifier
 
         # check for wildcard
         if (objId == ('device', 4194303)):
-            if _debug: Application._debug("    - wildcard device identifier")
+            if _debug: ReadWritePropertyServices._debug("    - wildcard device identifier")
             objId = self.localDevice.objectIdentifier
 
         # get the object
         obj = self.get_object_id(objId)
-        if _debug: Application._debug("    - object: %r", obj)
+        if _debug: ReadWritePropertyServices._debug("    - object: %r", obj)
 
         if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        else:
-            try:
-                # get the datatype
-                datatype = obj.get_datatype(apdu.propertyIdentifier)
-                if _debug: Application._debug("    - datatype: %r", datatype)
+            raise Error(errorClass='object', errorCode='unknownObject')
 
-                # get the value
-                value = obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex)
-                if _debug: Application._debug("    - value: %r", value)
-                if value is None:
-                    raise PropertyError(apdu.propertyIdentifier)
+        try:
+            # get the datatype
+            datatype = obj.get_datatype(apdu.propertyIdentifier)
+            if _debug: ReadWritePropertyServices._debug("    - datatype: %r", datatype)
 
-                # change atomic values into something encodeable
-                if issubclass(datatype, Atomic):
-                    value = datatype(value)
-                elif issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                    if apdu.propertyArrayIndex == 0:
-                        value = Unsigned(value)
-                    elif issubclass(datatype.subtype, Atomic):
-                        value = datatype.subtype(value)
-                    elif not isinstance(value, datatype.subtype):
-                        raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                            .format(datatype.subtype.__name__, type(value).__name__))
-                elif not isinstance(value, datatype):
+            # get the value
+            value = obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex)
+            if _debug: ReadWritePropertyServices._debug("    - value: %r", value)
+            if value is None:
+                raise PropertyError(apdu.propertyIdentifier)
+
+            # change atomic values into something encodeable
+            if issubclass(datatype, Atomic):
+                value = datatype(value)
+            elif issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
+                if apdu.propertyArrayIndex == 0:
+                    value = Unsigned(value)
+                elif issubclass(datatype.subtype, Atomic):
+                    value = datatype.subtype(value)
+                elif not isinstance(value, datatype.subtype):
                     raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                        .format(datatype.__name__, type(value).__name__))
-                if _debug: Application._debug("    - encodeable value: %r", value)
+                        .format(datatype.subtype.__name__, type(value).__name__))
+            elif not isinstance(value, datatype):
+                raise TypeError("invalid result datatype, expecting {0} and got {1}" \
+                    .format(datatype.__name__, type(value).__name__))
+            if _debug: ReadWritePropertyServices._debug("    - encodeable value: %r", value)
 
-                # this is a ReadProperty ack
-                resp = ReadPropertyACK(context=apdu)
-                resp.objectIdentifier = objId
-                resp.propertyIdentifier = apdu.propertyIdentifier
-                resp.propertyArrayIndex = apdu.propertyArrayIndex
+            # this is a ReadProperty ack
+            resp = ReadPropertyACK(context=apdu)
+            resp.objectIdentifier = objId
+            resp.propertyIdentifier = apdu.propertyIdentifier
+            resp.propertyArrayIndex = apdu.propertyArrayIndex
 
-                # save the result in the property value
-                resp.propertyValue = Any()
-                resp.propertyValue.cast_in(value)
+            # save the result in the property value
+            resp.propertyValue = Any()
+            resp.propertyValue.cast_in(value)
+            if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
-            except PropertyError:
-                resp = Error(errorClass='object', errorCode='unknownProperty', context=apdu)
-        if _debug: Application._debug("    - resp: %r", resp)
+        except PropertyError:
+            raise Error(errorClass='object', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)
 
     def do_WritePropertyRequest(self, apdu):
         """Change the value of some property of one of our objects."""
-        if _debug: Application._debug("do_WritePropertyRequest %r", apdu)
+        if _debug: ReadWritePropertyServices._debug("do_WritePropertyRequest %r", apdu)
 
         # get the object
         obj = self.get_object_id(apdu.objectIdentifier)
-        if _debug: Application._debug("    - object: %r", obj)
-
+        if _debug: ReadWritePropertyServices._debug("    - object: %r", obj)
         if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        else:
-            try:
-                # check if the property exists
-                if obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex) is None:
-                    raise PropertyError(apdu.propertyIdentifier)
+            raise Error(errorClass='object', errorCode='unknownObject')
 
-                # get the datatype, special case for null
-                if apdu.propertyValue.is_application_class_null():
-                    datatype = Null
+        try:
+            # check if the property exists
+            if obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex) is None:
+                raise PropertyError(apdu.propertyIdentifier)
+
+            # get the datatype, special case for null
+            if apdu.propertyValue.is_application_class_null():
+                datatype = Null
+            else:
+                datatype = obj.get_datatype(apdu.propertyIdentifier)
+            if _debug: ReadWritePropertyServices._debug("    - datatype: %r", datatype)
+
+            # special case for array parts, others are managed by cast_out
+            if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
+                if apdu.propertyArrayIndex == 0:
+                    value = apdu.propertyValue.cast_out(Unsigned)
                 else:
-                    datatype = obj.get_datatype(apdu.propertyIdentifier)
-                if _debug: Application._debug("    - datatype: %r", datatype)
+                    value = apdu.propertyValue.cast_out(datatype.subtype)
+            else:
+                value = apdu.propertyValue.cast_out(datatype)
+            if _debug: ReadWritePropertyServices._debug("    - value: %r", value)
 
-                # special case for array parts, others are managed by cast_out
-                if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                    if apdu.propertyArrayIndex == 0:
-                        value = apdu.propertyValue.cast_out(Unsigned)
-                    else:
-                        value = apdu.propertyValue.cast_out(datatype.subtype)
-                else:
-                    value = apdu.propertyValue.cast_out(datatype)
-                if _debug: Application._debug("    - value: %r", value)
+            # change the value
+            value = obj.WriteProperty(apdu.propertyIdentifier, value, apdu.propertyArrayIndex, apdu.priority)
 
-                # change the value
-                value = obj.WriteProperty(apdu.propertyIdentifier, value, apdu.propertyArrayIndex, apdu.priority)
+            # success
+            resp = SimpleAckPDU(context=apdu)
+            if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
-                # success
-                resp = SimpleAckPDU(context=apdu)
-
-            except PropertyError:
-                resp = Error(errorClass='object', errorCode='unknownProperty', context=apdu)
-        if _debug: Application._debug("    - resp: %r", resp)
+        except PropertyError:
+            raise Error(errorClass='object', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)
@@ -391,7 +407,7 @@ def read_property_to_result_element(obj, propertyIdentifier, propertyArrayIndex=
     return read_access_result_element
 
 #
-#
+#   ReadWritePropertyMultipleServices
 #
 
 class ReadWritePropertyMultipleServices(Capability):

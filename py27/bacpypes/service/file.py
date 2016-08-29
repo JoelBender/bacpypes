@@ -5,6 +5,12 @@ from ..capability import Capability
 
 from ..object import FileObject
 
+from ..apdu import AtomicReadFileACK, AtomicReadFileACKAccessMethodChoice, \
+    AtomicReadFileACKAccessMethodRecordAccess, \
+    AtomicReadFileACKAccessMethodStreamAccess, \
+    AtomicWriteFileACK
+from ..errors import ExecutionError, MissingRequiredParameter
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -112,15 +118,24 @@ class FileServices(Capability):
             if obj.fileAccessMethod != 'recordAccess':
                 raise ExecutionError('services', 'invalidFileAccessMethod')
 
+            # simplify
+            record_access = apdu.accessMethod.recordAccess
+
+            # check for required parameters
+            if record_access.fileStartRecord is None:
+                raise MissingRequiredParameter("fileStartRecord required")
+            if record_access.requestedRecordCount is None:
+                raise MissingRequiredParameter("requestedRecordCount required")
+
             ### verify start is valid - double check this (empty files?)
-            if (apdu.accessMethod.recordAccess.fileStartRecord < 0) or \
-                    (apdu.accessMethod.recordAccess.fileStartRecord >= len(obj)):
+            if (record_access.fileStartRecord < 0) or \
+                    (record_access.fileStartRecord >= len(obj)):
                 raise ExecutionError('services', 'invalidFileStartPosition')
 
             # pass along to the object
             end_of_file, record_data = obj.read_record(
-                apdu.accessMethod.recordAccess.fileStartRecord,
-                apdu.accessMethod.recordAccess.requestedRecordCount,
+                record_access.fileStartRecord,
+                record_access.requestedRecordCount,
                 )
             if _debug: FileServices._debug("    - record_data: %r", record_data)
 
@@ -129,7 +144,7 @@ class FileServices(Capability):
                 endOfFile=end_of_file,
                 accessMethod=AtomicReadFileACKAccessMethodChoice(
                     recordAccess=AtomicReadFileACKAccessMethodRecordAccess(
-                        fileStartRecord=apdu.accessMethod.recordAccess.fileStartRecord,
+                        fileStartRecord=record_access.fileStartRecord,
                         returnedRecordCount=len(record_data),
                         fileRecordData=record_data,
                         ),
@@ -141,15 +156,24 @@ class FileServices(Capability):
             if obj.fileAccessMethod != 'streamAccess':
                 raise ExecutionError('services', 'invalidFileAccessMethod')
 
+            # simplify
+            stream_access = apdu.accessMethod.streamAccess
+
+            # check for required parameters
+            if stream_access.fileStartPosition is None:
+                raise MissingRequiredParameter("fileStartPosition required")
+            if stream_access.requestedOctetCount is None:
+                raise MissingRequiredParameter("requestedOctetCount required")
+
             ### verify start is valid - double check this (empty files?)
-            if (apdu.accessMethod.streamAccess.fileStartPosition < 0) or \
-                    (apdu.accessMethod.streamAccess.fileStartPosition >= len(obj)):
+            if (stream_access.fileStartPosition < 0) or \
+                    (stream_access.fileStartPosition >= len(obj)):
                 raise ExecutionError('services', 'invalidFileStartPosition')
 
             # pass along to the object
             end_of_file, record_data = obj.read_stream(
-                apdu.accessMethod.streamAccess.fileStartPosition,
-                apdu.accessMethod.streamAccess.requestedOctetCount,
+                stream_access.fileStartPosition,
+                stream_access.requestedOctetCount,
                 )
             if _debug: FileServices._debug("    - record_data: %r", record_data)
 
@@ -158,7 +182,7 @@ class FileServices(Capability):
                 endOfFile=end_of_file,
                 accessMethod=AtomicReadFileACKAccessMethodChoice(
                     streamAccess=AtomicReadFileACKAccessMethodStreamAccess(
-                        fileStartPosition=apdu.accessMethod.streamAccess.fileStartPosition,
+                        fileStartPosition=stream_access.fileStartPosition,
                         fileData=record_data,
                         ),
                     ),
@@ -188,15 +212,26 @@ class FileServices(Capability):
             if obj.fileAccessMethod != 'recordAccess':
                 raise ExecutionError('services', 'invalidFileAccessMethod')
 
+            # simplify
+            record_access = apdu.accessMethod.recordAccess
+
+            # check for required parameters
+            if record_access.fileStartRecord is None:
+                raise MissingRequiredParameter("fileStartRecord required")
+            if record_access.recordCount is None:
+                raise MissingRequiredParameter("recordCount required")
+            if record_access.fileRecordData is None:
+                raise MissingRequiredParameter("fileRecordData required")
+
             # check for read-only
             if obj.readOnly:
                 raise ExecutionError('services', 'fileAccessDenied')
 
             # pass along to the object
             start_record = obj.write_record(
-                apdu.accessMethod.recordAccess.fileStartRecord,
-                apdu.accessMethod.recordAccess.recordCount,
-                apdu.accessMethod.recordAccess.fileRecordData,
+                record_access.fileStartRecord,
+                record_access.recordCount,
+                record_access.fileRecordData,
                 )
             if _debug: FileServices._debug("    - start_record: %r", start_record)
 
@@ -210,14 +245,23 @@ class FileServices(Capability):
             if obj.fileAccessMethod != 'streamAccess':
                 raise ExecutionError('services', 'invalidFileAccessMethod')
 
+            # simplify
+            stream_access = apdu.accessMethod.streamAccess
+
+            # check for required parameters
+            if stream_access.fileStartPosition is None:
+                raise MissingRequiredParameter("fileStartPosition required")
+            if stream_access.fileData is None:
+                raise MissingRequiredParameter("fileData required")
+
             # check for read-only
             if obj.readOnly:
                 raise ExecutionError('services', 'fileAccessDenied')
 
             # pass along to the object
             start_position = obj.write_stream(
-                apdu.accessMethod.streamAccess.fileStartPosition,
-                apdu.accessMethod.streamAccess.fileData,
+                stream_access.fileStartPosition,
+                stream_access.fileData,
                 )
             if _debug: FileServices._debug("    - start_position: %r", start_position)
 

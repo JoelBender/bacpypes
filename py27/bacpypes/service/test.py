@@ -14,5 +14,5 @@ _log = ModuleLogger(globals())
 def some_function(*args):
     if _debug: some_function._debug("f %r", args)
 
-    return x + 1
+    return args[0] + 1
 

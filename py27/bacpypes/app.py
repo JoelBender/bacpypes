@@ -4,39 +4,33 @@
 Application Module
 """
 
+import warnings
+
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
 
-from .pdu import Address, LocalStation, RemoteStation
+from .pdu import Address
 
-from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
-from .constructeddata import Any, Array, ArrayOf
+from .primitivedata import Date, Time, ObjectIdentifier
+from .constructeddata import ArrayOf
 
 from .capability import Collector
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
 
-from .object import Property, PropertyError, DeviceObject, \
+from .object import Property, DeviceObject, \
     registered_object_types, register_object_type
-from .apdu import ConfirmedRequestPDU, SimpleAckPDU, RejectPDU, RejectReason
-from .apdu import IAmRequest, ReadPropertyACK, Error
-from .errors import ExecutionError, \
-    RejectException, UnrecognizedService, MissingRequiredParameter, \
-        ParameterOutOfRange, \
-    AbortException
+from .apdu import ConfirmedRequestPDU, Error
+from .errors import ExecutionError, UnrecognizedService, AbortException, RejectException
 
 # for computing protocol services supported
 from .apdu import confirmed_request_types, unconfirmed_request_types, \
     ConfirmedServiceChoice, UnconfirmedServiceChoice
 from .basetypes import ServicesSupported
 
-from .apdu import \
-    AtomicReadFileACK, \
-        AtomicReadFileACKAccessMethodChoice, \
-            AtomicReadFileACKAccessMethodRecordAccess, \
-            AtomicReadFileACKAccessMethodStreamAccess, \
-    AtomicWriteFileACK
+# basic services
+from .service.device import WhoIsIAmServices, ReadWritePropertyServices
 
 # some debugging
 _debug = 0
@@ -303,29 +297,41 @@ class LocalDeviceObject(DeviceObject):
 @bacpypes_debugging
 class Application(ApplicationServiceElement, Collector):
 
-    def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
+    def __init__(self, localDevice=None, localAddress=None, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
         Collector.__init__(self)
 
+        # local objects by ID and name
+        self.objectName = {}
+        self.objectIdentifier = {}
+
         # keep track of the local device
-        self.localDevice = localDevice
+        if localDevice:
+            self.localDevice = localDevice
+
+            # bind the device object to this application
+            localDevice._app = self
+
+            # local objects by ID and name
+            self.objectName[localDevice.objectName] = localDevice
+            self.objectIdentifier[localDevice.objectIdentifier] = localDevice
+
+        # local address deprecated, but continue to use the old initializer
+        if localAddress is not None:
+            warnings.warn(
+                "local address at the application layer deprecated",
+                DeprecationWarning,
+                )
+
+            # allow the address to be cast to the correct type
+            if isinstance(localAddress, Address):
+                self.localAddress = localAddress
+            else:
+                self.localAddress = Address(localAddress)
 
         # use the provided cache or make a default one
         self.deviceInfoCache = deviceInfoCache or DeviceInfoCache()
-
-        # bind the device object to this application
-        localDevice._app = self
-
-        # allow the address to be cast to the correct type
-        if isinstance(localAddress, Address):
-            self.localAddress = localAddress
-        else:
-            self.localAddress = Address(localAddress)
-
-        # local objects by ID and name
-        self.objectName = {localDevice.objectName:localDevice}
-        self.objectIdentifier = {localDevice.objectIdentifier:localDevice}
 
     def add_object(self, obj):
         """Add an object to the local collection."""
@@ -353,8 +359,10 @@ class Application(ApplicationServiceElement, Collector):
         self.objectName[object_name] = obj
         self.objectIdentifier[object_identifier] = obj
 
-        # append the new object's identifier to the device's object list
-        self.localDevice.objectList.append(object_identifier)
+        # append the new object's identifier to the local device's object list
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            self.localDevice.objectList.append(object_identifier)
 
         # let the object know which application stack it belongs to
         obj._app = self
@@ -372,8 +380,10 @@ class Application(ApplicationServiceElement, Collector):
         del self.objectIdentifier[object_identifier]
 
         # remove the object's identifier from the device's object list
-        indx = self.localDevice.objectList.index(object_identifier)
-        del self.localDevice.objectList[indx]
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            indx = self.localDevice.objectList.index(object_identifier)
+            del self.localDevice.objectList[indx]
 
         # make sure the object knows it's detached from an application
         obj._app = None
@@ -460,11 +470,17 @@ class Application(ApplicationServiceElement, Collector):
 #
 
 @bacpypes_debugging
-class BIPSimpleApplication(Application):
+class BIPSimpleApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        Application.__init__(self, localDevice, localAddress, deviceInfoCache, aseID)
+        Application.__init__(self, localDevice, deviceInfoCache, aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -504,11 +520,17 @@ class BIPSimpleApplication(Application):
 #
 
 @bacpypes_debugging
-class BIPForeignApplication(Application):
+class BIPForeignApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        Application.__init__(self, localDevice, localAddress, aseID)
+        Application.__init__(self, localDevice, aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
