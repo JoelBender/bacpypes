@@ -646,34 +646,45 @@ class ChangeOfValueServices(Capability):
         # list of active subscriptions
         self.active_cov_subscriptions = []
 
-        # a queue of confirmed notifications by client address
-        self.confirmed_notifications_queue = defaultdict(list)
-
         # if there is a local device object, make sure it has an active COV
         # subscriptions property
         if self.localDevice and self.localDevice.activeCovSubscriptions is None:
-            self.localDevice.add_propert(ActiveCOVSubscriptions)
+            self.localDevice.add_property(ActiveCOVSubscriptions)
 
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))
 
-        # if this is confirmed, keep track of the cov
-        if cov.confirmed:
-            if _debug: ChangeOfValueServices._debug("    - it's confirmed")
+        # send the request
+        iocb = self.request(request)
 
-            notification_list = self.confirmed_notifications_queue[cov.client_addr]
-            notification_list.append((request, cov))
+        # if this is confirmed, add a callback for the response, otherwise it
+        # was unconfirmed
+        if iocb:
+            iocb.cov = cov
+            iocb.add_callback(self.cov_confirmation)
 
-            # if this isn't the first, wait until the first one is done
-            if len(notification_list) > 1:
-                if _debug: ChangeOfValueServices._debug("    - not the first")
-                return
-        else:
-            if _debug: ChangeOfValueServices._debug("    - it's unconfirmed")
+    def cov_confirmation(self, iocb):
+        if _debug: ChangeOfValueServices._debug("cov_confirmation %r", iocb)
 
-        # send it along down the stack
-        super(ChangeOfValueServices, self).request(request)
-        if _debug: ChangeOfValueServices._debug("    - apduInvokeID: %r", getattr(request, 'apduInvokeID'))
+        # do something for success
+        if iocb.ioResponse:
+            if _debug: ChangeOfValueServices._debug("    - ack")
+            self.cov_ack(iocb.cov, iocb.args[0], iocb.ioResponse)
+
+        elif isinstance(iocb.ioError, Error):
+            if _debug: ChangeOfValueServices._debug("    - error: %r", iocb.ioError.errorCode)
+            self.cov_error(iocb.cov, iocb.args[0], iocb.ioError)
+
+        elif isinstance(iocb.ioError, RejectPDU):
+            if _debug: ChangeOfValueServices._debug("    - reject: %r", iocb.ioError.apduAbortRejectReason)
+            self.cov_reject(iocb.cov, iocb.args[0], iocb.ioError)
+
+        elif isinstance(iocb.ioError, AbortPDU):
+            if _debug: ChangeOfValueServices._debug("    - abort: %r", iocb.ioError.apduAbortRejectReason)
+            self.cov_abort(iocb.cov, iocb.args[0], iocb.ioError)
+
+    def cov_ack(self, cov, request, response):
+        if _debug: ChangeOfValueServices._debug("cov_ack %r %r %r", cov, request, response)
 
     def cov_error(self, cov, request, response):
         if _debug: ChangeOfValueServices._debug("cov_error %r %r %r", cov, request, response)
@@ -684,65 +695,8 @@ class ChangeOfValueServices(Capability):
     def cov_abort(self, cov, request, response):
         if _debug: ChangeOfValueServices._debug("cov_abort %r %r %r", cov, request, response)
 
-        # delete the rest of the pending requests for this client
-        del self.confirmed_notifications_queue[cov.client_addr][:]
+        ### delete the rest of the pending requests for this client
         if _debug: ChangeOfValueServices._debug("    - other notifications deleted")
-
-    def confirmation(self, apdu):
-        if _debug: ChangeOfValueServices._debug("confirmation %r", apdu)
-        if _debug: ChangeOfValueServices._debug("    - queue keys: %r", self.confirmed_notifications_queue.keys())
-
-        # if this isn't from someone we care about, toss it
-        if apdu.pduSource not in self.confirmed_notifications_queue:
-            if _debug: ChangeOfValueServices._debug("    - not someone we are tracking")
-
-            # pass along to the application
-            super(ChangeOfValueServices, self).confirmation(apdu)
-            return
-
-        # refer to the notification list for this client
-        notification_list = self.confirmed_notifications_queue[apdu.pduSource]
-        if _debug: ChangeOfValueServices._debug("    - notification_list: %r", notification_list)
-
-        # peek at the front of the list
-        request, cov = notification_list[0]
-        if _debug: ChangeOfValueServices._debug("    - request: %s", request)
-
-        # line up the invoke id
-        if apdu.apduInvokeID == request.apduInvokeID:
-            if _debug: ChangeOfValueServices._debug("    - request/response align")
-            notification_list.pop(0)
-        else:
-            if _debug: ChangeOfValueServices._debug("    - request/response do not align")
-
-            # pass along to the application
-            super(ChangeOfValueServices, self).confirmation(apdu)
-            return
-
-        if isinstance(apdu, Error):
-            if _debug: ChangeOfValueServices._debug("    - error: %r", apdu.errorCode)
-            self.cov_error(cov, request, apdu)
-
-        elif isinstance(apdu, RejectPDU):
-            if _debug: ChangeOfValueServices._debug("    - reject: %r", apdu.apduAbortRejectReason)
-            self.cov_reject(cov, request, apdu)
-
-        elif isinstance(apdu, AbortPDU):
-            if _debug: ChangeOfValueServices._debug("    - abort: %r", apdu.apduAbortRejectReason)
-            self.cov_abort(cov, request, apdu)
-
-        # if the notification list is empty, delete the reference
-        if not notification_list:
-            if _debug: ChangeOfValueServices._debug("    - no other pending notifications")
-            del self.confirmed_notifications_queue[apdu.pduSource]
-            return
-
-        # peek at the front of the list for the next request
-        request, cov = notification_list[0]
-        if _debug: ChangeOfValueServices._debug("    - next notification: %r", request)
-
-        # send it along down the stack
-        super(ChangeOfValueServices, self).request(request)
 
     def do_SubscribeCOVRequest(self, apdu):
         if _debug: ChangeOfValueServices._debug("do_SubscribeCOVRequest %r", apdu)
