@@ -22,7 +22,7 @@ _log = ModuleLogger(globals())
 _statelog = logging.getLogger(__name__ + "._statelog")
 
 # globals
-_localControllers = {}
+local_controllers = {}
 
 #
 #   IOCB States
@@ -138,7 +138,7 @@ class IOCB(DebugContents):
 
         # already complete?
         if self.ioComplete.isSet():
-            self.Trigger()
+            self.trigger()
         
     def wait(self, *args):
         """Wait for the completion event to be set."""
@@ -181,7 +181,7 @@ class IOCB(DebugContents):
             # just fill in the data
             self.ioState = COMPLETED
             self.ioResponse = msg
-            self.Trigger()
+            self.trigger()
 
     def abort(self, err):
         """Called by a client to abort a transaction."""
@@ -194,7 +194,7 @@ class IOCB(DebugContents):
             # just fill in the data
             self.ioState = ABORTED
             self.ioError = err
-            self.Trigger()
+            self.trigger()
 
     def set_timeout(self, delay, err=TimeoutError):
         """Called to set a transaction timer."""
@@ -550,12 +550,6 @@ class IOController:
         # save the name
         self.name = name
 
-        # register the name
-        if name is not None:
-            if name in _localControllers:
-                raise RuntimeError("already a local controller called '%s': %r" % (name, _localControllers[name]))
-            _localControllers[name] = self
-
     def abort(self, err):
         """Abort all requests, no default implementation."""
         pass
@@ -619,7 +613,7 @@ class IOController:
             iocb.ioResponse = msg
 
             # notify the client
-            iocb.Trigger()
+            iocb.trigger()
 
     def abort_io(self, iocb, err):
         """Called by a handler or a client to abort a transaction."""
@@ -639,7 +633,7 @@ class IOController:
             iocb.ioError = err
 
             # notify the client
-            iocb.Trigger()
+            iocb.trigger()
 
 #
 #   IOQController
@@ -653,10 +647,6 @@ class IOQController(IOController):
     def __init__(self, name=None):
         """Initialize a queue controller."""
         if _debug: IOQController._debug("__init__ name=%r", name)
-
-        # give ourselves a nice name
-        if not name:
-            name = self.__class__.__name__
         IOController.__init__(self, name)
 
         # start idle
@@ -847,6 +837,25 @@ class IOQController(IOController):
         IOQController._trigger(self)
 
 #
+#   register_controller
+#
+
+@bacpypes_debugging
+def register_controller(controller):
+    if _debug: register_controller._debug("register_controller %r", controller)
+    global local_controllers
+
+    # skip those that shall not be named
+    if not controller.name:
+        return
+
+    # make sure there isn't one already
+    if controller.name in local_controllers:
+        raise RuntimeError("already a local controller named %r" % (controller.name,))
+
+    local_controllers[controller.name] = controller
+
+#
 #   abort
 #
 
@@ -854,7 +863,8 @@ class IOQController(IOController):
 def abort(err):
     """Abort everything, everywhere."""
     if _debug: abort._debug("abort %r", err)
+    global local_controllers
 
     # tell all the local controllers to abort
-    for controller in _localControllers.values():
+    for controller in local_controllers.values():
         controller.abort(err)
