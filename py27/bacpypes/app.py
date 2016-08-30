@@ -22,7 +22,9 @@ from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
 
 from .object import Property, DeviceObject, \
     registered_object_types, register_object_type
-from .apdu import ConfirmedRequestPDU, Error
+from .apdu import UnconfirmedRequestPDU, ConfirmedRequestPDU, \
+    SimpleAckPDU, ComplexAckPDU, ErrorPDU, RejectPDU, AbortPDU, Error
+
 from .errors import ExecutionError, UnrecognizedService, AbortException, RejectException
 
 # for computing protocol services supported
@@ -191,15 +193,24 @@ class DeviceInfoCache:
 class ApplicationController(IOQController):
 
     def __init__(self, request_fn, address):
+        """Initialize an application controller.  To process requests it only
+        needs the function to call that sends an APDU down the stack, the address
+        parameter is to help with debugging."""
         if _debug: ApplicationController._debug("__init__ %r %r", request_fn, address)
-        IOQController.__init__(self, name=str(address))
+        IOQController.__init__(self, str(address))
 
         # save a reference to the request function
         self.request_fn = request_fn
+        self.address = address
 
     def process_io(self, iocb):
+        """Called to start processing a request.  This is called immediately
+        when the controller is idle, otherwise this is called for the next IOCB
+        when the current request has been satisfied."""
         if _debug: ApplicationController._debug("process_io %r", iocb)
-        """Called by a client to start processing a request."""
+
+        # this is now an active request
+        self.active_io(iocb)
 
         # send the request
         self.request_fn(iocb.args[0])
@@ -344,10 +355,20 @@ class Application(ApplicationServiceElement, Collector):
     #-----
 
     def request(self, apdu):
+        """Intercept downstream requests and filter them.  For unconfirmed
+        services the APDU is passed down the stack and None is returned.  For
+        confirmed services an IOCB is built with the request and queued to
+        be sent by an application controller.
+        """
         if _debug: Application._debug("request %r", apdu)
+
+        # the parent class request function
+        request_fn = super(Application, self).request
+        if _debug: Application._debug("    - request_fn: %r", request_fn)
 
         if isinstance(apdu, UnconfirmedRequestPDU):
             iocb = None
+            request_fn(apdu)
 
         elif isinstance(apdu, ConfirmedRequestPDU):
             iocb = IOCB(apdu)
@@ -358,12 +379,12 @@ class Application(ApplicationServiceElement, Collector):
             if not controller:
                 if _debug: Application._debug("    - new controller")
                 controller = ApplicationController(
-                    super(Application, self).request,
-                    apdu.pduDestination,
+                    request_fn, apdu.pduDestination,
                     )
 
                 # keep track of the controller
                 self.controllers[apdu.pduDestination] = controller
+            if _debug: Application._debug("    - controller: %r", controller)
 
             # request this apdu
             controller.request_io(iocb)
@@ -372,16 +393,25 @@ class Application(ApplicationServiceElement, Collector):
         return iocb
 
     def confirmation(self, apdu):
+        """Upstream confirmations are from confirmed services that this
+        application has generated.  The service will be the active IOCB
+        of the application controller."""
         if _debug: Application._debug("confirmation %r", apdu)
 
         # get the queue for this destination
         controller = self.controllers.get(apdu.pduSource, None)
+        if _debug: Application._debug("    - controller: %r", controller)
         if not controller:
-            if _debug: Application._debug("    - no queue for this source")
             return
 
         # this request is complete
-        controller.complete_io(controller.active_iocb, apdu)
+        if isinstance(apdu, (SimpleAckPDU, ComplexAckPDU)):
+            controller.complete_io(controller.active_iocb, apdu)
+        elif isinstance(apdu, (ErrorPDU, RejectPDU, AbortPDU)):
+            controller.abort_io(controller.active_iocb, apdu)
+        else:
+            raise RuntimeError("unrecognized APDU type")
+        if _debug: Application._debug("    - controller finished")
 
         # if the queue is empty, forget about the controller
         if not controller.ioQueue.queue:
