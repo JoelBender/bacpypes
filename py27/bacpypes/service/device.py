@@ -221,19 +221,21 @@ class WhoIsIAmServices(Capability):
 
         # this requires a local device
         if not self.localDevice:
-            raise RuntimeError("no local device")
+            if _debug: WhoIsIAmServices._debug("    - no local device")
+            return
+
+        # create a I-Am "response" back to the source
+        iAm = IAmRequest(
+            iAmDeviceIdentifier=self.localDevice.objectIdentifier,
+            maxAPDULengthAccepted=self.localDevice.maxApduLengthAccepted,
+            segmentationSupported=self.localDevice.segmentationSupported,
+            vendorID=self.localDevice.vendorIdentifier,
+            )
 
         # defaults to a global broadcast
         if not address:
             address = GlobalBroadcast()
-
-        # create a I-Am "response" back to the source
-        iAm = IAmRequest()
         iAm.pduDestination = address
-        iAm.iAmDeviceIdentifier = self.localDevice.objectIdentifier
-        iAm.maxAPDULengthAccepted = self.localDevice.maxApduLengthAccepted
-        iAm.segmentationSupported = self.localDevice.segmentationSupported
-        iAm.vendorID = self.localDevice.vendorIdentifier
         if _debug: WhoIsIAmServices._debug("    - iAm: %r", iAm)
 
         # away it goes
@@ -278,7 +280,7 @@ class WhoHasIHaveServices(Capability):
     def who_has(self, thing, address=None):
         if _debug: WhoHasIHaveServices._debug("who_has %r address=%r", thing, address)
 
-        raise NotImplementedError("i_have")
+        raise NotImplementedError("who_has")
 
     def do_WhoHasRequest(self, apdu):
         """Respond to a Who-Has request."""
@@ -297,15 +299,34 @@ class WhoHasIHaveServices(Capability):
         else:
             raise InconsistentParameters("object identifier or object name required")
         if not obj:
-            raise Error(errorClass='object', errorCode='unknownObject')
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
 
-#       # send out the response
-#       self.i_have(obj, address=apdu.pduSource)
+        # send out the response
+        self.i_have(obj, address=apdu.pduSource)
 
     def i_have(self, thing, address=None):
         if _debug: WhoHasIHaveServices._debug("i_have %r address=%r", thing, address)
 
-        raise NotImplementedError("i_have")
+        # ignore this if there's no local device
+        if not self.localDevice:
+            if _debug: WhoIsIAmServices._debug("    - no local device")
+            return
+
+        # build the request
+        iHave = IHaveRequest(
+            deviceIdentifier=self.localDevice.objectIdentifier,
+            objectIdentifier=thing.objectIdentifier,
+            objectName=thing.objectName,
+            )
+
+        # defaults to a global broadcast
+        if not address:
+            address = GlobalBroadcast()
+        iHave.pduDestination = address
+        if _debug: WhoHasIHaveServices._debug("    - iHave: %r", iHave)
+
+        # send it along
+        self.request(iHave)
 
     def do_IHaveRequest(self, apdu):
         """Respond to a I-Have request."""
@@ -325,7 +346,12 @@ class WhoHasIHaveServices(Capability):
 #   ReadProperty and WriteProperty Services
 #
 
+@bacpypes_debugging
 class ReadWritePropertyServices(Capability):
+
+    def __init__(self):
+        if _debug: ReadWritePropertyServices._debug("__init__")
+        Capability.__init__(self)
 
     def do_ReadPropertyRequest(self, apdu):
         """Return the value of some property of one of our objects."""
@@ -335,7 +361,7 @@ class ReadWritePropertyServices(Capability):
         objId = apdu.objectIdentifier
 
         # check for wildcard
-        if (objId == ('device', 4194303)):
+        if (objId == ('device', 4194303)) and self.localDevice is not None:
             if _debug: ReadWritePropertyServices._debug("    - wildcard device identifier")
             objId = self.localDevice.objectIdentifier
 
@@ -344,7 +370,7 @@ class ReadWritePropertyServices(Capability):
         if _debug: ReadWritePropertyServices._debug("    - object: %r", obj)
 
         if not obj:
-            raise Error(errorClass='object', errorCode='unknownObject')
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
 
         try:
             # get the datatype
@@ -385,7 +411,7 @@ class ReadWritePropertyServices(Capability):
             if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
         except PropertyError:
-            raise Error(errorClass='object', errorCode='unknownProperty')
+            raise ExecutionError(errorClass='object', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)
@@ -398,7 +424,7 @@ class ReadWritePropertyServices(Capability):
         obj = self.get_object_id(apdu.objectIdentifier)
         if _debug: ReadWritePropertyServices._debug("    - object: %r", obj)
         if not obj:
-            raise Error(errorClass='object', errorCode='unknownObject')
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
 
         try:
             # check if the property exists
@@ -430,7 +456,7 @@ class ReadWritePropertyServices(Capability):
             if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
         except PropertyError:
-            raise Error(errorClass='object', errorCode='unknownProperty')
+            raise ExecutionError(errorClass='object', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)
@@ -519,9 +545,11 @@ def read_property_to_result_element(obj, propertyIdentifier, propertyArrayIndex=
 #   ReadWritePropertyMultipleServices
 #
 
+@bacpypes_debugging
 class ReadWritePropertyMultipleServices(Capability):
 
     def __init__(self):
+        if _debug: ReadWritePropertyMultipleServices._debug("__init__")
         Capability.__init__(self)
 
     def do_ReadPropertyMultipleRequest(self, apdu):
@@ -539,7 +567,7 @@ class ReadWritePropertyMultipleServices(Capability):
             if _debug: ReadWritePropertyMultipleServices._debug("    - objectIdentifier: %r", objectIdentifier)
 
             # check for wildcard
-            if (objectIdentifier == ('device', 4194303)):
+            if (objectIdentifier == ('device', 4194303)) and self.localDevice is not None:
                 if _debug: ReadWritePropertyMultipleServices._debug("    - wildcard device identifier")
                 objectIdentifier = self.localDevice.objectIdentifier
 
