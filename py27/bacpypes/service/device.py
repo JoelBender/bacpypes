@@ -5,8 +5,8 @@ from ..capability import Capability
 
 from ..pdu import GlobalBroadcast
 from ..basetypes import ErrorType
-from ..primitivedata import Atomic, Null, Unsigned
-from ..constructeddata import Any, Array
+from ..primitivedata import Atomic, Null, Unsigned, Date, Time, ObjectIdentifier
+from ..constructeddata import Any, Array, ArrayOf
 
 from ..apdu import Error, WhoIsRequest, IAmRequest, \
     SimpleAckPDU, ReadPropertyACK, ReadPropertyMultipleACK, \
@@ -14,11 +14,120 @@ from ..apdu import Error, WhoIsRequest, IAmRequest, \
 from ..errors import ExecutionError, InconsistentParameters, \
     MissingRequiredParameter, ParameterOutOfRange
     
-from ..object import PropertyError
+from ..object import register_object_type, registered_object_types, \
+    Property, PropertyError, DeviceObject, registered_object_types
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+#
+#   CurrentDateProperty
+#
+
+class CurrentDateProperty(Property):
+
+    def __init__(self, identifier):
+        Property.__init__(self, identifier, Date, default=None, optional=True, mutable=False)
+
+    def ReadProperty(self, obj, arrayIndex=None):
+        # access an array
+        if arrayIndex is not None:
+            raise TypeError("{0} is unsubscriptable".format(self.identifier))
+
+        # get the value
+        now = Date()
+        now.now()
+        return now.value
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+
+#
+#   CurrentTimeProperty
+#
+
+class CurrentTimeProperty(Property):
+
+    def __init__(self, identifier):
+        Property.__init__(self, identifier, Time, default=None, optional=True, mutable=False)
+
+    def ReadProperty(self, obj, arrayIndex=None):
+        # access an array
+        if arrayIndex is not None:
+            raise TypeError("{0} is unsubscriptable".format(self.identifier))
+
+        # get the value
+        now = Time()
+        now.now()
+        return now.value
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+
+#
+#   LocalDeviceObject
+#
+
+@bacpypes_debugging
+class LocalDeviceObject(DeviceObject):
+
+    properties = \
+        [ CurrentTimeProperty('localTime')
+        , CurrentDateProperty('localDate')
+        ]
+
+    defaultProperties = \
+        { 'maxApduLengthAccepted': 1024
+        , 'segmentationSupported': 'segmentedBoth'
+        , 'maxSegmentsAccepted': 16
+        , 'apduSegmentTimeout': 5000
+        , 'apduTimeout': 3000
+        , 'numberOfApduRetries': 3
+        }
+
+    def __init__(self, **kwargs):
+        if _debug: LocalDeviceObject._debug("__init__ %r", kwargs)
+
+        # fill in default property values not in kwargs
+        for attr, value in LocalDeviceObject.defaultProperties.items():
+            if attr not in kwargs:
+                kwargs[attr] = value
+
+        # check for registration
+        if self.__class__ not in registered_object_types.values():
+            if 'vendorIdentifier' not in kwargs:
+                raise RuntimeError("vendorIdentifier required to auto-register the LocalDeviceObject class")
+            register_object_type(self.__class__, vendor_id=kwargs['vendorIdentifier'])
+
+        # check for local time
+        if 'localDate' in kwargs:
+            raise RuntimeError("localDate is provided by LocalDeviceObject and cannot be overridden")
+        if 'localTime' in kwargs:
+            raise RuntimeError("localTime is provided by LocalDeviceObject and cannot be overridden")
+
+        # check for a minimum value
+        if kwargs['maxApduLengthAccepted'] < 50:
+            raise ValueError("invalid max APDU length accepted")
+
+        # dump the updated attributes
+        if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
+
+        # proceed as usual
+        DeviceObject.__init__(self, **kwargs)
+
+        # create a default implementation of an object list for local devices.
+        # If it is specified in the kwargs, that overrides this default.
+        if ('objectList' not in kwargs):
+            self.objectList = ArrayOf(ObjectIdentifier)([self.objectIdentifier])
+
+            # if the object has a property list and one wasn't provided
+            # in the kwargs, then it was created by default and the objectList
+            # property should be included
+            if ('propertyList' not in kwargs) and self.propertyList:
+                # make sure it's not already there
+                if 'objectList' not in self.propertyList:
+                    self.propertyList.append('objectList')
 
 #
 #   Who-Is I-Am Services

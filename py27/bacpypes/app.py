@@ -8,6 +8,7 @@ import warnings
 
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
+from .iocb import IOQController, IOCB
 
 from .pdu import Address
 
@@ -183,112 +184,25 @@ class DeviceInfoCache:
             del self.cache[cache_address]
 
 #
-#   CurrentDateProperty
-#
-
-class CurrentDateProperty(Property):
-
-    def __init__(self, identifier):
-        Property.__init__(self, identifier, Date, default=None, optional=True, mutable=False)
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        # access an array
-        if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
-
-        # get the value
-        now = Date()
-        now.now()
-        return now.value
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   CurrentTimeProperty
-#
-
-class CurrentTimeProperty(Property):
-
-    def __init__(self, identifier):
-        Property.__init__(self, identifier, Time, default=None, optional=True, mutable=False)
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        # access an array
-        if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
-
-        # get the value
-        now = Time()
-        now.now()
-        return now.value
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   LocalDeviceObject
+#   ApplicationController
 #
 
 @bacpypes_debugging
-class LocalDeviceObject(DeviceObject):
+class ApplicationController(IOQController):
 
-    properties = \
-        [ CurrentTimeProperty('localTime')
-        , CurrentDateProperty('localDate')
-        ]
+    def __init__(self, request_fn, address):
+        if _debug: ApplicationController._debug("__init__ %r %r", request_fn, address)
+        IOQController.__init__(self, name=str(address))
 
-    defaultProperties = \
-        { 'maxApduLengthAccepted': 1024
-        , 'segmentationSupported': 'segmentedBoth'
-        , 'maxSegmentsAccepted': 16
-        , 'apduSegmentTimeout': 5000
-        , 'apduTimeout': 3000
-        , 'numberOfApduRetries': 3
-        }
+        # save a reference to the request function
+        self.request_fn = request_fn
 
-    def __init__(self, **kwargs):
-        if _debug: LocalDeviceObject._debug("__init__ %r", kwargs)
+    def process_io(self, iocb):
+        if _debug: ApplicationController._debug("process_io %r", iocb)
+        """Called by a client to start processing a request."""
 
-        # fill in default property values not in kwargs
-        for attr, value in LocalDeviceObject.defaultProperties.items():
-            if attr not in kwargs:
-                kwargs[attr] = value
-
-        # check for registration
-        if self.__class__ not in registered_object_types.values():
-            if 'vendorIdentifier' not in kwargs:
-                raise RuntimeError("vendorIdentifier required to auto-register the LocalDeviceObject class")
-            register_object_type(self.__class__, vendor_id=kwargs['vendorIdentifier'])
-
-        # check for local time
-        if 'localDate' in kwargs:
-            raise RuntimeError("localDate is provided by LocalDeviceObject and cannot be overridden")
-        if 'localTime' in kwargs:
-            raise RuntimeError("localTime is provided by LocalDeviceObject and cannot be overridden")
-
-        # check for a minimum value
-        if kwargs['maxApduLengthAccepted'] < 50:
-            raise ValueError("invalid max APDU length accepted")
-
-        # dump the updated attributes
-        if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
-
-        # proceed as usual
-        DeviceObject.__init__(self, **kwargs)
-
-        # create a default implementation of an object list for local devices.
-        # If it is specified in the kwargs, that overrides this default.
-        if ('objectList' not in kwargs):
-            self.objectList = ArrayOf(ObjectIdentifier)([self.objectIdentifier])
-
-            # if the object has a property list and one wasn't provided
-            # in the kwargs, then it was created by default and the objectList
-            # property should be included
-            if ('propertyList' not in kwargs) and self.propertyList:
-                # make sure it's not already there
-                if 'objectList' not in self.propertyList:
-                    self.propertyList.append('objectList')
+        # send the request
+        self.request_fn(iocb.args[0])
 
 #
 #   Application
@@ -332,6 +246,9 @@ class Application(ApplicationServiceElement, Collector):
 
         # use the provided cache or make a default one
         self.deviceInfoCache = deviceInfoCache or DeviceInfoCache()
+
+        # controllers for managing confirmed requests as a client
+        self.controllers = {}
 
     def add_object(self, obj):
         """Add an object to the local collection."""
@@ -425,6 +342,51 @@ class Application(ApplicationServiceElement, Collector):
         return services_supported
 
     #-----
+
+    def request(self, apdu):
+        if _debug: Application._debug("request %r", apdu)
+
+        if isinstance(apdu, UnconfirmedRequestPDU):
+            iocb = None
+
+        elif isinstance(apdu, ConfirmedRequestPDU):
+            iocb = IOCB(apdu)
+            if _debug: Application._debug("    - iocb: %r", iocb)
+
+            # get the controller for this destination
+            controller = self.controllers.get(apdu.pduDestination, None)
+            if not controller:
+                if _debug: Application._debug("    - new controller")
+                controller = ApplicationController(
+                    super(Application, self).request,
+                    apdu.pduDestination,
+                    )
+
+                # keep track of the controller
+                self.controllers[apdu.pduDestination] = controller
+
+            # request this apdu
+            controller.request_io(iocb)
+
+        # return the iocb if one was created
+        return iocb
+
+    def confirmation(self, apdu):
+        if _debug: Application._debug("confirmation %r", apdu)
+
+        # get the queue for this destination
+        controller = self.controllers.get(apdu.pduSource, None)
+        if not controller:
+            if _debug: Application._debug("    - no queue for this source")
+            return
+
+        # this request is complete
+        controller.complete_io(controller.active_iocb, apdu)
+
+        # if the queue is empty, forget about the controller
+        if not controller.ioQueue.queue:
+            if _debug: Application._debug("    - controller queue is empty")
+            del self.controllers[apdu.pduSource]
 
     def indication(self, apdu):
         if _debug: Application._debug("indication %r", apdu)

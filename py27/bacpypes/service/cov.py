@@ -15,7 +15,6 @@ from ..apdu import ConfirmedCOVNotificationRequest, \
     SimpleAckPDU, Error, RejectPDU, AbortPDU
 from ..errors import ExecutionError
 
-from ..app import LocalDeviceObject
 from ..object import Object, Property, PropertyError, \
     AccessDoorObject, AccessPointObject, \
     AnalogInputObject, AnalogOutputObject,  AnalogValueObject, \
@@ -568,6 +567,72 @@ class PulseConverterObjectCOV(COVObjectMixin, PulseConverterCriteria, PulseConve
 
 
 #
+#   ActiveCOVSubscriptions
+#
+
+@bacpypes_debugging
+class ActiveCOVSubscriptions(Property):
+
+    def __init__(self):
+        Property.__init__(
+            self, 'activeCovSubscriptions', SequenceOf(COVSubscription),
+            default=None, optional=True, mutable=False,
+            )
+
+    def ReadProperty(self, obj, arrayIndex=None):
+        if _debug: ActiveCOVSubscriptions._debug("ReadProperty %s arrayIndex=%r", obj, arrayIndex)
+
+        # get the current time from the task manager
+        current_time = TaskManager().get_time()
+        if _debug: ActiveCOVSubscriptions._debug("    - current_time: %r", current_time)
+
+        # start with an empty sequence
+        cov_subscriptions = SequenceOf(COVSubscription)()
+
+        # the obj is a DeviceObject with a reference to the application
+        for cov in obj._app.active_cov_subscriptions:
+            # calculate time remaining
+            if not cov.lifetime:
+                time_remaining = 0
+            else:
+                time_remaining = int(cov.taskTime - current_time)
+
+                # make sure it is at least one second
+                if not time_remaining:
+                    time_remaining = 1
+
+            recipient_process = RecipientProcess(
+                recipient=Recipient(
+                    address=DeviceAddress(
+                        networkNumber=cov.client_addr.addrNet or 0,
+                        macAddress=cov.client_addr.addrAddr,
+                        ),
+                    ),
+                processIdentifier=cov.proc_id,
+                )
+
+            cov_subscription = COVSubscription(
+                recipient=recipient_process,
+                monitoredPropertyReference=ObjectPropertyReference(
+                    objectIdentifier=cov.obj_id,
+                    propertyIdentifier=cov.obj_ref._monitored_property_reference,
+                    ),
+                issueConfirmedNotifications=cov.confirmed,
+                timeRemaining=time_remaining,
+                # covIncrement=???,
+                )
+            if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
+
+            # add the list
+            cov_subscriptions.append(cov_subscription)
+
+        return cov_subscriptions
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+
+
+#
 #   ChangeOfValueServices
 #
 
@@ -583,6 +648,11 @@ class ChangeOfValueServices(Capability):
 
         # a queue of confirmed notifications by client address
         self.confirmed_notifications_queue = defaultdict(list)
+
+        # if there is a local device object, make sure it has an active COV
+        # subscriptions property
+        if self.localDevice and self.localDevice.activeCovSubscriptions is None:
+            self.localDevice.add_propert(ActiveCOVSubscriptions)
 
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))
@@ -719,83 +789,3 @@ class ChangeOfValueServices(Capability):
 
         # return the result
         self.response(response)
-
-#
-#   ActiveCOVSubscriptions
-#
-
-@bacpypes_debugging
-class ActiveCOVSubscriptions(Property):
-
-    def __init__(self, identifier):
-        Property.__init__(
-            self, identifier, SequenceOf(COVSubscription),
-            default=None, optional=True, mutable=False,
-            )
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        if _debug: ActiveCOVSubscriptions._debug("ReadProperty %s arrayIndex=%r", obj, arrayIndex)
-
-        # get the current time from the task manager
-        current_time = TaskManager().get_time()
-        if _debug: ActiveCOVSubscriptions._debug("    - current_time: %r", current_time)
-
-        # start with an empty sequence
-        cov_subscriptions = SequenceOf(COVSubscription)()
-
-        # the obj is a DeviceObject with a reference to the application
-        for cov in obj._app.active_cov_subscriptions:
-            # calculate time remaining
-            if not cov.lifetime:
-                time_remaining = 0
-            else:
-                time_remaining = int(cov.taskTime - current_time)
-
-                # make sure it is at least one second
-                if not time_remaining:
-                    time_remaining = 1
-
-            recipient_process = RecipientProcess(
-                recipient=Recipient(
-                    address=DeviceAddress(
-                        networkNumber=cov.client_addr.addrNet or 0,
-                        macAddress=cov.client_addr.addrAddr,
-                        ),
-                    ),
-                processIdentifier=cov.proc_id,
-                )
-
-            cov_subscription = COVSubscription(
-                recipient=recipient_process,
-                monitoredPropertyReference=ObjectPropertyReference(
-                    objectIdentifier=cov.obj_id,
-                    propertyIdentifier=cov.obj_ref._monitored_property_reference,
-                    ),
-                issueConfirmedNotifications=cov.confirmed,
-                timeRemaining=time_remaining,
-                # covIncrement=???,
-                )
-            if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
-
-            # add the list
-            cov_subscriptions.append(cov_subscription)
-
-        return cov_subscriptions
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   COVDeviceObject
-#
-
-@bacpypes_debugging
-class COVDeviceMixin(object):
-
-    properties = [
-        ActiveCOVSubscriptions('activeCovSubscriptions'),
-        ]
-
-class LocalDeviceObjectCOV(COVDeviceMixin, LocalDeviceObject):
-    pass
-

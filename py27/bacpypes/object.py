@@ -440,6 +440,55 @@ class Object(object):
 
         return prop.WriteProperty(self, value, direct=True)
 
+    def add_property(self, prop):
+        """Adding a property disconnects it from the collection of properties
+        common to all of the objects of its class."""
+        if _debug: Object._debug("add_property %r", prop)
+
+        # get the property
+        prop = self._properties.get(prop.identifier)
+        if prop:
+            raise PropertyError(prop.identifier)
+
+        # make a copy of the properties dictionary
+        self._properties = copy(self._properties)
+
+        # save the property reference and default value (usually None)
+        self._properties[prop.identifier] = prop
+        self._values[prop.identifier] = prop.default
+
+        # tell the object it has a new property
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier not in property_list:
+                if _debug: Object._debug("    - adding to property list")
+                property_list.append(prop.identifier)
+
+    def delete_property(self, prop):
+        """Deleting a property disconnects it from the collection of properties
+        common to all of the objects of its class."""
+        if _debug: Object._debug("delete_property %r", value)
+
+        # get the property
+        prop = self._properties.get(prop.identifier)
+        if not prop:
+            raise PropertyError(prop.identifier)
+
+        # make a copy of the properties dictionary
+        self._properties = copy(self._properties)
+
+        # delete the property from the dictionary and values
+        del self._properties[prop.identifier]
+        if prop.identifier in self._values:
+            del self._values[prop.identifier]
+
+        # remove the property identifier from its list of know properties
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier in property_list:
+                if _debug: Object._debug("    - removing from property list")
+                property_list.remove(prop.identifier)
+
     def ReadProperty(self, propid, arrayIndex=None):
         if _debug: Object._debug("ReadProperty %r arrayIndex=%r", propid, arrayIndex)
 
