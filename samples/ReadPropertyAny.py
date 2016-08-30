@@ -15,11 +15,14 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Tag
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
+
 
 # some debugging
 _debug = 0

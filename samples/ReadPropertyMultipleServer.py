@@ -16,10 +16,12 @@ from bacpypes.primitivedata import Atomic, Real, Unsigned
 from bacpypes.constructeddata import Array, Any
 from bacpypes.basetypes import ErrorType
 from bacpypes.apdu import ReadPropertyMultipleACK, ReadAccessResult, ReadAccessResultElement, ReadAccessResultElementChoice
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, Property, PropertyError, register_object_type
 from bacpypes.apdu import Error
 from bacpypes.errors import ExecutionError
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

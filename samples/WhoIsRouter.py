@@ -13,6 +13,7 @@ from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork
+
 from bacpypes.app import BIPNetworkApplication
 
 # some debugging

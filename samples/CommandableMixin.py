@@ -12,10 +12,12 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 from bacpypes.errors import ExecutionError
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, DateValueObject
 from bacpypes.primitivedata import Null
 from bacpypes.basetypes import PriorityValue, PriorityArray
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

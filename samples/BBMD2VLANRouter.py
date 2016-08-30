@@ -28,8 +28,9 @@ from bacpypes.pdu import Address
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
-from bacpypes.app import LocalDeviceObject, Application
+from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
+from bacpypes.service.device import LocalDeviceObject
 
 from bacpypes.primitivedata import Real
 from bacpypes.object import AnalogValueObject, Property

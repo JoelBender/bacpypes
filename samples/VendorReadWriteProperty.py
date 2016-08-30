@@ -17,13 +17,15 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
 
 from bacpypes.apdu import Error, AbortPDU, SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
 from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
 from bacpypes.constructeddata import Array, Any
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 import VendorAVObject
 

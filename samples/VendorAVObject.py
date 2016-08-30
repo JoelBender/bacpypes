@@ -16,9 +16,11 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 
 from bacpypes.primitivedata import Real
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

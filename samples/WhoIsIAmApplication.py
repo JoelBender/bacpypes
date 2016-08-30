@@ -14,7 +14,8 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

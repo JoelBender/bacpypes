@@ -15,12 +15,14 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run, stop, deferred
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

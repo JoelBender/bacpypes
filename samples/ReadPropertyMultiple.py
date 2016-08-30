@@ -15,13 +15,16 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
 
-from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
+from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, \
+    ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
 from bacpypes.basetypes import PropertyIdentifier
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
