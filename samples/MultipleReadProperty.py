@@ -45,14 +45,11 @@ class ReadPointListApplication(BIPSimpleApplication):
         if _debug: ReadPointListApplication._debug("__init__ %r, %r", point_list, args)
         BIPSimpleApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
+        # turn the point list into a queue
+        self.point_queue = deque(point_list)
 
         # make a list of the response values
         self.response_values = []
-
-        # turn the point list into a queue
-        self.point_queue = deque(point_list)
 
     def next_request(self):
         if _debug: ReadPointListApplication._debug("next_request")
@@ -67,28 +64,26 @@ class ReadPointListApplication(BIPSimpleApplication):
         addr, obj_type, obj_inst, prop_id = self.point_queue.popleft()
 
         # build a request
-        self._request = ReadPropertyRequest(
+        request = ReadPropertyRequest(
             objectIdentifier=(obj_type, obj_inst),
             propertyIdentifier=prop_id,
             )
-        self._request.pduDestination = Address(addr)
-        if _debug: ReadPointListApplication._debug("    - request: %r", self._request)
+        request.pduDestination = Address(addr)
+        if _debug: ReadPointListApplication._debug("    - request: %r", request)
 
-        # forward it along
-        BIPSimpleApplication.request(self, self._request)
+        # send the request
+        iocb = self.request(request)
+        if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
 
-    def confirmation(self, apdu):
-        if _debug: ReadPointListApplication._debug("confirmation %r", apdu)
+        # set a callback for the response
+        iocb.add_callback(self.complete_request)
 
-        if isinstance(apdu, Error):
-            if _debug: ReadPointListApplication._debug("    - error: %r", apdu)
-            self.response_values.append(apdu)
+    def complete_request(self, iocb):
+        if _debug: ReadPointListApplication._debug("complete_request %r", iocb)
 
-        elif isinstance(apdu, AbortPDU):
-            if _debug: ReadPointListApplication._debug("    - abort: %r", apdu)
-            self.response_values.append(apdu)
+        if iocb.ioResponse:
+            apdu = iocb.ioResponse
 
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
             # find the datatype
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPointListApplication._debug("    - datatype: %r", datatype)
@@ -107,6 +102,10 @@ class ReadPointListApplication(BIPSimpleApplication):
 
             # save the value
             self.response_values.append(value)
+
+        if iocb.ioError:
+            if _debug: ReadPointListApplication._debug("    - error: %r", iocb.ioError)
+            self.response_values.append(iocb.ioError)
 
         # fire off another request
         deferred(self.next_request)
