@@ -17,7 +17,7 @@ from bacpypes.object import AccumulatorObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.device import ReadWritePropertyMultipleServices, LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -122,6 +122,9 @@ def main():
 
     # make a sample application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
+
+    # add the additional service
+    this_application.add_capability(ReadWritePropertyMultipleServices)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
