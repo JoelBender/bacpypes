@@ -649,7 +649,7 @@ class ChangeOfValueServices(Capability):
         # if there is a local device object, make sure it has an active COV
         # subscriptions property
         if self.localDevice and self.localDevice.activeCovSubscriptions is None:
-            self.localDevice.add_property(ActiveCOVSubscriptions)
+            self.localDevice.add_property(ActiveCOVSubscriptions())
 
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))

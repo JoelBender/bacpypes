@@ -225,7 +225,6 @@ class Application(ApplicationServiceElement, Collector):
     def __init__(self, localDevice=None, localAddress=None, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
-        Collector.__init__(self)
 
         # local objects by ID and name
         self.objectName = {}
@@ -260,6 +259,9 @@ class Application(ApplicationServiceElement, Collector):
 
         # controllers for managing confirmed requests as a client
         self.controllers = {}
+
+        # now set up the rest of the capabilities
+        Collector.__init__(self)
 
     def add_object(self, obj):
         """Add an object to the local collection."""
