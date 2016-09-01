@@ -4,17 +4,15 @@
 This sample application mocks up an accumulator object.
 """
 
-import random
-
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
+from bacpypes.task import RecurringTask
 
-from bacpypes.primitivedata import Unsigned, Date, Time
-from bacpypes.basetypes import DateTime
-from bacpypes.object import AccumulatorObject, Property, register_object_type
-from bacpypes.errors import ExecutionError
+from bacpypes.primitivedata import Date, Time
+from bacpypes.basetypes import DateTime, Scale
+from bacpypes.object import AccumulatorObject
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import ReadWritePropertyMultipleServices, LocalDeviceObject
@@ -24,81 +22,39 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 #
-#   RandomUnsignedValueProperty
+#   PulseTask
 #
 
 @bacpypes_debugging
-class RandomUnsignedValueProperty(Property):
+class PulseTask(RecurringTask):
 
-    def __init__(self, identifier):
-        if _debug: RandomUnsignedValueProperty._debug("__init__ %r", identifier)
-        Property.__init__(self, identifier, Unsigned, default=None, optional=True, mutable=False)
+    def __init__(self, accumulator, increment, interval):
+        if _debug: PulseTask._debug("__init__ %r %r %r", accumulator, increment, interval)
 
-    def ReadProperty(self, obj, arrayIndex=None):
-        if _debug: RandomUnsignedValueProperty._debug("ReadProperty %r arrayIndex=%r", obj, arrayIndex)
+        # this is a recurring task
+        RecurringTask.__init__(self, interval)
 
-        # access an array
-        if arrayIndex is not None:
-            raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
+        # install it
+        self.install_task()
 
-        # return a random value
-        value = int(random.random() * 100.0)
-        if _debug: RandomUnsignedValueProperty._debug("    - value: %r", value)
+        # save the parameters
+        self.accumulator = accumulator
+        self.increment = increment
 
-        return value
+    def process_task(self):
+        if _debug: PulseTask._debug("process_task")
 
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
-        if _debug: RandomUnsignedValueProperty._debug("WriteProperty %r %r arrayIndex=%r priority=%r direct=%r", obj, value, arrayIndex, priority, direct)
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+        # increment the present value
+        self.accumulator.presentValue += self.increment
 
-#
-#   CurrentDateTimeProperty
-#
-
-@bacpypes_debugging
-class CurrentDateTimeProperty(Property):
-
-    def __init__(self, identifier):
-        if _debug: CurrentDateTimeProperty._debug("__init__ %r", identifier)
-        Property.__init__(self, identifier, DateTime, default=None, optional=True, mutable=False)
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        if _debug: CurrentDateTimeProperty._debug("ReadProperty %r arrayIndex=%r", obj, arrayIndex)
-
-        # access an array
-        if arrayIndex is not None:
-            raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
-
-        # get the value
+        # update the value change time
         current_date = Date().now().value
         current_time = Time().now().value
 
-        value = DateTime(date=current_date, time=current_time)
-        if _debug: CurrentDateTimeProperty._debug("    - value: %r", value)
+        value_change_time = DateTime(date=current_date, time=current_time)
+        if _debug: PulseTask._debug("    - value_change_time: %r", value_change_time)
 
-        return value
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
-        if _debug: CurrentDateTimeProperty._debug("WriteProperty %r %r arrayIndex=%r priority=%r direct=%r", obj, value, arrayIndex, priority, direct)
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   Random Accumulator Object
-#
-
-@bacpypes_debugging
-class RandomAccumulatorObject(AccumulatorObject):
-
-    properties = [
-        RandomUnsignedValueProperty('presentValue'),
-        CurrentDateTimeProperty('valueChangeTime'),
-        ]
-
-    def __init__(self, **kwargs):
-        if _debug: RandomAccumulatorObject._debug("__init__ %r", kwargs)
-        AccumulatorObject.__init__(self, **kwargs)
-
-register_object_type(RandomAccumulatorObject)
+        self.accumulator.valueChangeTime = value_change_time
 
 #
 #   __main__
@@ -134,16 +90,26 @@ def main():
     this_device.protocolServicesSupported = services_supported.value
 
     # make a random input object
-    rao1 = RandomAccumulatorObject(
+    accumulator = AccumulatorObject(
         objectIdentifier=('accumulator', 1),
-        objectName='Random1',
+        objectName='Something1',
+        presentValue=100,
         statusFlags = [0, 0, 0, 0],
+        eventState='normal',
+        scale=Scale(floatScale=2.3),
+        units='btusPerPoundDryAir',
         )
-    _log.debug("    - rao1: %r", rao1)
+    if _debug: _log.debug("    - accumulator: %r", accumulator)
 
     # add it to the device
-    this_application.add_object(rao1)
-    _log.debug("    - object list: %r", this_device.objectList)
+    this_application.add_object(accumulator)
+    if _debug: _log.debug("    - object list: %r", this_device.objectList)
+
+    # create a task that bumps the value by one every 10 seconds
+    pulse_task = PulseTask(accumulator, 1, 10 * 1000)
+    if _debug: _log.debug("    - pulse_task: %r", pulse_task)
+
+    _log.debug("running")
 
     run()
 
