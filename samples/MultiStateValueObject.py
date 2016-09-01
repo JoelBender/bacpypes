@@ -10,6 +10,8 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
+from bacpypes.primitivedata import CharacterString
+from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import MultiStateValueObject
 
 from bacpypes.app import BIPSimpleApplication
@@ -55,7 +57,7 @@ def main():
         objectName='My Special Object',
         presentValue=1,
         numberOfStates=3,
-        stateText=['red', 'green', 'blue'],
+        stateText=ArrayOf(CharacterString)(['red', 'green', 'blue']),
         )
     _log.debug("    - msvo: %r", msvo)
 
