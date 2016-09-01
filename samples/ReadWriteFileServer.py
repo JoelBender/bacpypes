@@ -18,6 +18,7 @@ from bacpypes.object import FileObject, register_object_type
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.file import FileServices
 
 # some debugging
 _debug = 0
@@ -61,9 +62,9 @@ class LocalRecordAccessFileObject(FileObject):
 
         return len(self._record_data)
 
-    def ReadFile(self, start_record, record_count):
+    def read_record(self, start_record, record_count):
         """ Read a number of records starting at a specific record. """
-        if _debug: LocalRecordAccessFileObject._debug("ReadFile %r %r",
+        if _debug: LocalRecordAccessFileObject._debug("read_record %r %r",
                 start_record, record_count,
                 )
 
@@ -73,9 +74,9 @@ class LocalRecordAccessFileObject(FileObject):
         return end_of_file, \
             self._record_data[start_record:start_record + record_count]
 
-    def WriteFile(self, start_record, record_count, record_data):
+    def write_record(self, start_record, record_count, record_data):
         """ Write a number of records, starting at a specific record. """
-        if _debug: LocalRecordAccessFileObject._debug("WriteFile %r %r %r",
+        if _debug: LocalRecordAccessFileObject._debug("write_record %r %r %r",
                 start_record, record_count, record_data,
                 )
 
@@ -129,9 +130,9 @@ class LocalStreamAccessFileObject(FileObject):
 
         return len(self._file_data)
 
-    def ReadFile(self, start_position, octet_count):
+    def read_stream(self, start_position, octet_count):
         """ Read a chunk of data out of the file. """
-        if _debug: LocalStreamAccessFileObject._debug("ReadFile %r %r",
+        if _debug: LocalStreamAccessFileObject._debug("read_stream %r %r",
                 start_position, octet_count,
                 )
 
@@ -141,9 +142,9 @@ class LocalStreamAccessFileObject(FileObject):
         return end_of_file, \
             self._file_data[start_position:start_position + octet_count]
 
-    def WriteFile(self, start_position, data):
+    def write_stream(self, start_position, data):
         """ Write a number of octets, starting at a specific offset. """
-        if _debug: LocalStreamAccessFileObject._debug("WriteFile %r %r",
+        if _debug: LocalStreamAccessFileObject._debug("write_stream %r %r",
                 start_position, data,
                 )
 
@@ -192,6 +193,9 @@ def main():
 
     # make a sample application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
+
+    # add the capability to server file content
+    this_application.add_capability(FileServices)
 
     # get the services supported
     services_supported = this_application.get_services_supported()

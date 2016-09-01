@@ -121,7 +121,34 @@ class TestConsoleCmd(ConsoleCmd):
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
             # give it to the application
-            this_application.request(request)
+            iocb = this_application.request(request)
+            if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # should be an ack
+                if not isinstance(apdu, AtomicReadFileACK):
+                    if _debug: TestConsoleCmd._debug("    - not an ack")
+                    return
+
+                # suck out the record data
+                if apdu.accessMethod.recordAccess:
+                    value = apdu.accessMethod.recordAccess.fileRecordData
+                elif apdu.accessMethod.streamAccess:
+                    value = apdu.accessMethod.streamAccess.fileData
+                if _debug: TestConsoleCmd._debug("    - value: %r", value)
+
+                sys.stdout.write(repr(value) + '\n')
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             TestConsoleCmd._exception("exception: %r", error)
@@ -153,7 +180,34 @@ class TestConsoleCmd(ConsoleCmd):
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
             # give it to the application
-            this_application.request(request)
+            iocb = this_application.request(request)
+            if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # should be an ack
+                if not isinstance(apdu, AtomicReadFileACK):
+                    if _debug: TestConsoleCmd._debug("    - not an ack")
+                    return
+
+                # suck out the record data
+                if apdu.accessMethod.recordAccess:
+                    value = apdu.accessMethod.recordAccess.fileRecordData
+                elif apdu.accessMethod.streamAccess:
+                    value = apdu.accessMethod.streamAccess.fileData
+                if _debug: TestConsoleCmd._debug("    - value: %r", value)
+
+                sys.stdout.write(repr(value) + '\n')
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             TestConsoleCmd._exception("exception: %r", error)
@@ -187,7 +241,34 @@ class TestConsoleCmd(ConsoleCmd):
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
             # give it to the application
-            this_application.request(request)
+            iocb = this_application.request(request)
+            if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # should be an ack
+                if not isinstance(apdu, AtomicWriteFileACK):
+                    if _debug: TestConsoleCmd._debug("    - not an ack")
+                    return
+
+                # suck out the record data
+                if apdu.fileStartPosition is not None:
+                    value = apdu.fileStartPosition
+                elif apdu.fileStartRecord is not None:
+                    value = apdu.fileStartRecord
+                TestApplication._debug("    - value: %r", value)
+
+                sys.stdout.write(repr(value) + '\n')
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             TestConsoleCmd._exception("exception: %r", error)
@@ -219,7 +300,34 @@ class TestConsoleCmd(ConsoleCmd):
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
             # give it to the application
-            this_application.request(request)
+            iocb = this_application.request(request)
+            if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # should be an ack
+                if not isinstance(apdu, AtomicWriteFileACK):
+                    if _debug: TestConsoleCmd._debug("    - not an ack")
+                    return
+
+                # suck out the record data
+                if apdu.fileStartPosition is not None:
+                    value = apdu.fileStartPosition
+                elif apdu.fileStartRecord is not None:
+                    value = apdu.fileStartRecord
+                TestApplication._debug("    - value: %r", value)
+
+                sys.stdout.write(repr(value) + '\n')
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             TestConsoleCmd._exception("exception: %r", error)
@@ -247,7 +355,7 @@ def main():
         )
 
     # make a simple application
-    this_application = TestApplication(this_device, args.ini.address)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
