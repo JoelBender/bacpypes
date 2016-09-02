@@ -93,26 +93,27 @@ class WhoIsIAmApplication(BIPSimpleApplication):
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
-        """whois [ <addr>] [ <lolimit> <hilimit> ]"""
+        """whois [ <addr> ] [ <lolimit> <hilimit> ]"""
         args = args.split()
         if _debug: WhoIsIAmConsoleCmd._debug("do_whois %r", args)
 
         try:
-            # build a request
+            # gather the parameters
             request = WhoIsRequest()
             if (len(args) == 1) or (len(args) == 3):
-                request.pduDestination = Address(args[0])
+                addr = Address(args[0])
                 del args[0]
             else:
-                request.pduDestination = GlobalBroadcast()
+                addr = GlobalBroadcast()
 
             if len(args) == 2:
-                request.deviceInstanceRangeLowLimit = int(args[0])
-                request.deviceInstanceRangeHighLimit = int(args[1])
-            if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
+                lolimit = int(args[0])
+                hilimit = int(args[1])
+            else:
+                lolimit = hilimit = None
 
-            # give it to the application
-            this_application.request(request)
+            # code lives in the device service
+            this_application.who_is(lolimit, hilimit, addr)
 
         except Exception as error:
             WhoIsIAmConsoleCmd._exception("exception: %r", error)
@@ -122,23 +123,8 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         args = args.split()
         if _debug: WhoIsIAmConsoleCmd._debug("do_iam %r", args)
 
-        try:
-            # build a request
-            request = IAmRequest()
-            request.pduDestination = GlobalBroadcast()
-
-            # set the parameters from the device object
-            request.iAmDeviceIdentifier = this_device.objectIdentifier
-            request.maxAPDULengthAccepted = this_device.maxApduLengthAccepted
-            request.segmentationSupported = this_device.segmentationSupported
-            request.vendorID = this_device.vendorIdentifier
-            if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
-
-            # give it to the application
-            this_application.request(request)
-
-        except Exception as error:
-            WhoIsIAmConsoleCmd._exception("exception: %r", error)
+        # code lives in the device service
+        this_application.i_am()
 
     def do_rtn(self, args):
         """rtn <addr> <net> ... """
