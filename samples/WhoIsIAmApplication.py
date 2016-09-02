@@ -49,7 +49,7 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         who_is_counter[key] += 1
 
-        # pass back to the default implementation
+        # continue with the default implementation
         BIPSimpleApplication.do_WhoIsRequest(self, apdu)
 
     def do_IAmRequest(self, apdu):
@@ -64,7 +64,8 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         i_am_counter[key] += 1
 
-        # no default implementation
+        # continue with the default implementation
+        BIPSimpleApplication.do_IAmRequest(self, apdu)
 
 #
 #   __main__
