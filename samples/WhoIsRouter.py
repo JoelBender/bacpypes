@@ -35,16 +35,8 @@ class WhoIsRouterApplication(BIPNetworkApplication):
         if _debug: WhoIsRouterApplication._debug("__init__ %r", args)
         BIPNetworkApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
-
     def request(self, adapter, npdu):
         if _debug: WhoIsRouterApplication._debug("request %r %r", adapter, npdu)
-
-        # save a copy of the request
-        self._request = npdu
-
-        # forward it along
         BIPNetworkApplication.request(self, adapter, npdu)
 
     def indication(self, adapter, npdu):
