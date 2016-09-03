@@ -435,13 +435,13 @@ class Application(ApplicationServiceElement, Collector):
         # pass the apdu on to the helper function
         try:
             helperFn(apdu)
-        except RejectException as err:
+        except RejectException, err:
             if _debug: Application._debug("    - reject exception: %r", err)
             raise
-        except AbortException as err:
+        except AbortException, err:
             if _debug: Application._debug("    - abort exception: %r", err)
             raise
-        except ExecutionError as err:
+        except ExecutionError, err:
             if _debug: Application._debug("    - execution error: %r", err)
 
             # send back an error
@@ -449,7 +449,7 @@ class Application(ApplicationServiceElement, Collector):
                 resp = Error(errorClass=err.errorClass, errorCode=err.errorCode, context=apdu)
                 self.response(resp)
 
-        except Exception as err:
+        except Exception, err:
             Application._exception("exception: %r", err)
 
             # send back an error

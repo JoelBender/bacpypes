@@ -525,10 +525,10 @@ def read_property_to_result_element(obj, propertyIdentifier, propertyArrayIndex=
     try:
         read_result.propertyValue = read_property_to_any(obj, propertyIdentifier, propertyArrayIndex)
         if _debug: read_property_to_result_element._debug("    - success")
-    except PropertyError as error:
+    except PropertyError, error:
         if _debug: read_property_to_result_element._debug("    - error: %r", error)
         read_result.propertyAccessError = ErrorType(errorClass='property', errorCode='unknownProperty')
-    except ExecutionError as error:
+    except ExecutionError, error:
         if _debug: read_property_to_result_element._debug("    - error: %r", error)
         read_result.propertyAccessError = ErrorType(errorClass=error.errorClass, errorCode=error.errorCode)
 
