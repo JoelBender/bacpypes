@@ -727,6 +727,7 @@ class StreamToPacket(Client, Server):
             # look for a packet
             while 1:
                 packet = self.packetFn(buff)
+                if _debug: StreamToPacket._debug("    - packet: %r", packet)
                 if packet is None:
                     break
 

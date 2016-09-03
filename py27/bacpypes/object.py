@@ -573,13 +573,14 @@ class Object(object):
                 file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
             previous_attrs = attrs
 
-        # build a list of properties "bottom up"
+        # build a list of property identifiers "bottom up"
         property_names = []
+        properties_seen = set()
         for c in klasses:
-            properties = getattr(c, 'properties', [])
-            for property in properties:
-                if property.identifier not in property_names:
-                    property_names.append(property.identifier)
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
         # print out the values
         for property_name in property_names:

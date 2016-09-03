@@ -88,6 +88,7 @@ class SubscriptionList:
 #   Subscription
 #
 
+@bacpypes_debugging
 class Subscription(OneShotTask, DebugContents):
 
     _debug_contents = (
@@ -159,6 +160,7 @@ class Subscription(OneShotTask, DebugContents):
 #   COVCriteria
 #
 
+@bacpypes_debugging
 class COVCriteria:
 
     _properties_tracked = ()
@@ -257,7 +259,6 @@ class COVIncrementCriteria(COVCriteria):
 #   Change of Value Mixin
 #
 
-@bacpypes_debugging
 class COVObjectMixin(object):
 
     _debug_contents = (

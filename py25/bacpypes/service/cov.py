@@ -40,7 +40,6 @@ _cov_increment_criteria_classes = {}
 #   SubscriptionList
 #
 
-@bacpypes_debugging
 class SubscriptionList:
 
     def __init__(self):
@@ -83,6 +82,7 @@ class SubscriptionList:
         for cov in self.cov_subscriptions:
             yield cov
 
+bacpypes_debugging(SubscriptionList)
 
 #
 #   Subscription
@@ -155,6 +155,8 @@ class Subscription(OneShotTask, DebugContents):
         # subscription is canceled
         self.cancel_subscription()
 
+bacpypes_debugging(Subscription)
+
 #
 #   COVCriteria
 #
@@ -188,6 +190,7 @@ class COVCriteria:
         # should send notifications
         return something_changed
 
+bacpypes_debugging(COVCriteria)
 
 class GenericCriteria(COVCriteria):
 
@@ -201,8 +204,6 @@ class GenericCriteria(COVCriteria):
         )
     _monitored_property_reference = 'presentValue'
 
-
-@bacpypes_debugging
 class COVIncrementCriteria(COVCriteria):
 
     _properties_tracked = (
@@ -253,11 +254,12 @@ class COVIncrementCriteria(COVCriteria):
         # should send notifications
         return something_changed
 
+bacpypes_debugging(COVIncrementCriteria)
+
 #
 #   Change of Value Mixin
 #
 
-@bacpypes_debugging
 class COVObjectMixin(object):
 
     _debug_contents = (
@@ -396,6 +398,8 @@ class COVObjectMixin(object):
 
             # let the application send it
             self._app.cov_notification(cov, request)
+
+bacpypes_debugging(COVObjectMixin)
 
 
 class AccessDoorCriteria(COVCriteria):
@@ -562,7 +566,6 @@ class PulseConverterObjectCOV(COVObjectMixin, PulseConverterCriteria, PulseConve
 #   ActiveCOVSubscriptions
 #
 
-@bacpypes_debugging
 class ActiveCOVSubscriptions(Property):
 
     def __init__(self):
@@ -623,12 +626,12 @@ class ActiveCOVSubscriptions(Property):
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
+bacpypes_debugging(ActiveCOVSubscriptions)
 
 #
 #   ChangeOfValueServices
 #
 
-@bacpypes_debugging
 class ChangeOfValueServices(Capability):
 
     def __init__(self):
@@ -735,3 +738,5 @@ class ChangeOfValueServices(Capability):
 
         # return the result
         self.response(response)
+
+bacpypes_debugging(ChangeOfValueServices)

@@ -5,6 +5,7 @@ Object
 """
 
 import sys
+from copy import copy as _copy
 
 from .errors import ConfigurationError, ExecutionError, \
     InvalidParameterDatatype
@@ -433,6 +434,49 @@ class Object(Logging):
 
         return prop.WriteProperty(self, value, direct=True)
 
+    def add_property(self, prop):
+        """Add a property to an object.  The property is an instance of
+        a Property or one of its derived classes.  Adding a property
+        disconnects it from the collection of properties common to all of the
+        objects of its class."""
+        if _debug: Object._debug("add_property %r", prop)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # save the property reference and default value (usually None)
+        self._properties[prop.identifier] = prop
+        self._values[prop.identifier] = prop.default
+
+        # tell the object it has a new property
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier not in property_list:
+                if _debug: Object._debug("    - adding to property list")
+                property_list.append(prop.identifier)
+
+    def delete_property(self, prop):
+        """Delete a property from an object.  The property is an instance of
+        a Property or one of its derived classes, but only the property
+        is relavent.  Deleting a property disconnects it from the collection of
+        properties common to all of the objects of its class."""
+        if _debug: Object._debug("delete_property %r", value)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # delete the property from the dictionary and values
+        del self._properties[prop.identifier]
+        if prop.identifier in self._values:
+            del self._values[prop.identifier]
+
+        # remove the property identifier from its list of know properties
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier in property_list:
+                if _debug: Object._debug("    - removing from property list")
+                property_list.remove(prop.identifier)
+
     def ReadProperty(self, propid, arrayIndex=None):
         if _debug: Object._debug("ReadProperty %r arrayIndex=%r", propid, arrayIndex)
 
@@ -522,13 +566,14 @@ class Object(Logging):
                 file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
             previous_attrs = attrs
 
-        # build a list of properties "bottom up"
+        # build a list of property identifiers "bottom up"
         property_names = []
+        properties_seen = set()
         for c in klasses:
-            properties = getattr(c, 'properties', [])
-            for property in properties:
-                if property.identifier not in property_names:
-                    property_names.append(property.identifier)
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
         # print out the values
         for property_name in property_names:
