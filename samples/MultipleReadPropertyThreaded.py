@@ -141,8 +141,8 @@ def main():
     read_thread = ReadPointListThread(point_list)
     if _debug: _log.debug("    - read_thread: %r", read_thread)
 
-    # get it running when the code is running
-    deferred(read_thread.run)
+    # start it running when the core is running
+    deferred(read_thread.start)
 
     _log.debug("running")
 
