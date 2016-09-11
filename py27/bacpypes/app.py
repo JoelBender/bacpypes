@@ -12,16 +12,13 @@ from .iocb import IOQController, IOCB
 
 from .pdu import Address
 
-from .primitivedata import Date, Time, ObjectIdentifier
-from .constructeddata import ArrayOf
+from .primitivedata import ObjectIdentifier
 
 from .capability import Collector
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
 
-from .object import Property, DeviceObject, \
-    registered_object_types, register_object_type
 from .apdu import UnconfirmedRequestPDU, ConfirmedRequestPDU, \
     SimpleAckPDU, ComplexAckPDU, ErrorPDU, RejectPDU, AbortPDU, Error
 
@@ -33,7 +30,8 @@ from .apdu import confirmed_request_types, unconfirmed_request_types, \
 from .basetypes import ServicesSupported
 
 # basic services
-from .service.device import WhoIsIAmServices, ReadWritePropertyServices
+from .service.device import WhoIsIAmServices
+from .service.object import ReadWritePropertyServices
 
 # some debugging
 _debug = 0
@@ -468,7 +466,7 @@ class BIPSimpleApplication(Application, WhoIsIAmServices, ReadWritePropertyServi
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        Application.__init__(self, localDevice, deviceInfoCache, aseID)
+        Application.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
@@ -518,7 +516,7 @@ class BIPForeignApplication(Application, WhoIsIAmServices, ReadWritePropertyServ
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        Application.__init__(self, localDevice, aseID)
+        Application.__init__(self, localDevice, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
@@ -589,4 +587,3 @@ class BIPNetworkApplication(NetworkServiceElement):
 
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
-

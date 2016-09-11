@@ -12,16 +12,13 @@ from .iocb import IOQController, IOCB
 
 from .pdu import Address
 
-from .primitivedata import Date, Time, ObjectIdentifier
-from .constructeddata import ArrayOf
+from .primitivedata import ObjectIdentifier
 
 from .capability import Collector
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
 
-from .object import Property, DeviceObject, \
-    registered_object_types, register_object_type
 from .apdu import UnconfirmedRequestPDU, ConfirmedRequestPDU, \
     SimpleAckPDU, ComplexAckPDU, ErrorPDU, RejectPDU, AbortPDU, Error
 
@@ -33,7 +30,8 @@ from .apdu import confirmed_request_types, unconfirmed_request_types, \
 from .basetypes import ServicesSupported
 
 # basic services
-from .service.device import WhoIsIAmServices, ReadWritePropertyServices
+from .service.device import WhoIsIAmServices
+from .service.object import ReadWritePropertyServices
 
 # some debugging
 _debug = 0
@@ -222,7 +220,7 @@ class ApplicationController(IOQController):
 @bacpypes_debugging
 class Application(ApplicationServiceElement, Collector):
 
-    def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
+    def __init__(self, localDevice=None, localAddress=None, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
 
@@ -289,8 +287,10 @@ class Application(ApplicationServiceElement, Collector):
         self.objectName[object_name] = obj
         self.objectIdentifier[object_identifier] = obj
 
-        # append the new object's identifier to the device's object list
-        self.localDevice.objectList.append(object_identifier)
+        # append the new object's identifier to the local device's object list
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            self.localDevice.objectList.append(object_identifier)
 
         # let the object know which application stack it belongs to
         obj._app = self
@@ -308,8 +308,10 @@ class Application(ApplicationServiceElement, Collector):
         del self.objectIdentifier[object_identifier]
 
         # remove the object's identifier from the device's object list
-        indx = self.localDevice.objectList.index(object_identifier)
-        del self.localDevice.objectList[indx]
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            indx = self.localDevice.objectList.index(object_identifier)
+            del self.localDevice.objectList[indx]
 
         # make sure the object knows it's detached from an application
         obj._app = None
@@ -464,7 +466,13 @@ class BIPSimpleApplication(Application, WhoIsIAmServices, ReadWritePropertyServi
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        Application.__init__(self, localDevice, localAddress, deviceInfoCache, aseID)
+        Application.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -508,7 +516,13 @@ class BIPForeignApplication(Application, WhoIsIAmServices, ReadWritePropertyServ
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        Application.__init__(self, localDevice, localAddress, aseID)
+        Application.__init__(self, localDevice, aseID=aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -573,4 +587,3 @@ class BIPNetworkApplication(NetworkServiceElement):
 
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
-
