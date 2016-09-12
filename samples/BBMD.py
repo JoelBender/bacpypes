@@ -7,11 +7,11 @@ subsequent parameters are the entries to put in its broadcast distribution
 table.
 """
 
-from bacpypes.debugging import ModuleLogger
+from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
 from bacpypes.core import run
-from bacpypes.comm import bind
+from bacpypes.comm import Client, bind
 
 from bacpypes.pdu import Address
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
@@ -19,6 +19,21 @@ from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+
+#
+#   NullClient
+#
+
+@bacpypes_debugging
+class NullClient(Client):
+
+    def __init__(self, cid=None):
+        if _debug: NullClient._debug("__init__ cid=%r", cid)
+        Client.__init__(self, cid=cid)
+
+    def confirmation(self, *args, **kwargs):
+        if _debug: NullClient._debug("confirmation %r %r", args, kwargs)
 
 #
 #   __main__
@@ -47,13 +62,18 @@ def main():
     local_address = Address(args.localaddr)
     if _debug: _log.debug("    - local_address: %r", local_address)
 
+    # create a null client that will accept, but do nothing with upstream
+    # packets from the BBMD
+    null_client = NullClient()
+    if _debug: _log.debug("    - null_client: %r", null_client)
+
     # create a BBMD, bound to the Annex J server on a UDP multiplexer
     bbmd = BIPBBMD(local_address)
     annexj = AnnexJCodec()
     multiplexer = UDPMultiplexer(local_address)
 
     # bind the layers together
-    bind(bbmd, annexj, multiplexer.annexJ)
+    bind(null_client, bbmd, annexj, multiplexer.annexJ)
 
     # loop through the rest of the addresses
     for bdtentry in args.bdtentry:
