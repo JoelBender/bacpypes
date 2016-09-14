@@ -6,6 +6,7 @@ Object
 
 import sys
 from copy import copy as _copy
+from collections import defaultdict
 
 from .errors import ConfigurationError, ExecutionError, \
     InvalidParameterDatatype
@@ -227,7 +228,14 @@ class Property:
             return
 
         # seems to be OK
+        old_value = obj._values.get(self.identifier, None)
         obj._values[self.identifier] = value
+
+        # check for monitors, call each one with the old and new value
+        if self.identifier in obj._property_monitor:
+            for fn in obj._property_monitor[self.identifier]:
+                if _debug: Property._debug("    - monitor: %r", fn)
+                fn(old_value, value)
 
 #
 #   StandardProperty
@@ -365,6 +373,9 @@ class Object(object):
 
         # start with a clean dict of values
         self._values = {}
+
+        # empty list of property monitors
+        self._property_monitor = defaultdict(list)
 
         # start with a clean array of property identifiers
         if 'propertyList' in initargs:

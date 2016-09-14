@@ -5,36 +5,38 @@
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
+from bacpypes.core import run, run_once, deferred
+
 # some debugging
 _debug = 0 
 _log = ModuleLogger(globals())
 
 #
-#   Event Detection Transfer
+#   Detection Transfer
 #
 
 @bacpypes_debugging
-class EventDetectionTransfer:
+class DetectionTransfer:
 
-    def __init__(self, eda, parameter, obj, property, filter=None):
-        if _debug: EventDetectionTransfer._debug("__init__ ...")
+    def __init__(self, eda, parameter, obj, prop, filter=None):
+        if _debug: DetectionTransfer._debug("__init__ ...")
 
         # keep track of the parameter values
         self.eda = eda
         self.parameter = parameter
         self.obj = obj
-        self.property = property
+        self.prop = prop
         self.filter = None
 
     def property_change(self, old_value, new_value):
-        if _debug: EventDetectionTransfer._debug("property_change ...")
+        if _debug: DetectionTransfer._debug("property_change %r %r", old_value, new_value)
 
         # set the parameter value
         setattr(self.eda, self.parameter, new_value)
 
         # if this is already triggered, don't bother checking for more
         if self.eda._triggered:
-            if _debug: EventDetectionTransfer._debug("    - already triggered")
+            if _debug: DetectionTransfer._debug("    - already triggered")
             return
 
         # if there is a special filter, use it, otherwise use !=
@@ -42,7 +44,7 @@ class EventDetectionTransfer:
             trigger = self.filter(old_value, new_value)
         else:
             trigger = (old_value != new_value)
-        if _debug: EventDetectionTransfer._debug("    - trigger: %r", trigger)
+        if _debug: DetectionTransfer._debug("    - trigger: %r", trigger)
 
         # trigger it
         if trigger:
@@ -55,32 +57,20 @@ class EventDetectionTransfer:
 
 def transfer_filter(parameter):
     def transfer_filter_decorator(fn):
-        # extract the class from the unbound method
-        filter_class = fn.im_class
-
-        # if the transfer filters is None this is the first transfer filter
-        # function for this class and it gets its own mapping
-        if filter_class._transfer_filters is None:
-            filter_class._transfer_filters = {}
-
-        filter_class._transfer_filters[parameter] = fn
-
-        # return the function unspoiled
+        fn._transfer_filter = parameter
         return fn
 
     return transfer_filter_decorator
 
 #
-#   EventDetectionAlgorithm
+#   DetectionAlgorithm
 #
 
 @bacpypes_debugging
-class EventDetectionAlgorithm:
-
-    _transfer_filters = None
+class DetectionAlgorithm:
 
     def __init__(self):
-        if _debug: EventDetectionAlgorithm._debug("__init__ %r")
+        if _debug: DetectionAlgorithm._debug("__init__ %r")
 
         # transfer objects
         self._transfers = []
@@ -89,32 +79,41 @@ class EventDetectionAlgorithm:
         self._triggered = False
 
     def bind(self, **kwargs):
-        if _debug: EventDetectionAlgorithm._debug("bind %r", kwargs)
+        if _debug: DetectionAlgorithm._debug("bind %r", kwargs)
 
-        for parameter, (obj, property) in kwargs.items():
+        # build a map of functions that have a transfer filter
+        transfer_filters = {}
+        for attr_name in dir(self):
+            attr = getattr(self, attr_name)
+            if hasattr(attr, "_transfer_filter"):
+                transfer_filters[attr._transfer_filter] = attr
+        if _debug: DetectionAlgorithm._debug("    - transfer_filters %r", kwargs)
+
+        for parameter, (obj, prop) in kwargs.items():
             if not hasattr(self, parameter):
-                pass
+                if _debug: DetectionAlgorithm._debug("    - no matching parameter: %r", parameter)
 
             # make a transfer object
-            xfr = EventDetectionTransfer(self, parameter, obj, property)
+            xfr = DetectionTransfer(self, parameter, obj, prop)
 
             # check to see if there is a custom filter for it
-            if parameter in self.transfer_filters:
-                xfr.filter = partial(self.transfer_filters[parameter], self)
+            if parameter in transfer_filters:
+                xfr.filter = transfer_filters[parameter]
 
             # keep track of all of these objects for if/when we unbind
             self._transfers.append(xfr)
 
             # add the property value monitor function
-            obj._property_monitor[property] = xfr.property_change
+            obj._property_monitor[prop].append(xfr.property_change)
 
             # set the parameter value to the property value if it's not None
-            property_value = obj._value[property]
+            property_value = obj._values[prop]
             if property_value is not None:
+                if _debug: DetectionAlgorithm._debug("    - %s: %r", parameter, property_value)
                 setattr(self, parameter, property_value)
 
     def unbind(self):
-        if _debug: EventDetectionAlgorithm._debug("unbind %r", kwargs)
+        if _debug: DetectionAlgorithm._debug("unbind %r", kwargs)
 
         # remove the property value monitor functions
         for xfr in self._transfers:
@@ -124,7 +123,7 @@ class EventDetectionAlgorithm:
         self._transfers = []
 
     def evaluate(self):
-        if _debug: EventDetectionAlgorithm._debug("evaluate %r", kwargs)
+        if _debug: DetectionAlgorithm._debug("evaluate %r", kwargs)
 
         self._triggered = False
 
@@ -133,14 +132,15 @@ class EventDetectionAlgorithm:
 #
 
 @bacpypes_debugging
-class SampleEventDetection(EventDetectionAlgorithm):
+class SampleEventDetection(DetectionAlgorithm):
 
     def __init__(self, **kwargs):
         if _debug: SampleEventDetection._debug("__init__ %r %r", self, kwargs)
-        EventDetectionAlgorithm.__init__(self)
+        DetectionAlgorithm.__init__(self)
 
         # provide an interesting default value
         self.pParameter = None
+        self.pSetPoint = None
 
         # bind to the parameter values provided
         self.bind(**kwargs)
@@ -152,13 +152,67 @@ class SampleEventDetection(EventDetectionAlgorithm):
         return (old_value != new_value)
 
     def evaluate(self):
-        if _debug: SampleEventDetection._debug("evaluate %r", kwargs)
+        if _debug: SampleEventDetection._debug("evaluate")
 
         # if _triggered is true this function was called because of some
         # parameter change, but could have been called for some other reason
         if self._triggered:
-            if _debug: SampleEventDetection._debug("   - triggered")
+            if _debug: SampleEventDetection._debug("   - was triggered")
 
             self._triggered = False
         else:
-            if _debug: SampleEventDetection._debug("    - not triggered")
+            if _debug: SampleEventDetection._debug("    - was not triggered")
+
+        # check for things
+        if self.pParameter != self.pSetPoint:
+            print("ding!")
+
+#
+#
+#
+
+from bacpypes.consolelogging import ArgumentParser
+from bacpypes.object import AnalogValueObject
+
+# parse the command line arguments
+parser = ArgumentParser(usage=__doc__)
+args = parser.parse_args()
+
+if _debug: _log.debug("initialization")
+if _debug: _log.debug("    - args: %r", args)
+
+
+av1 = AnalogValueObject(
+    objectIdentifier=('analogValue', 1),
+    presentValue=75.3,
+    )
+if _debug: _log.debug("    - av1: %r", av1)
+
+av2 = AnalogValueObject(
+    objectIdentifier=('analogValue', 2),
+    presentValue=75.3,
+    )
+if _debug: _log.debug("    - av2: %r", av2)
+
+
+sed = SampleEventDetection(
+    pParameter=(av1, 'presentValue'),
+    pSetPoint=(av2, 'presentValue'),
+    )
+if _debug: _log.debug("    - sed: %r", sed)
+
+print("")
+
+av1.presentValue = 12.5
+run_once()
+
+print("")
+
+av2.presentValue = 12.5
+run_once()
+
+print("")
+
+av1.presentValue = 9.8
+av2.presentValue = 10.3
+run_once()
