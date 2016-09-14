@@ -177,7 +177,7 @@ class BroadcastReceiver(Client):
 
 def main():
     # parse the command line arguments
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(usage=__doc__)
     parser.add_argument("address",
         help="address of socket",
         )
