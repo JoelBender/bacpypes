@@ -3,6 +3,7 @@
 """
 """
 
+from functools import partial
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.core import run, run_once, deferred
@@ -135,6 +136,13 @@ class DetectionAlgorithm:
         raise notImplementedError("execute not implemented")
 
 #
+#   something_changed
+#
+
+def something_changed(thing, old_value, new_value):
+    print("{} changed from {} to {}".format(thing, old_value, new_value))
+
+#
 #   SampleEventDetection
 #
 
@@ -186,20 +194,29 @@ args = parser.parse_args()
 if _debug: _log.debug("initialization")
 if _debug: _log.debug("    - args: %r", args)
 
-
+# analog value 1
 av1 = AnalogValueObject(
     objectIdentifier=('analogValue', 1),
     presentValue=75.3,
     )
 if _debug: _log.debug("    - av1: %r", av1)
 
+# add a very simple monitor
+av1._property_monitors['presentValue'].append(
+    partial(something_changed, "av1"),
+    )
+
+# test it
+av1.presentValue = 45.6
+
+# analog value 2
 av2 = AnalogValueObject(
     objectIdentifier=('analogValue', 2),
     presentValue=75.3,
     )
 if _debug: _log.debug("    - av2: %r", av2)
 
-
+# sample event detection
 sed = SampleEventDetection(
     pParameter=(av1, 'presentValue'),
     pSetPoint=(av2, 'presentValue'),
