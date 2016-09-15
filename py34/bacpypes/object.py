@@ -6,6 +6,7 @@ Object
 
 import sys
 from copy import copy as _copy
+from collections import defaultdict
 
 from .errors import ConfigurationError, ExecutionError, \
     InvalidParameterDatatype
@@ -211,6 +212,9 @@ class Property:
                         self.identifier, self.datatype.__name__,
                         ))
 
+        # local check if the property is monitored
+        is_monitored = self.identifier in obj._property_monitors
+
         if arrayIndex is not None:
             if not issubclass(self.datatype, Array):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
@@ -220,14 +224,31 @@ class Property:
             if arry is None:
                 raise RuntimeError("%s uninitialized array" % (self.identifier,))
 
+            if is_monitored:
+                old_value = _copy(arry)
+
             # seems to be OK, let the array object take over
             if _debug: Property._debug("    - forwarding to array")
             arry[arrayIndex] = value
 
-            return
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, arry)
 
-        # seems to be OK
-        obj._values[self.identifier] = value
+        else:
+            if is_monitored:
+                old_value = obj._values.get(self.identifier, None)
+
+            # seems to be OK
+            obj._values[self.identifier] = value
+
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, value)
 
 #
 #   StandardProperty
@@ -365,6 +386,9 @@ class Object:
 
         # start with a clean dict of values
         self._values = {}
+
+        # empty list of property monitors
+        self._property_monitors = defaultdict(list)
 
         # start with a clean array of property identifiers
         if 'propertyList' in initargs:
@@ -626,9 +650,9 @@ class AccessCredentialObject(Object):
         , OptionalProperty('extendedTimeEnable', Boolean)
         , OptionalProperty('authorizationExemptions', SequenceOf(AuthorizationException))
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
-        , OptionalProperty('masterExemption', Boolean)
-        , OptionalProperty('passbackExemption', Boolean)
-        , OptionalProperty('occupancyExemption', Boolean)
+#       , OptionalProperty('masterExemption', Boolean)
+#       , OptionalProperty('passbackExemption', Boolean)
+#       , OptionalProperty('occupancyExemption', Boolean)
         ]
 
 @register_object_type
