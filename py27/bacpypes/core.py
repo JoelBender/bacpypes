@@ -210,8 +210,9 @@ if hasattr(signal, 'SIGUSR1'):
 #   deferred
 #
 
+@bacpypes_debugging
 def deferred(fn, *args, **kwargs):
-    # _log.debug("deferred %r %r %r", fn, args, kwargs)
+    if _debug: deferred._debug("deferred %r %r %r", fn, args, kwargs)
     global deferredFns
 
     # append it to the list
