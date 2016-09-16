@@ -240,6 +240,10 @@ class COVDetection(DetectionAlgorithm):
             # let the application send it
             self.obj._app.cov_notification(cov, request)
 
+    def __str__(self):
+        return "<" + self.__class__.__name__ + \
+            "(" + ','.join(self.properties_tracked) + ')' + \
+            ">"
 
 class GenericCriteria(COVDetection):
 
@@ -503,6 +507,11 @@ class ChangeOfValueServices(Capability):
     def cancel_subscription(self, cov):
         if _debug: ChangeOfValueServices._debug("cancel_subscription %r", cov)
 
+        # cancel the subscription timeout
+        if cov.isScheduled:
+            cov.suspend_task()
+            if _debug: ChangeOfValueServices._debug("    - task suspended")
+
         # remove it to the list of all active subscriptions
         self.active_cov_subscriptions.remove(cov)
 
@@ -514,6 +523,8 @@ class ChangeOfValueServices(Capability):
 
         # if the detection algorithm doesn't have any subscriptions, remove it
         if not len(cov_detection.cov_subscriptions):
+            if _debug: ChangeOfValueServices._debug("    - no more subscriptions")
+
             # unbind all the hooks into the object
             cov_detection.unbind()
 
