@@ -47,8 +47,9 @@ class COVConsoleCmd(ConsoleCmd):
 
         # reference the list of active subscriptions
         active_subscriptions = test_application.active_cov_subscriptions
+        if _debug: COVConsoleCmd._debug("    - %d active subscriptions", len(active_subscriptions))
 
-        # dump them out
+        # dump then out
         for subscription in active_subscriptions:
             print("{} {} {} {} {}".format(
                 subscription.client_addr,
@@ -56,6 +57,14 @@ class COVConsoleCmd(ConsoleCmd):
                 subscription.obj_id,
                 subscription.confirmed,
                 subscription.lifetime,
+                ))
+
+        # reference the object to algorithm map
+        object_detections = test_application.object_detections
+        for objref, cov_detection in object_detections.items():
+            print("{} {}".format(
+                objref.objectIdentifier,
+                cov_detection,
                 ))
 
     def do_trigger(self, args):
