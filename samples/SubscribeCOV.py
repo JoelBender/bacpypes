@@ -46,6 +46,14 @@ class SubscribeCOVApplication(BIPSimpleApplication):
         if _debug: SubscribeCOVApplication._debug("do_ConfirmedCOVNotificationRequest %r", apdu)
         global rsvp
 
+        print("{} changed\n    {}".format(
+            apdu.monitoredObjectIdentifier,
+            ",\n    ".join("{} = {}".format(
+                element.propertyIdentifier,
+                str(element.value),
+                ) for element in apdu.listOfValues),
+            ))
+
         if rsvp[0]:
             # success
             response = SimpleAckPDU(context=apdu)
@@ -67,6 +75,13 @@ class SubscribeCOVApplication(BIPSimpleApplication):
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 
+        print("{} changed\n    {}".format(
+            apdu.monitoredObjectIdentifier,
+            ",\n    ".join("{} is {}".format(
+                element.propertyIdentifier,
+                str(element.value),
+                ) for element in apdu.listOfValues),
+            ))
 
 #
 #   SubscribeCOVConsoleCmd
