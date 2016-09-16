@@ -210,7 +210,7 @@ class COVDetection(DetectionAlgorithm):
 
         # loop through the subscriptions and send out notifications
         for cov in self.cov_subscriptions:
-            if _debug: COVDetection._debug("    - cov: %r", cov)
+            if _debug: COVDetection._debug("    - cov: %s", repr(cov))
 
             # calculate time remaining
             if not cov.lifetime:
@@ -235,7 +235,7 @@ class COVDetection(DetectionAlgorithm):
             request.monitoredObjectIdentifier = cov.obj_id
             request.timeRemaining = time_remaining
             request.listOfValues = list_of_values
-            if _debug: COVDetection._debug("    - request: %r", request)
+            if _debug: COVDetection._debug("    - request: %s", repr(request))
 
             # let the application send it
             self.obj._app.cov_notification(cov, request)
@@ -566,7 +566,6 @@ class ChangeOfValueServices(Capability):
         if _debug: ChangeOfValueServices._debug("cov_abort %r %r %r", cov, request, response)
 
         ### delete the rest of the pending requests for this client
-        if _debug: ChangeOfValueServices._debug("    - other notifications deleted")
 
     def do_SubscribeCOVRequest(self, apdu):
         if _debug: ChangeOfValueServices._debug("do_SubscribeCOVRequest %r", apdu)
@@ -585,7 +584,7 @@ class ChangeOfValueServices(Capability):
         obj = self.get_object_id(obj_id)
         if _debug: ChangeOfValueServices._debug("    - object: %r", obj)
         if not obj:
-            raise Error(errorClass='object', errorCode='unknownObject')
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
 
         # look for an algorithm already associated with this object
         cov_detection = self.object_detections.get(obj, None)
@@ -595,7 +594,7 @@ class ChangeOfValueServices(Capability):
             # look for an associated class and if it's not there it's not supported
             criteria_class = criteria_type_map.get(obj_id[0], None)
             if not criteria_class:
-                raise Error(errorClass='service', errorCode='covSubscriptionFailed')
+                raise ExecutionError(errorClass='services', errorCode='covSubscriptionFailed')
 
             # make one of these and bind it to the object
             cov_detection = criteria_class(obj)
