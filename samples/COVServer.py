@@ -66,12 +66,21 @@ class COVConsoleCmd(ConsoleCmd):
 
         if not args:
             print("object name required")
-        else:
-            obj = test_application.get_object_name(args[0])
-            if not obj:
-                print("no such object")
-            else:
-                obj._send_cov_notifications()
+            return
+
+        obj = test_application.get_object_name(args[0])
+        if not obj:
+            print("no such object")
+            return
+
+        # get the detection algorithm object
+        cov_detection = test_application.object_detections.get(obj, None)
+        if (not cov_detection) or (len(cov_detection.cov_subscriptions) == 0):
+            print("no subscriptions for that object")
+            return
+
+        # tell it to send out notifications
+        cov_detection.send_cov_notifications()
 
     def do_set(self, args):
         """set object_name [ . ] property_name [ = ] value"""
