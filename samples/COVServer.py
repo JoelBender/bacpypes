@@ -40,23 +40,23 @@ class SubscribeCOVApplication(BIPSimpleApplication, ChangeOfValueServices):
 class COVConsoleCmd(ConsoleCmd):
 
     def do_status(self, args):
-        """status [ object_name ]"""
+        """status"""
         args = args.split()
         if _debug: COVConsoleCmd._debug("do_status %r", args)
         global test_application
 
-        if args:
-            obj = test_application.get_object_name(args[0])
-            if not obj:
-                print("no such object")
-            else:
-                print("%s %s" % (obj.objectName, obj.objectIdentifier))
-                obj.debug_contents()
-        else:
-            # dump the information about all the known objects
-            for obj in test_application.iter_objects():
-                print("%s %s" % (obj.objectName, obj.objectIdentifier))
-                obj.debug_contents()
+        # reference the list of active subscriptions
+        active_subscriptions = test_application.active_cov_subscriptions
+
+        # dump them out
+        for subscription in active_subscriptions:
+            print("{} {} {} {} {}".format(
+                subscription.client_addr,
+                subscription.proc_id,
+                subscription.obj_id,
+                subscription.confirmed,
+                subscription.lifetime,
+                ))
 
     def do_trigger(self, args):
         """trigger object_name"""
