@@ -13,9 +13,9 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.app import BIPSimpleApplication
+from bacpypes.object import AnalogValueObject, BinaryValueObject
 from bacpypes.service.device import LocalDeviceObject
-from bacpypes.service.cov import ChangeOfValueServices, \
-    BinaryValueObjectCOV, AnalogValueObjectCOV
+from bacpypes.service.cov import ChangeOfValueServices
 
 # some debugging
 _debug = 0
@@ -202,7 +202,7 @@ def main():
     test_application = SubscribeCOVApplication(test_device, args.ini.address)
 
     # make a binary value object
-    test_bv = BinaryValueObjectCOV(
+    test_bv = BinaryValueObject(
         objectIdentifier=('binaryValue', 1),
         objectName='bv',
         presentValue='inactive',
@@ -214,7 +214,7 @@ def main():
     test_application.add_object(test_bv)
 
     # make an analog value object
-    test_av = AnalogValueObjectCOV(
+    test_av = AnalogValueObject(
         objectIdentifier=('analogValue', 1),
         objectName='av',
         presentValue=0.0,
