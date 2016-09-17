@@ -24,10 +24,6 @@ from .detect import DetectionAlgorithm, monitor_filter
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-_generic_criteria_classes = {}
-_cov_increment_criteria_classes = {}
-
 #
 #   SubscriptionList
 #
@@ -80,6 +76,7 @@ class SubscriptionList:
 #   Subscription
 #
 
+@bacpypes_debugging
 class Subscription(OneShotTask, DebugContents):
 
     _debug_contents = (
@@ -430,39 +427,44 @@ class ActiveCOVSubscriptions(Property):
         # start with an empty sequence
         cov_subscriptions = SequenceOf(COVSubscription)()
 
-        # the obj is a DeviceObject with a reference to the application
-        for cov in obj._app.active_cov_subscriptions:
-            # calculate time remaining
-            if not cov.lifetime:
-                time_remaining = 0
-            else:
-                time_remaining = int(cov.taskTime - current_time)
+        # loop through the object and detection list
+        for obj, cov_detection in self.cov_detections.items():
+            for cov in cov_detection.cov_subscriptions:
+                # calculate time remaining
+                if not cov.lifetime:
+                    time_remaining = 0
+                else:
+                    time_remaining = int(cov.taskTime - current_time)
 
-                # make sure it is at least one second
-                if not time_remaining:
-                    time_remaining = 1
+                    # make sure it is at least one second
+                    if not time_remaining:
+                        time_remaining = 1
 
-            recipient_process = RecipientProcess(
-                recipient=Recipient(
-                    address=DeviceAddress(
-                        networkNumber=cov.client_addr.addrNet or 0,
-                        macAddress=cov.client_addr.addrAddr,
+                recipient_process = RecipientProcess(
+                    recipient=Recipient(
+                        address=DeviceAddress(
+                            networkNumber=cov.client_addr.addrNet or 0,
+                            macAddress=cov.client_addr.addrAddr,
+                            ),
                         ),
-                    ),
-                processIdentifier=cov.proc_id,
-                )
+                    processIdentifier=cov.proc_id,
+                    )
 
-            cov_subscription = COVSubscription(
-                recipient=recipient_process,
-                monitoredPropertyReference=ObjectPropertyReference(
-                    objectIdentifier=cov.obj_id,
-                    propertyIdentifier=cov.obj_ref._monitored_property_reference,
-                    ),
-                issueConfirmedNotifications=cov.confirmed,
-                timeRemaining=time_remaining,
-                # covIncrement=???,
-                )
-            if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
+                cov_subscription = COVSubscription(
+                    recipient=recipient_process,
+                    monitoredPropertyReference=ObjectPropertyReference(
+                        objectIdentifier=cov.obj_id,
+                        propertyIdentifier=cov_detection.monitored_property_reference,
+                        ),
+                    issueConfirmedNotifications=cov.confirmed,
+                    timeRemaining=time_remaining,
+                    )
+                if hasattr(cov_detection, 'covIncrement'):
+                    cov_subscription.covIncrement = cov_detection.covIncrement
+                if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
+
+                # add the list
+                cov_subscriptions.append(cov_subscription)
 
             # add the list
             cov_subscriptions.append(cov_subscription)
@@ -484,11 +486,8 @@ class ChangeOfValueServices(Capability):
         if _debug: ChangeOfValueServices._debug("__init__")
         Capability.__init__(self)
 
-        # list of active subscriptions
-        self.active_cov_subscriptions = []
-
         # map from an object to its detection algorithm
-        self.object_detections = {}
+        self.cov_detections = {}
 
         # if there is a local device object, make sure it has an active COV
         # subscriptions property
@@ -498,11 +497,8 @@ class ChangeOfValueServices(Capability):
     def add_subscription(self, cov):
         if _debug: ChangeOfValueServices._debug("add_subscription %r", cov)
 
-        # add it to the list of all active subscriptions
-        self.active_cov_subscriptions.append(cov)
-
         # add it to the subscription list for its object
-        self.object_detections[cov.obj_ref].cov_subscriptions.append(cov)
+        self.cov_detections[cov.obj_ref].cov_subscriptions.append(cov)
 
     def cancel_subscription(self, cov):
         if _debug: ChangeOfValueServices._debug("cancel_subscription %r", cov)
@@ -512,11 +508,8 @@ class ChangeOfValueServices(Capability):
             cov.suspend_task()
             if _debug: ChangeOfValueServices._debug("    - task suspended")
 
-        # remove it to the list of all active subscriptions
-        self.active_cov_subscriptions.remove(cov)
-
         # get the detection algorithm object
-        cov_detection = self.object_detections[cov.obj_ref]
+        cov_detection = self.cov_detections[cov.obj_ref]
 
         # remove it from the subscription list for its object
         cov_detection.cov_subscriptions.remove(cov)
@@ -529,7 +522,7 @@ class ChangeOfValueServices(Capability):
             cov_detection.unbind()
 
             # delete it from the object map
-            del self.object_detections[cov.obj_ref]
+            del self.cov_detections[cov.obj_ref]
 
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))
@@ -598,7 +591,7 @@ class ChangeOfValueServices(Capability):
             raise ExecutionError(errorClass='object', errorCode='unknownObject')
 
         # look for an algorithm already associated with this object
-        cov_detection = self.object_detections.get(obj, None)
+        cov_detection = self.cov_detections.get(obj, None)
 
         # if there isn't one, make one and associate it with the object
         if not cov_detection:
@@ -611,7 +604,7 @@ class ChangeOfValueServices(Capability):
             cov_detection = criteria_class(obj)
 
             # keep track of it for other subscriptions
-            self.object_detections[obj] = cov_detection
+            self.cov_detections[obj] = cov_detection
         if _debug: ChangeOfValueServices._debug("    - cov_detection: %r", cov_detection)
 
         # can a match be found?

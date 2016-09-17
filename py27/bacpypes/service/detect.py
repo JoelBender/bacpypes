@@ -4,7 +4,6 @@
 Detection
 """
 
-from functools import partial
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.core import deferred
@@ -142,4 +141,4 @@ class DetectionAlgorithm:
         self._triggered = False
 
     def execute(self):
-        raise notImplementedError("execute not implemented")
+        raise NotImplementedError("execute not implemented")

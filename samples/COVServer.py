@@ -83,7 +83,7 @@ class COVConsoleCmd(ConsoleCmd):
             return
 
         # get the detection algorithm object
-        cov_detection = test_application.object_detections.get(obj, None)
+        cov_detection = test_application.cov_detections.get(obj, None)
         if (not cov_detection) or (len(cov_detection.cov_subscriptions) == 0):
             print("no subscriptions for that object")
             return
