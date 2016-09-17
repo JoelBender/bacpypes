@@ -14,7 +14,7 @@ from bacpypes.service.detect import DetectionAlgorithm, monitor_filter
 from bacpypes.object import AnalogValueObject
 
 # some debugging
-_debug = 0 
+_debug = 0
 _log = ModuleLogger(globals())
 
 #
@@ -22,13 +22,12 @@ _log = ModuleLogger(globals())
 #
 
 def something_changed(thing, old_value, new_value):
-    print("{} changed from {} to {}".format(thing, old_value, new_value))
+    print("%r changed from %r to %r" % (thing, old_value, new_value))
 
 #
 #   SampleEventDetection
 #
 
-@bacpypes_debugging
 class SampleEventDetection(DetectionAlgorithm):
 
     def __init__(self, **kwargs):
@@ -63,6 +62,8 @@ class SampleEventDetection(DetectionAlgorithm):
             if _debug: SampleEventDetection._debug("    - parameter match")
         else:
             if _debug: SampleEventDetection._debug("    - parameter mismatch")
+
+bacpypes_debugging(SampleEventDetection)
 
 #
 #
