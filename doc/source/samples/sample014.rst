@@ -3,8 +3,8 @@
 Sample 14 - Getting External Data
 =================================
 
-This is a pair of sample applications, a server that provides key:value updates
-in the form of JSON objects, and a client that periodically polls the server
+This is a pair of sample applications: a server that provides key:value updates
+in the form of JSON objects; and a client that periodically polls the server
 for updates and applies them to a cache.
 
 Server Code
