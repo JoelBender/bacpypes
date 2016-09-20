@@ -1,4 +1,3 @@
-.. BACpypes tutorial lesson 1
 
 Sample 1 - Simple Application
 =============================
@@ -130,19 +129,16 @@ as the application, but the '--ini' option is available when it's not::
         elif not config.read('BACpypes.ini'):
             raise RuntimeError, "configuration file not found"
 
-If the sample applications are run from the subversion directory, there is a
-sample INI file called **BACpypes~.ini** that is part of the repository.  Make 
-a local copy *that is not part of the repository* and edit it with information
-appropriate to your installation::
+.. tip::
 
-    $ pwd
-    .../samples
-    $ cp BACpypes~.ini BACpypes.ini
-    $ vi BACpypes.ini
-    $ svn status
-    ?      BACpypes.ini
+    There is a sample INI file called **BACpypes~.ini** as part of the repository.  Make 
+    a local copy and edit it with information appropriate to your installation::
 
-Subversion understands that the local copy is not part of the repository.
+        $ pwd
+        .../samples
+        $ cp ../BACpypes~.ini BACpypes.ini
+        $ nano BACpypes.ini
+
 
 Now applications will create a :class:`object.LocalDeviceObject` which will
 respond to Who-Is requests for device-address-binding procedures, and 
@@ -220,37 +216,46 @@ Running
 When this sample application is run without any options, nothing appears on
 the console because there are no statements other than debugging::
 
-    $ python sample001.py
+    $ python SampleApplication.py
 
 So to see what is actually happening, run the application with debugging
 enabled::
 
-    $ python sample001.py --debug __main__
+    $ python SampleApplication.py --debug __main__
 
-The output will include the initialization, running, and finally statements.  To
-run with debugging on just the SampleApplication class::
+The output will include the initialization, running, and finally statements.::
 
-    $ python sample001.py --debug __main__.SampleApplication
+    DEBUG:__main__:initialization
+    DEBUG:__main__:    - args: Namespace(buggers=False, color=False, debug=['__main__'], ini=<class 'bacpypes.consolelogging.ini'>)
+    DEBUG:__main__.SampleApplication:__init__ <bacpypes.app.LocalDeviceObject object at 0x7fcd37a2ba90> '192.168.0.10/24'
+    DEBUG:__main__:    - this_application: <__main__.SampleApplication object at 0x7fcd357dea50>
+    DEBUG:__main__:    - services_supported: <bacpypes.basetypes.ServicesSupported object at 0x7fcd357def50>
+    DEBUG:__main__:running
 
-Or to see what is happening at the UDP layer of the program, use that module 
-name::
+To run with debugging on just the SampleApplication class::
 
-    $ python sample001.py --debug bacpypes.udp
+    $ python SampleApplication.py --debug __main__.SampleApplication
+
+    DEBUG:__main__.SampleApplication:__init__ <bacpypes.app.LocalDeviceObject object at 0x7fadb71bca90> '192.168.0.10/24'
+
+Or to see what is happening at the UDP layer of the program, use that module name::
+
+    $ python SampleApplication.py --debug bacpypes.udp
 
 Or to simplify the output to the methods of instances of the :class:`udp.UDPActor`
 use the class name::
 
-    $ python sample001.py --debug bacpypes.udp.UDPActor
+    $ python SampleApplication.py --debug bacpypes.udp.UDPActor
 
 Then to see what BACnet packets are received and make it all the way up the 
 stack to the application, combine the debugging::
 
-    $ python sample001.py --debug bacpypes.udp.UDPActor __main__.SampleApplication
+    $ python SampleApplication.py --debug bacpypes.udp.UDPActor __main__.SampleApplication
 
 The most common broadcast messages that are *not* application layer messages 
-are Who-Is-Router-To-Network and I-Am-Router-To-Network, and you can see these 
+are **Who-Is-Router-To-Network** and **I-Am-Router-To-Network**.  You can see these 
 messages being received and processed by the :class:`netservice.NetworkServiceElement`
-burried in the stack::
+buried in the stack::
 
-    $ python sample001.py --debug bacpypes.netservice.NetworkServiceElement
+    $ python SampleApplication.py --debug bacpypes.netservice.NetworkServiceElement
 

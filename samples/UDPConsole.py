@@ -103,7 +103,7 @@ class MiddleMan(Client, Server):
             return
 
         # decode the line and trim off the eol
-        line = pdu.pduData.decode('utf_8')[:-1]
+        line = pdu.pduData.decode('utf-8')[:-1]
         if _debug: MiddleMan._debug('    - line: %r', line)
 
         line_parts = line.split(' ', 1)
@@ -176,6 +176,8 @@ class BroadcastReceiver(Client):
 #
 
 def main():
+    global local_unicast_tuple, local_broadcast_tuple
+
     # parse the command line arguments
     parser = ArgumentParser(usage=__doc__)
     parser.add_argument("address",

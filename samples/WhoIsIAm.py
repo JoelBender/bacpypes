@@ -2,7 +2,7 @@
 
 """
 This application presents a 'console' prompt to the user asking for Who-Is and I-Am
-commands which create the related APDUs, then lines up the coorresponding I-Am
+commands which create the related APDUs, then lines up the corresponding I-Am
 for incoming traffic and prints out the contents.
 """
 
@@ -23,10 +23,11 @@ from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 # globals
+this_device = None
 this_application = None
 
 #
@@ -148,6 +149,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 #
 
 def main():
+    global this_device
     global this_application
 
     # parse the command line arguments

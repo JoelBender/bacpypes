@@ -5,8 +5,8 @@ Running BACpypes Applications
 
 All BACpypes sample applications have the same basic set of command line 
 options so it is easy to move between applications, turn debugging on and 
-and using different configurations.  There may be additional options and 
-command parameters than the ones described in this section.
+and use different configurations.  There may be additional options and 
+command parameters than just the ones described in this section.
 
 Getting Help
 ------------
@@ -18,7 +18,7 @@ an application, you can start with help::
     usage: WhoIsIAm.py [-h] [--buggers] [--debug [DEBUG [DEBUG ...]]] [--color] [--ini INI]
 
     This application presents a 'console' prompt to the user asking for Who-Is and
-    I-Am commands which create the related APDUs, then lines up the coorresponding
+    I-Am commands which create the related APDUs, then lines up the corresponding
     I-Am for incoming traffic and prints out the contents.
 
     optional arguments:
@@ -64,10 +64,10 @@ Telling the application to debug a module is simple::
 
 The output is the severity code of the logger (almost always DEBUG), the name 
 of the module, class, or function, then some message about the progress of the 
-application.  From the output above you can see that the application is 
-beginning its initialization, shows the value of a variable called args,
-an instance of the WhoIsIAmApplication class is created with some parameters,
-and then the application starts running.
+application.  From the output above you can see the application initializing, 
+setting the args variable, creating an instance of the WhoIsIAmApplication class 
+(with some parameters), and then declaring itself - running.
+
 
 Debugging a Class
 -----------------
@@ -92,12 +92,13 @@ example, there is a class called UDPActor in the UDP module::
 In this sample, an instance of a UDPActor is created and then its response 
 function is called with an instance of a PDU as a parameter.  Following 
 the function invocation description, the debugging output continues with the
-contents of the PDU.  Notice that the protocol data is printed as a hex 
-encoded string, and only the first 20 bytes of the message.
+contents of the PDU.  Notice, the protocol data is printed as a hex 
+encoded string (and restricted to just the first 20 bytes of the message).
 
-You can debug a function just as easily, and specify as many different 
-combinations of logger names as necessary.  Note that you cannot debug a 
+You can debug a function just as easily.  Specify as many different 
+combinations of logger names as necessary.  Note, you cannot debug a 
 specific function within a class.
+
 
 Changing INI Files
 ------------------

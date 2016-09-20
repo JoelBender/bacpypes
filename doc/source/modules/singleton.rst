@@ -6,9 +6,9 @@ Singleton
 =========
 
 Singleton classes are a `design pattern <http://en.wikipedia.org/wiki/Singleton_pattern>`_
-that returns the same object for every call to create an instance.  In the case
+which returns the same object for every 'create an instance' call.  In the case
 of BACpypes there can only be one instance of a :class:`task.TaskManager` and
-all of the tasks will be schedule through it.  The design pattern "hides" all
+all of the tasks are scheduled through it.  The design pattern "hides" all
 of the implementation details of the task manager behind its interface.
 
 There are occasions when the task manager needs to provide additional

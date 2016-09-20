@@ -38,9 +38,8 @@ Protocol Data Units
 
 A Protocol Data Unit (PDU) is the name for a collection of information that
 is passed between two entities.  It is composed of Protcol Control Information
-(PCI), which usually has information about addressing and other types of 
-processing instructions, and data.  The set of classes in this module are not
-specific to BACnet.
+(PCI) - information about addressing, processing instructions - and data.  
+The set of classes in this module are not specific to BACnet.
 
 .. class:: PCI
 
@@ -68,6 +67,11 @@ specific to BACnet.
 
 .. class:: PDUData
 
+    The PDUData class has functions for extracting information from the front
+    of the data octet string, or append information to the end.  These are helper
+    functions but may not be applicable for higher layer protocols which may
+    be passing significantly more complex data.
+
     .. attribute:: pduData
 
         This attribute typically holds a simple octet string, but for higher
@@ -81,15 +85,19 @@ specific to BACnet.
 
     .. method:: get_data(len)
 
-        :param integer len: the number of octets to extract off the front
+        :param integer len: the number of octets to extract.
 
         Extract a number of octets from the front of the data.  If there
         are not at least `len` octets this will raise a DecodingError
         exception.
 
     .. method:: get_short()
+    
+        Extract a short integer (two octets) from the front of the data.
 
     .. method:: get_long()
+
+        Extract a long integer (four octets) from the front of the data.
 
     .. method:: put(ch)
 
@@ -101,12 +109,12 @@ specific to BACnet.
 
     .. method:: put_short(n)
 
+        :param short integer: two octets to append to the end
+
     .. method:: put_long(n)
 
-    The PDUData class has functions for gathering information from the front
-    of the octet string, or putting information on the end.  These are helper
-    functions but may not be applicable for higher layer protocols which may
-    be passing significantly more complex data.
+        :param long integer: four octets to append to the end
+
 
 .. class:: PDU(PCI, PDUData)
 
