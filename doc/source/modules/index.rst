@@ -79,5 +79,6 @@ Other
 .. toctree::
     :maxdepth: 2
 
+    capability.rst
     commandlogging.rst
-
+    iocb.rst
