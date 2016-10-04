@@ -44,9 +44,15 @@ Support Functions
         :param propertyIdentifier: property identifier
         :param propertyArrayIndex: optional array index
 
+        Called by `read_property_to_result_element` to build an appropriate
+        `Any` result object from the supplied object given the property
+        identifier and optional array index.
+
     .. function:: read_property_to_result_element(obj, propertyIdentifier, propertyArrayIndex=None):
 
         :param obj: object
         :param propertyIdentifier: property identifier
         :param propertyArrayIndex: optional array index
 
+        Called by `do_ReadPropertyMultipleRequest` to build the result element
+        components of a `ReadPropertyMultipleACK`.
