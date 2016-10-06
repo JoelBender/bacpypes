@@ -5,29 +5,33 @@ Object Services
 
 .. class:: ReadWritePropertyServices(Capability)
 
-    This is a long line of text.
+    This class provides the capability to respond to ReadProperty and
+    WriteProperty service, used by a client BACnet-user to request the value
+    of one property of one BACnet Object.
 
     .. method:: do_ReadPropertyRequest(apdu)
 
         :param ReadPropertyRequest apdu: request from the network
 
-        This is a long line of text.
+        See Clause 15.5 for the parameters to this service.
 
     .. method:: do_WritePropertyRequest(apdu)
 
         :param WritePropertyRequest apdu: request from the network
 
-        This is a long line of text.
+        See Clause 15.9 for the parameters to this service.
 
 .. class:: ReadWritePropertyMultipleServices(Capability)
 
-    This is a long line of text.
+    This class provides the capability to respond to ReadPropertyMultiple and
+    WritePropertyMultiple service, used by a client BACnet-user to request the
+    values of one or more specified properties of one or more BACnet Objects.
 
     .. method:: do_ReadPropertyMultipleRequest(apdu)
 
         :param ReadPropertyRequest apdu: request from the network
 
-        This is a long line of text.
+        See Clause 15.7 for the parameters to this service.
 
     .. method:: do_WritePropertyMultipleRequest(apdu)
 

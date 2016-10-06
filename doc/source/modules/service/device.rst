@@ -12,13 +12,13 @@ Device Services
 
         :param WhoIsRequest apdu: Who-Is Request from the network
 
-        This is a long line of text.
+        See Clause 16.10.1 for the parameters to this service.
 
     .. method:: do_IAmRequest(apdu)
 
         :param IAmRequest apdu: I-Am Request from the network
 
-        This is a long line of text.
+        See Clause 16.10.3 for the parameters to this service.
 
     .. method:: who_is(self, low_limit=None, high_limit=None, address=None)
 
@@ -45,13 +45,13 @@ Device Services
 
         :param WhoHasRequest apdu: Who-Has Request from the network
 
-        This is a long line of text.
+        See Clause 16.9.1 for the parameters to this service.
 
     .. method:: do_IHaveRequest(apdu)
 
         :param IHaveRequest apdu: I-Have Request from the network
 
-        This is a long line of text.
+        See Clause 16.9.3 for the parameters to this service.
 
     .. method:: who_has(thing, address=None)
 
