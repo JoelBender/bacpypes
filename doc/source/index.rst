@@ -71,6 +71,17 @@ essential components of a BACpypes application and how the pieces fit together.
     tutorial/iocb.rst
     tutorial/capability.rst
 
+Migration
+---------
+
+If you are upgrading your BACpypes applications to a newer version there are
+guidelines of the types of changes you might need to make.
+
+.. toctree::
+    :maxdepth: 1
+
+    migration/migration001.rst
+
 Samples
 -------
 
