@@ -360,6 +360,36 @@ and `add_callback()` functions and can be otherwise treated as an IOCB.
     arguments in one form, encode them in some way in an IOCB, pass it to the
     other controller, then decode the results.
 
+.. class:: ClientController(Client, IOQController)
+
+    An instance of this class is a controller that sits at the top of a
+    protocol stack as a client.  The IOCBs to be processed contain a single
+    PDU parameter that is sent down the stack.  Any PDU coming back up
+    the stack is assumed to complete the current request.
+
+    This class is used for protocol stacks with a strict master/slave
+    architecture.
+
+    This class inherits from `IOQController` so if there is already an active
+    request then subsequent requests are queued.
+
+.. class:: _SieveQueue(IOQController)
+
+    This is a special purpose controller used by the `SieveClientController`
+    to serialize requests for the same source/destination address.
+
+.. class:: SieveClientController(Client, IOController)
+
+    Similar to the `ClientController`, this class is a controller that also
+    sits at the top of a protocol stack as a client.  The IOCBs to be processed
+    contain a single PDU parameter with a `pduDestination` address.  Unlike
+    the `ClientController`, this class creates individual queues for each
+    destination address so it can process multiple requests simultaneously while
+    maintaining a strict master/slave relationship with each address.
+
+    When an upstream PDU is received, the `pduSource` address is used to
+    associate this response with the correct request.
+
 Functions
 ---------
 

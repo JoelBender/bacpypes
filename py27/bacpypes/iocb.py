@@ -838,14 +838,46 @@ class IOQController(IOController):
         IOQController._trigger(self)
 
 #
-#   SieveQueue
+#   ClientController
 #
 
 @bacpypes_debugging
-class SieveQueue(IOQController):
+class ClientController(Client, IOQController):
+
+    def __init__(self):
+        if _debug: ClientController._debug("__init__")
+        Client.__init__(self)
+        IOQController.__init__(self)
+
+    def process_io(self, iocb):
+        if _debug: ClientController._debug("process_io %r", iocb)
+
+        # this is now an active request
+        self.active_io(iocb)
+
+        # send the PDU downstream
+        self.request(iocb.args[0])
+
+    def confirmation(self, pdu):
+        if _debug: ClientController._debug("confirmation %r %r", args, kwargs)
+
+        # make sure it has an active iocb
+        if not self.active_iocb:
+            ClientController._debug("no active request")
+            return
+
+        # complete the request
+        self.complete_io(self.active_iocb, pdu)
+
+#
+#   _SieveQueue
+#
+
+@bacpypes_debugging
+class _SieveQueue(IOQController):
 
     def __init__(self, request_fn, address=None):
-        if _debug: SieveQueue._debug("__init__ %r %r", request_fn, address)
+        if _debug: _SieveQueue._debug("__init__ %r %r", request_fn, address)
         IOQController.__init__(self, str(address))
 
         # save a reference to the request function
@@ -853,7 +885,7 @@ class SieveQueue(IOQController):
         self.address = address
 
     def process_io(self, iocb):
-        if _debug: SieveQueue._debug("process_io %r", iocb)
+        if _debug: _SieveQueue._debug("process_io %r", iocb)
 
         # this is now an active request
         self.active_io(iocb)
@@ -886,7 +918,7 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(destination_address, None)
         if not queue:
-            queue = SieveQueue(self.request, destination_address)
+            queue = _SieveQueue(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: Controller._debug("    - queue: %r", queue)
 
