@@ -913,14 +913,14 @@ class SieveClientController(Client, IOController):
 
         # get the destination address from the pdu
         destination_address = iocb.args[0].pduDestination
-        if _debug: Controller._debug("    - destination_address: %r", destination_address)
+        if _debug: SieveClientController._debug("    - destination_address: %r", destination_address)
 
         # look up the queue
         queue = self.queues.get(destination_address, None)
         if not queue:
             queue = _SieveQueue(self.request, destination_address)
             self.queues[destination_address] = queue
-        if _debug: Controller._debug("    - queue: %r", queue)
+        if _debug: SieveClientController._debug("    - queue: %r", queue)
 
         # ask the queue to process the request
         queue.request_io(iocb)
