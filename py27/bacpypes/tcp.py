@@ -6,6 +6,7 @@ TCP Communications Module
 
 import asyncore
 import socket
+
 import cPickle as pickle
 from time import time as _time, sleep as _sleep
 from StringIO import StringIO
@@ -49,6 +50,11 @@ class PickleActorMixIn:
 
     def response(self, pdu):
         if _debug: PickleActorMixIn._debug("response %r", pdu)
+
+        # short circuit errors
+        if isinstance(pdu, IOError):
+            super(PickleActorMixIn, self).response(rpdu)
+            return
 
         # add the data to our buffer
         self.pickleBuffer += pdu.pduData
@@ -104,22 +110,48 @@ class TCPClient(asyncore.dispatcher):
         # create a request buffer
         self.request = ''
 
-        # hold the socket error if there was one
-        self.socketError = None
+        # try to connect
+        try:
+            if _debug: TCPClient._debug("    - initiate connection")
+            self.connect(peer)
+        except socket.error as err:
+            if _debug: TCPClient._debug("    - connect socket error: %r", err)
 
-        # try to connect the socket
-        if _debug: TCPClient._debug("    - try to connect")
-        self.connect(peer)
-        if _debug: TCPClient._debug("    - connected (maybe)")
+            # sent the exception upstream
+            deferred(self.response, err)
 
     def handle_connect(self):
-        if _debug: deferred(TCPClient._debug, "handle_connect")
+        if _debug: TCPClient._debug("handle_connect")
+
+    def handle_connect_event(self):
+        if _debug: TCPClient._debug("handle_connect_event")
+
+        # there might be an error
+        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if _debug: TCPClient._debug("    - err: %r", err)
+
+        # check for connection refused
+        if (err == 0):
+            if _debug: TCPClient._debug("    - connection established")
+        elif (err == 111):
+            if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
+            deferred(self.response, socket.error(111, "connection refused"))
+            return
+
+        # pass along
+        asyncore.dispatcher.handle_connect_event(self)
 
     def handle_expt(self):
-        pass
+        if _debug: TCPClient._debug("handle_expt")
+
+        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if _debug: TCPClient._debug("    - err: %r", err)
+
+        # pass along
+        asyncore.dispatcher.handle_expt(self)
 
     def readable(self):
-        return 1
+        return self.connected
 
     def handle_read(self):
         if _debug: deferred(TCPClient._debug, "handle_read")
@@ -127,7 +159,6 @@ class TCPClient(asyncore.dispatcher):
         try:
             msg = self.recv(65536)
             if _debug: deferred(TCPClient._debug, "    - received %d octets", len(msg))
-            self.socketError = None
 
             # no socket means it was closed
             if not self.socket:
@@ -138,10 +169,12 @@ class TCPClient(asyncore.dispatcher):
 
         except socket.error as err:
             if (err.args[0] == 111):
-                deferred(TCPClient._error, "connection to %r refused", self.peer)
+                deferred(TCPClient._debug, "    - connection to %r refused", self.peer)
             else:
-                deferred(TCPClient._error, "TCPClient.handle_read socket error: %r", err)
-            self.socketError = err
+                deferred(TCPClient._debug, "    - recv socket error: %r", err)
+
+            # sent the exception upstream
+            deferred(self.response, err)
 
     def writable(self):
         return (len(self.request) != 0)
@@ -152,15 +185,17 @@ class TCPClient(asyncore.dispatcher):
         try:
             sent = self.send(self.request)
             if _debug: deferred(TCPClient._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
-            self.socketError = None
 
             self.request = self.request[sent:]
+
         except socket.error as err:
             if (err.args[0] == 111):
-                deferred(TCPClient._error, "connection to %r refused", self.peer)
+                deferred(TCPClient._debug, "    - connection to %r refused", self.peer)
             else:
-                deferred(TCPClient._error, "handle_write socket error: %s", err)
-            self.socketError = err
+                deferred(TCPClient._debug, "    - send socket error: %s", err)
+
+            # sent the exception upstream
+            deferred(self.response, err)
 
     def handle_close(self):
         if _debug: deferred(TCPClient._debug, "handle_close")
@@ -401,14 +436,11 @@ class TCPServer(asyncore.dispatcher):
         # create a request buffer
         self.request = ''
 
-        # hold the socket error if there was one
-        self.socketError = None
-
     def handle_connect(self):
         if _debug: deferred(TCPServer._debug, "handle_connect")
 
     def readable(self):
-        return 1
+        return self.connected
 
     def handle_read(self):
         if _debug: deferred(TCPServer._debug, "handle_read")
@@ -416,7 +448,6 @@ class TCPServer(asyncore.dispatcher):
         try:
             msg = self.recv(65536)
             if _debug: deferred(TCPServer._debug, "    - received %d octets", len(msg))
-            self.socketError = None
 
             # no socket means it was closed
             if not self.socket:
@@ -426,10 +457,12 @@ class TCPServer(asyncore.dispatcher):
 
         except socket.error as err:
             if (err.args[0] == 111):
-                deferred(TCPServer._error, "connection to %r refused", self.peer)
+                deferred(TCPServer._debug, "    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._error, "handle_read socket error: %s", err)
-            self.socketError = err
+                deferred(TCPServer._debug, "    - recv socket error: %s", err)
+
+            # sent the exception upstream
+            deferred(self.response, err)
 
     def writable(self):
         return (len(self.request) != 0)
@@ -440,15 +473,17 @@ class TCPServer(asyncore.dispatcher):
         try:
             sent = self.send(self.request)
             if _debug: deferred(TCPServer._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
-            self.socketError = None
 
             self.request = self.request[sent:]
-        except socket.error as why:
-            if (why.args[0] == 111):
-                deferred(TCPServer._error, "connection to %r refused", self.peer)
+
+        except socket.error as err:
+            if (err.args[0] == 111):
+                deferred(TCPServer._debug, "    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._error, "handle_write socket error: %s", why)
-            self.socketError = why
+                deferred(TCPServer._debug, "    - send socket error: %s", err)
+
+            # sent the exception upstream
+            deferred(self.response, err)
 
     def handle_close(self):
         if _debug: deferred(TCPServer._debug, "handle_close")
@@ -760,6 +795,11 @@ class StreamToPacket(Client, Server):
     def confirmation(self, pdu):
         """Message going upstream."""
         if _debug: StreamToPacket._debug("StreamToPacket.confirmation %r", pdu)
+
+        # short circuit errors
+        if isinstance(pdu, IOError):
+            self.response(pdu)
+            return
 
         # hack it up into chunks
         for packet in self.packetize(pdu, self.upstreamBuffer):

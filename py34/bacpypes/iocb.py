@@ -866,8 +866,11 @@ class ClientController(Client, IOQController):
             ClientController._debug("no active request")
             return
 
-        # complete the request
-        self.complete_io(self.active_iocb, pdu)
+        # look for exceptions
+        if isinstance(pdu, Exception):
+            self.abort_io(self.active_iocb, pdu)
+        else:
+            self.complete_io(self.active_iocb, pdu)
 
 #
 #   _SieveQueue
@@ -951,7 +954,10 @@ class SieveClientController(Client, IOController):
             return
 
         # complete the request
-        queue.complete_io(queue.active_iocb, pdu)
+        if isinstance(pdu, Exception):
+            queue.abort_io(queue.active_iocb, pdu)
+        else:
+            queue.complete_io(queue.active_iocb, pdu)
 
         # if the queue is empty and idle, forget about the controller
         if not queue.ioQueue.queue and not queue.active_iocb:

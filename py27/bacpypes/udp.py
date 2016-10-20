@@ -101,6 +101,11 @@ class UDPPickleActor(UDPActor):
     def response(self, pdu):
         if _debug: UDPPickleActor._debug("response %r", pdu)
 
+        # short circuit errors
+        if isinstance(pdu, IOError):
+            UDPActor.response(self, pdu)
+            return
+
         # unpickle the data
         try:
             pdu.pduData = pickle.loads(pdu.pduData)
@@ -197,11 +202,15 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
         except socket.timeout as err:
             deferred(UDPDirector._error, "handle_read socket timeout: %s", err)
-        except OSError as err:
+
+        except IOError as err:
             if err.args[0] == 11:
                 pass
             else:
                 deferred(UDPDirector._error, "handle_read socket error: %s", err)
+
+                # sent the exception upstream
+                deferred(self._response, err)
 
     def writable(self):
         """Return true iff there is a request pending."""
@@ -217,8 +226,11 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
             sent = self.socket.sendto(pdu.pduData, pdu.pduDestination)
             if _debug: deferred(UDPDirector._debug, "    - sent %d octets to %s", sent, pdu.pduDestination)
 
-        except OSError as err:
+        except IOError as err:
             deferred(UDPDirector._error, "handle_write socket error: %s", err)
+
+            # sent the exception upstream
+            deferred(self._response, err)
 
     def handle_close(self):
         """Remove this from the monitor when it's closed."""
