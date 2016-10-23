@@ -154,15 +154,15 @@ class TCPClient(asyncore.dispatcher):
         return self.connected
 
     def handle_read(self):
-        if _debug: deferred(TCPClient._debug, "handle_read")
+        if _debug: TCPClient._debug("handle_read")
 
         try:
             msg = self.recv(65536)
-            if _debug: deferred(TCPClient._debug, "    - received %d octets", len(msg))
+            if _debug: TCPClient._debug("    - received %d octets", len(msg))
 
             # no socket means it was closed
             if not self.socket:
-                if _debug: deferred(TCPClient._debug, "    - socket was closed")
+                if _debug: TCPClient._debug("    - socket was closed")
             else:
                 # sent the data upstream
                 deferred(self.response, PDU(msg))
@@ -180,25 +180,43 @@ class TCPClient(asyncore.dispatcher):
         return (len(self.request) != 0)
 
     def handle_write(self):
-        if _debug: deferred(TCPClient._debug, "handle_write")
+        if _debug: TCPClient._debug("handle_write")
 
         try:
             sent = self.send(self.request)
-            if _debug: deferred(TCPClient._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
+            if _debug: TCPClient._debug("    - sent %d octets, %d remaining", sent, len(self.request) - sent)
 
             self.request = self.request[sent:]
 
         except socket.error as err:
-            if (err.args[0] == 111):
-                deferred(TCPClient._debug, "    - connection to %r refused", self.peer)
+            if (err.args[0] == 32):
+                if _debug: TCPClient._debug("    - broken pipe to %r", self.peer)
+                return
+            elif (err.args[0] == 111):
+                if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPClient._debug, "    - send socket error: %s", err)
+                if _debug: TCPClient._debug("    - send socket error: %s", err)
 
             # sent the exception upstream
             deferred(self.response, err)
 
+    def handle_write_event(self):
+        if _debug: TCPClient._debug("handle_write_event")
+
+        # there might be an error
+        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if _debug: TCPClient._debug("    - err: %r", err)
+
+        # check for connection refused
+        if (err == 61):
+            if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
+            deferred(self.response, socket.error(61, "connection refused"))
+
+        # pass along
+        asyncore.dispatcher.handle_write_event(self)
+
     def handle_close(self):
-        if _debug: deferred(TCPClient._debug, "handle_close")
+        if _debug: TCPClient._debug("handle_close")
 
         # close the socket
         self.close()
