@@ -10,7 +10,7 @@ import os
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.core import run, stop
+from bacpypes.core import run, stop, deferred
 from bacpypes.task import TaskManager
 from bacpypes.comm import PDU, Client, Server, bind, ApplicationServiceElement
 
@@ -57,6 +57,11 @@ class MiddleMan(Client, Server):
     def confirmation(self, pdu):
         if _debug: MiddleMan._debug("confirmation %r", pdu)
 
+        # check for errors
+        if isinstance(pdu, Exception):
+            if _debug: MiddleMan._debug("    - exception: %s", pdu)
+            return
+
         # pass it along
         self.response(pdu)
 
@@ -82,10 +87,10 @@ class MiddleManASE(ApplicationServiceElement):
         if delPeer:
             if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
 
-        # if there are no clients, quit
+        # if there are no clients (TCPClientActor instances), quit
         if not self.elementService.clients:
             if _debug: MiddleManASE._debug("    - quitting")
-            stop()
+            deferred(stop)
 
 
 def main():
@@ -105,6 +110,11 @@ def main():
         "port", nargs='?', type=int,
         help="server port (default {!r})".format(SERVER_PORT),
         default=SERVER_PORT,
+        )
+    parser.add_argument(
+        "--hello", action="store_true",
+        default=False,
+        help="send a hello message",
         )
     args = parser.parse_args()
 
@@ -135,12 +145,17 @@ def main():
     if _debug: _log.debug("    - task_manager: %r", task_manager)
 
     # don't wait to connect
-    this_director.connect(server_address)
+    deferred(this_director.connect, server_address)
+
+    # send hello maybe
+    if args.hello:
+        deferred(this_middle_man.indication, PDU("hello\n"))
 
     if _debug: _log.debug("running")
 
     run()
 
+    if _debug: _log.debug("fini")
 
 if __name__ == "__main__":
     main()
