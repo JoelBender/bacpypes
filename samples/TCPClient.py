@@ -73,7 +73,7 @@ class MiddleMan(Client, Server):
 @bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
 
-    def indication(self, addPeer=None, delPeer=None):
+    def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
         """
         This function is called by the TCPDirector when the client connects to
         or disconnects from a server.  It is called with addPeer or delPeer

@@ -111,8 +111,8 @@ class TCPClient(asyncore.dispatcher):
         except socket.error as err:
             if _debug: TCPClient._debug("    - connect socket error: %r", err)
 
-            # sent the exception upstream
-            deferred(self.response, err)
+            # pass along to an error handler
+            self.handle_error(err)
 
     def handle_connect(self):
         if _debug: TCPClient._debug("handle_connect")
@@ -126,23 +126,14 @@ class TCPClient(asyncore.dispatcher):
 
         # check for connection refused
         if (err == 0):
-            if _debug: TCPClient._debug("    - connection established")
+            if _debug: TCPClient._debug("    - no error")
         elif (err == 111):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
-            deferred(self.response, socket.error(111, "connection refused"))
+            self.handle_error(socket.error(111, "connection refused"))
             return
 
         # pass along
         asyncore.dispatcher.handle_connect_event(self)
-
-    def handle_expt(self):
-        if _debug: TCPClient._debug("handle_expt")
-
-        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-        if _debug: TCPClient._debug("    - err: %r", err)
-
-        # pass along
-        asyncore.dispatcher.handle_expt(self)
 
     def readable(self):
         return self.connected
@@ -158,7 +149,7 @@ class TCPClient(asyncore.dispatcher):
             if not self.socket:
                 if _debug: TCPClient._debug("    - socket was closed")
             else:
-                # sent the data upstream
+                # send the data upstream
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
@@ -167,8 +158,8 @@ class TCPClient(asyncore.dispatcher):
             else:
                 TCPClient._debug("    - recv socket error: %r", err)
 
-            # sent the exception upstream
-            deferred(self.response, err)
+            # pass along to a handler
+            self.handle_error(err)
 
     def writable(self):
         return (len(self.request) != 0)
@@ -191,8 +182,8 @@ class TCPClient(asyncore.dispatcher):
             else:
                 if _debug: TCPClient._debug("    - send socket error: %s", err)
 
-            # sent the exception upstream
-            deferred(self.response, err)
+            # pass along to a handler
+            self.handle_error(err)
 
     def handle_write_event(self):
         if _debug: TCPClient._debug("handle_write_event")
@@ -204,7 +195,9 @@ class TCPClient(asyncore.dispatcher):
         # check for connection refused
         if (err == 61):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
-            deferred(self.response, socket.error(61, "connection refused"))
+            self.handle_error(socket.error(61, "connection refused"))
+            self.handle_close()
+            return
 
         # pass along
         asyncore.dispatcher.handle_write_event(self)
@@ -217,6 +210,13 @@ class TCPClient(asyncore.dispatcher):
 
         # make sure other routines know the socket is closed
         self.socket = None
+
+    def handle_error(self, error=None):
+        """Trap for TCPClient errors, otherwise continue."""
+        if _debug: TCPClient._debug("handle_error %r", error)
+
+        # core does not take parameters
+        asyncore.dispatcher.handle_error(self)
 
     def indication(self, pdu):
         """Requests are queued for delivery."""
@@ -255,6 +255,16 @@ class TCPClientActor(TCPClient):
 
         # tell the director this is a new actor
         self.director.add_actor(self)
+
+    def handle_error(self, error=None):
+        """Trap for TCPClient errors, otherwise continue."""
+        if _debug: TCPClientActor._debug("handle_error %r", error)
+
+        # pass along to the director
+        if error is not None:
+            self.director.actor_error(self, error)
+        else:
+            TCPClient.handle_error(self)
 
     def handle_close(self):
         if _debug: TCPClientActor._debug("handle_close")
@@ -388,6 +398,13 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
             connect_task = FunctionTask(self.connect, actor.peer)
             connect_task.install_task(_time() + self.reconnect[actor.peer])
 
+    def actor_error(self, actor, error):
+        if _debug: TCPClientDirector._debug("actor_error %r %r", actor, error)
+
+        # tell the ASE the actor had an error
+        if self.serviceElement:
+            self.sap_request(actor_error=actor, error=error)
+
     def get_actor(self, address):
         """ Get the actor associated with an address or None. """
         return self.clients.get(address, None)
@@ -452,66 +469,74 @@ class TCPServer(asyncore.dispatcher):
         self.request = ''
 
     def handle_connect(self):
-        if _debug: deferred(TCPServer._debug, "handle_connect")
+        if _debug: TCPServer._debug("handle_connect")
 
     def readable(self):
         return 1
 
     def handle_read(self):
-        if _debug: deferred(TCPServer._debug, "handle_read")
+        if _debug: TCPServer._debug("handle_read")
 
         try:
             msg = self.recv(65536)
-            if _debug: deferred(TCPServer._debug, "    - received %d octets", len(msg))
+            if _debug: TCPServer._debug("    - received %d octets", len(msg))
 
             # no socket means it was closed
             if not self.socket:
-                if _debug: deferred(TCPServer._debug, "    - socket was closed")
+                if _debug: TCPServer._debug("    - socket was closed")
             else:
+                # send the data upstream
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
             if (err.args[0] == 111):
-                deferred(TCPServer._debug, "    - connection to %r refused", self.peer)
+                if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._debug, "    - recv socket error: %s", err)
+                if _debug: TCPServer._debug("    - recv socket error: %s", err)
 
-            # sent the exception upstream
-            deferred(self.response, err)
+            # pass along to a handler
+            self.handle_error(err)
 
     def writable(self):
         return (len(self.request) != 0)
 
     def handle_write(self):
-        if _debug: deferred(TCPServer._debug, "handle_write")
+        if _debug: TCPServer._debug("handle_write")
 
         try:
             sent = self.send(self.request)
-            if _debug: deferred(TCPServer._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
+            if _debug: TCPServer._debug("    - sent %d octets, %d remaining", sent, len(self.request) - sent)
 
             self.request = self.request[sent:]
 
         except socket.error as err:
             if (err.args[0] == 111):
-                deferred(TCPServer._debug, "    - connection to %r refused", self.peer)
+                if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._debug, "    - send socket error: %s", err)
+                if _debug: TCPServer._debug("    - send socket error: %s", err)
 
-            # sent the exception upstream
-            deferred(self.response, err)
+            # pass along to a handler
+            self.handle_error(err)
 
     def handle_close(self):
-        if _debug: deferred(TCPServer._debug, "handle_close")
+        if _debug: TCPServer._debug("handle_close")
 
         if not self:
-            deferred(TCPServer._warning, "handle_close: self is None")
+            if _debug: TCPServer._debug("    - self is None")
             return
         if not self.socket:
-            deferred(TCPServer._warning, "handle_close: socket already closed")
+            if _debug: TCPServer._debug("    - socket already closed")
             return
 
         self.close()
         self.socket = None
+
+    def handle_error(self, error=None):
+        """Trap for TCPServer errors, otherwise continue."""
+        if _debug: TCPServer._debug("handle_error %r", error)
+
+        # core does not take parameters
+        asyncore.dispatcher.handle_error(self)
 
     def indication(self, pdu):
         """Requests are queued for delivery."""
@@ -547,6 +572,16 @@ class TCPServerActor(TCPServer):
 
         # tell the director this is a new actor
         self.director.add_actor(self)
+
+    def handle_error(self, error=None):
+        """Trap for TCPServer errors, otherwise continue."""
+        if _debug: TCPServerActor._debug("handle_error %r", error)
+
+        # pass along to the director
+        if error is not None:
+            self.director.actor_error(self, error)
+        else:
+            TCPServer.handle_error(self)
 
     def handle_close(self):
         if _debug: TCPServerActor._debug("handle_close")
@@ -728,6 +763,13 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
         if self.serviceElement:
             self.sap_request(delPeer=actor.peer)
 
+    def actor_error(self, actor, error):
+        if _debug: TCPServerDirector._debug("actor_error %r %r", actor, error)
+
+        # tell the ASE the actor had an error
+        if self.serviceElement:
+            self.sap_request(actor_error=actor, error=error)
+
     def get_actor(self, address):
         """ Get the actor associated with an address or None. """
         return self.servers.get(address, None)
@@ -814,11 +856,6 @@ class StreamToPacket(Client, Server):
         """Message going upstream."""
         if _debug: StreamToPacket._debug("StreamToPacket.confirmation %r", pdu)
 
-        # short circuit errors
-        if isinstance(pdu, IOError):
-            self.response(pdu)
-            return
-
         # hack it up into chunks
         for packet in self.packetize(pdu, self.upstreamBuffer):
             self.response(packet)
@@ -839,7 +876,7 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
         # save a reference to the StreamToPacket object
         self.stp = stp
 
-    def indication(self, addPeer=None, delPeer=None):
+    def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
         if _debug: StreamToPacketSAP._debug("indication addPeer=%r delPeer=%r", addPeer, delPeer)
 
         if addPeer:
