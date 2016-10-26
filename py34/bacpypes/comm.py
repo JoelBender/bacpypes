@@ -108,12 +108,12 @@ class PDUData(object):
         super(PDUData, self).__init__(*args, **kwargs)
 
         # function acts like a copy constructor
-        if isinstance(data, PDUData) or isinstance(data, PDU):
-            self.pduData = _copy(data.pduData)
-        elif data is None:
+        if data is None:
             self.pduData = bytearray()
         elif isinstance(data, (bytes, bytearray)):
             self.pduData = bytearray(data)
+        elif isinstance(data, PDUData) or isinstance(data, PDU):
+            self.pduData = _copy(data.pduData)
         else:
             raise TypeError("bytes or bytearray expected")
 
@@ -207,7 +207,7 @@ class PDUData(object):
 @bacpypes_debugging
 class PDU(PCI, PDUData):
 
-    def __init__(self, data='', **kwargs):
+    def __init__(self, data=None, **kwargs):
         if _debug: PDU._debug("__init__ %r %r", data, kwargs)
 
         # pick up some optional kwargs
