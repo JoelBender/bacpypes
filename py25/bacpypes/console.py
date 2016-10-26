@@ -49,8 +49,12 @@ class ConsoleClient(asyncore.file_dispatcher, Client):
 
     def handle_read(self):
         deferred(ConsoleClient._debug, "handle_read")
+
+        # read from stdin (implicit encoding)
         data = sys.stdin.read()
         deferred(ConsoleClient._debug, "    - data: %r", data)
+
+        # make a PDU and send it downstream
         deferred(self.request, PDU(data))
 
     def confirmation(self, pdu):
@@ -81,15 +85,19 @@ class ConsoleServer(asyncore.file_dispatcher, Server):
 
     def handle_read(self):
         deferred(ConsoleServer._debug, "handle_read")
+
+        # read from stdin (implicit encoding)
         data = sys.stdin.read()
         deferred(ConsoleServer._debug, "    - data: %r", data)
+
+        # make a PDU and send it upstream
         deferred(self.response, PDU(data))
 
     def indication(self, pdu):
-        deferred(ConsoleServer._debug, "Indication %r", pdu)
+        deferred(ConsoleServer._debug, "indication %r", pdu)
         try:
             sys.stdout.write(pdu.pduData)
         except Exception, err:
-            ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)
+            ConsoleServer._exception("indication sys.stdout.write exception: %r", err)
 
 bacpypes_debugging(ConsoleServer)
