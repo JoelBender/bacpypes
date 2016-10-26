@@ -34,6 +34,11 @@ class EchoMaster(Client):
     def confirmation(self, pdu):
         if _debug: EchoMaster._debug('confirmation %r', pdu)
 
+        # check for errors
+        if isinstance(pdu, Exception):
+            if _debug: EchoMaster._debug("    - exception: %s", pdu)
+            return
+
         # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
