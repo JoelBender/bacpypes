@@ -34,11 +34,6 @@ class EchoMaster(Client):
     def confirmation(self, pdu):
         if _debug: EchoMaster._debug('confirmation %r', pdu)
 
-        # check for errors
-        if isinstance(pdu, Exception):
-            if _debug: EchoMaster._debug("    - exception: %s", pdu)
-            return
-
         # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
@@ -51,19 +46,14 @@ class EchoMaster(Client):
 class MiddleManASE(ApplicationServiceElement):
 
     def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
-        """
-        This function is called by the TCPDirector when the client connects to
-        or disconnects from a server.  It is called with addPeer or delPeer
-        keyword parameters, but not both.
-        """
-        if _debug: MiddleManASE._debug('indication addPeer=%r delPeer=%r', addPeer, delPeer)
-
         if addPeer:
-            if _debug: MiddleManASE._debug("    - add peer %s", addPeer)
+            if _debug: MiddleManASE._debug("indication addPeer=%r", addPeer)
 
         if delPeer:
-            if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
+            if _debug: MiddleManASE._debug("indication delPeer=%r", delPeer)
 
+        if actor_error:
+            if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
 
 #
 #   __main__
