@@ -102,7 +102,7 @@ class TCPClient(asyncore.dispatcher):
         self.peer = peer
 
         # create a request buffer
-        self.request = ''
+        self.request = b''
 
         # try to connect
         try:
@@ -463,7 +463,7 @@ class TCPServer(asyncore.dispatcher):
         self.peer = peer
 
         # create a request buffer
-        self.request = ''
+        self.request = b''
 
     def handle_connect(self):
         if _debug: TCPServer._debug("handle_connect")

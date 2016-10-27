@@ -149,7 +149,7 @@ def main():
 
     # send hello maybe
     if args.hello:
-        deferred(this_middle_man.indication, PDU("hello\n"))
+        deferred(this_middle_man.indication, PDU(b"hello\n"))
 
     if _debug: _log.debug("running")
 
