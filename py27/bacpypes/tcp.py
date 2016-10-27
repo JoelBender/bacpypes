@@ -130,7 +130,7 @@ class TCPClient(asyncore.dispatcher):
         if _debug: TCPClient._debug("handle_connect_event")
 
         # there might be an error
-        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if _debug: TCPClient._debug("    - err: %r", err)
 
         # check for connection refused
@@ -162,7 +162,7 @@ class TCPClient(asyncore.dispatcher):
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
-            if (err.args[0] == 111):
+            if (err.args[0] in (61, 111)):
                 if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPClient._debug("    - recv socket error: %r", err)
@@ -186,7 +186,7 @@ class TCPClient(asyncore.dispatcher):
             if (err.args[0] == 32):
                 if _debug: TCPClient._debug("    - broken pipe to %r", self.peer)
                 return
-            elif (err.args[0] == 111):
+            elif (err.args[0] in (61, 111)):
                 if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPClient._debug("    - send socket error: %s", err)
@@ -198,13 +198,13 @@ class TCPClient(asyncore.dispatcher):
         if _debug: TCPClient._debug("handle_write_event")
 
         # there might be an error
-        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if _debug: TCPClient._debug("    - err: %r", err)
 
         # check for connection refused
-        if (err == 61):
+        if (err in (61, 111)):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
-            self.handle_error(socket.error(61, "connection refused"))
+            self.handle_error(socket.error(err, "connection refused"))
             self.handle_close()
             return
 
