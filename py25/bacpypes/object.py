@@ -1351,6 +1351,7 @@ class DeviceObject(Object):
         , OptionalProperty('timeSynchronizationInterval', Unsigned)
         , OptionalProperty('alignIntervals', Boolean)
         , OptionalProperty('intervalOffset', Unsigned)
+        , OptionalProperty('serialNumber', CharacterString)
         ]
 
 register_object_type(DeviceObject)
