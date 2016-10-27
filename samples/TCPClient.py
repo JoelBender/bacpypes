@@ -74,23 +74,19 @@ class MiddleMan(Client, Server):
 class MiddleManASE(ApplicationServiceElement):
 
     def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
-        """
-        This function is called by the TCPDirector when the client connects to
-        or disconnects from a server.  It is called with addPeer or delPeer
-        keyword parameters, but not both.
-        """
-        if _debug: MiddleManASE._debug('indication addPeer=%r delPeer=%r', addPeer, delPeer)
-
         if addPeer:
-            if _debug: MiddleManASE._debug("    - add peer %s", addPeer)
+            if _debug: MiddleManASE._debug("indication addPeer=%r", addPeer)
 
         if delPeer:
-            if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
+            if _debug: MiddleManASE._debug("indication delPeer=%r", delPeer)
 
-        # if there are no clients (TCPClientActor instances), quit
+        if actor_error:
+            if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
+
+        # if there are no clients, quit
         if not self.elementService.clients:
             if _debug: MiddleManASE._debug("    - quitting")
-            deferred(stop)
+            stop()
 
 
 def main():
