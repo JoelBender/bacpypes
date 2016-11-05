@@ -112,7 +112,7 @@ class PDUData(object):
             self.pduData = ''
         elif isinstance(data, str):
             self.pduData = data
-        wlif isinstance(data, PDUData) or isinstance(data, PDU):
+        elif isinstance(data, PDUData) or isinstance(data, PDU):
             self.pduData = _copy(data.pduData)
         else:
             raise TypeError("string expected")
