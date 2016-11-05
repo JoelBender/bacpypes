@@ -55,7 +55,7 @@ class UDPActor:
         if _debug: UDPActor._debug("idle_timeout")
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
     def indication(self, pdu):
         if _debug: UDPActor._debug("indication %r", pdu)
@@ -107,11 +107,6 @@ class UDPPickleActor(UDPActor):
 
     def response(self, pdu):
         if _debug: UDPPickleActor._debug("response %r", pdu)
-
-        # short circuit errors
-        if isinstance(pdu, IOError):
-            UDPActor.response(self, pdu)
-            return
 
         # unpickle the data
         try:
@@ -177,17 +172,17 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
         # tell the ASE there is a new client
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
+    def del_actor(self, actor):
         """Remove an actor when the socket is closed."""
-        if _debug: UDPDirector._debug("remove_actor %r", actor)
+        if _debug: UDPDirector._debug("del_actor %r", actor)
 
         del self.peers[actor.peer]
 
         # tell the ASE the client has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
 
     def actor_error(self, actor, error):
         if _debug: UDPDirector._debug("actor_error %r %r", actor, error)

@@ -278,7 +278,7 @@ class TCPClientActor(TCPClient):
             self.timer.suspend_task()
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass the function along
         TCPClient.handle_close(self)
@@ -381,17 +381,17 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
 
         # tell the ASE there is a new client
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
+    def del_actor(self, actor):
         """Remove an actor when the socket is closed."""
-        if _debug: TCPClientDirector._debug("remove_actor %r", actor)
+        if _debug: TCPClientDirector._debug("del_actor %r", actor)
 
         del self.clients[actor.peer]
 
         # tell the ASE the client has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
 
         # see if it should be reconnected
         if actor.peer in self.reconnect:
@@ -591,7 +591,7 @@ class TCPServerActor(TCPServer):
             self.flushTask.suspend_task()
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass it down
         TCPServer.handle_close(self)
@@ -749,19 +749,19 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
 
         # tell the ASE there is a new server
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
-        if _debug: TCPServerDirector._debug("remove_actor %r", actor)
+    def del_actor(self, actor):
+        if _debug: TCPServerDirector._debug("del_actor %r", actor)
 
         try:
             del self.servers[actor.peer]
         except KeyError:
-            TCPServerDirector._warning("remove_actor: %r not an actor", actor)
+            TCPServerDirector._warning("del_actor: %r not an actor", actor)
 
         # tell the ASE the server has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
 
     def actor_error(self, actor, error):
         if _debug: TCPServerDirector._debug("actor_error %r %r", actor, error)
@@ -876,21 +876,21 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
         # save a reference to the StreamToPacket object
         self.stp = stp
 
-    def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
-        if _debug: StreamToPacketSAP._debug("indication addPeer=%r delPeer=%r", addPeer, delPeer)
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        if _debug: StreamToPacketSAP._debug("indication add_actor=%r del_actor=%r", add_actor, del_actor)
 
-        if addPeer:
+        if add_actor:
             # create empty buffers associated with the peer
-            self.stp.upstreamBuffer[addPeer] = ''
-            self.stp.downstreamBuffer[addPeer] = ''
+            self.stp.upstreamBuffer[add_actor.peer] = ''
+            self.stp.downstreamBuffer[add_actor.peer] = ''
 
-        if delPeer:
+        if del_actor:
             # delete the buffer contents associated with the peer
-            del self.stp.upstreamBuffer[delPeer]
-            del self.stp.downstreamBuffer[delPeer]
+            del self.stp.upstreamBuffer[del_actor.peer]
+            del self.stp.downstreamBuffer[del_actor.peer]
 
         # chain this along
         if self.serviceElement:
-            self.sap_request(addPeer=addPeer, delPeer=delPeer)
+            self.sap_request(add_actor=add_actor, del_actor=del_actor)
 
 bacpypes_debugging(StreamToPacketSAP)

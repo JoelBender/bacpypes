@@ -293,7 +293,7 @@ class TCPClientActor(TCPClient):
             self.timer.suspend_task()
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass the function along
         TCPClient.handle_close(self)
@@ -397,9 +397,9 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
         if self.serviceElement:
             self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
+    def del_actor(self, actor):
         """Remove an actor when the socket is closed."""
-        if _debug: TCPClientDirector._debug("remove_actor %r", actor)
+        if _debug: TCPClientDirector._debug("del_actor %r", actor)
 
         del self.clients[actor.peer]
 
@@ -603,7 +603,7 @@ class TCPServerActor(TCPServer):
             self.flushTask.suspend_task()
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass it down
         TCPServer.handle_close(self)
@@ -762,13 +762,13 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
         if self.serviceElement:
             self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
-        if _debug: TCPServerDirector._debug("remove_actor %r", actor)
+    def del_actor(self, actor):
+        if _debug: TCPServerDirector._debug("del_actor %r", actor)
 
         try:
             del self.servers[actor.peer]
         except KeyError:
-            TCPServerDirector._warning("remove_actor: %r not an actor", actor)
+            TCPServerDirector._warning("del_actor: %r not an actor", actor)
 
         # tell the ASE the server has gone away
         if self.serviceElement:
