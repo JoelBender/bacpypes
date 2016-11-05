@@ -108,7 +108,7 @@ class TCPClient(asyncore.dispatcher):
         try:
             if _debug: TCPClient._debug("    - initiate connection")
             self.connect(peer)
-        except socket.error as err:
+        except socket.error, err:
             if _debug: TCPClient._debug("    - connect socket error: %r", err)
 
             # pass along to an error handler
@@ -152,7 +152,7 @@ class TCPClient(asyncore.dispatcher):
                 # send the data upstream
                 deferred(self.response, PDU(msg))
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] in (61, 111)):
                 TCPClient._debug("    - connection to %r refused", self.peer)
             else:
@@ -173,7 +173,7 @@ class TCPClient(asyncore.dispatcher):
 
             self.request = self.request[sent:]
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 32):
                 if _debug: TCPClient._debug("    - broken pipe to %r", self.peer)
                 return
@@ -488,7 +488,7 @@ class TCPServer(asyncore.dispatcher):
                 # send the data upstream
                 deferred(self.response, PDU(msg))
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 111):
                 if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
@@ -509,7 +509,7 @@ class TCPServer(asyncore.dispatcher):
 
             self.request = self.request[sent:]
 
-        except socket.error as err:
+        except socket.error, err:
             if (err.args[0] == 111):
                 if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
