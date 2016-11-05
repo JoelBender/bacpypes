@@ -8,7 +8,7 @@ content into a line or any other higher-layer concept of a packet.
 
 import os
 
-from bacpypes.debugging import bacpypes_debugging, ModuleLogger
+from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from bacpypes.core import run, stop, deferred
 from bacpypes.task import TaskManager
@@ -33,7 +33,6 @@ server_address = None
 #   MiddleMan
 #
 
-@bacpypes_debugging
 class MiddleMan(Client, Server):
     """
     An instance of this class sits between the TCPClientDirector and the
@@ -65,12 +64,12 @@ class MiddleMan(Client, Server):
         # pass it along
         self.response(pdu)
 
+bacpypes_debugging(MiddleMan)
 
 #
 #   MiddleManASE
 #
 
-@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
     """
     An instance of this class is bound to the director, which is a
@@ -93,6 +92,11 @@ class MiddleManASE(ApplicationServiceElement):
             if _debug: MiddleManASE._debug("    - quitting")
             stop()
 
+bacpypes_debugging(MiddleManASE)
+
+#
+#   main
+#
 
 def main():
     """
@@ -104,12 +108,12 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         "host", nargs='?',
-        help="address of host (default {!r})".format(SERVER_HOST),
+        help="address of host (default %r)" % (SERVER_HOST,),
         default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
-        help="server port (default {!r})".format(SERVER_PORT),
+        help="server port (default %r)" % (SERVER_PORT,),
         default=SERVER_PORT,
         )
     parser.add_argument(
@@ -150,7 +154,7 @@ def main():
 
     # send hello maybe
     if args.hello:
-        deferred(this_middle_man.indication, PDU(b"hello\n"))
+        deferred(this_middle_man.indication, PDU(xtob('68656c6c6f0a')))
 
     if _debug: _log.debug("running")
 

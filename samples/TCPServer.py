@@ -28,7 +28,6 @@ SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
 #   EchoMaster
 #
 
-@bacpypes_debugging
 class EchoMaster(Client):
 
     def confirmation(self, pdu):
@@ -37,12 +36,12 @@ class EchoMaster(Client):
         # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
+bacpypes_debugging(EchoMaster)
 
 #
 #   MiddleManASE
 #
 
-@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
     """
     An instance of this class is bound to the director, which is a
@@ -60,6 +59,8 @@ class MiddleManASE(ApplicationServiceElement):
         if actor_error:
             if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
 
+bacpypes_debugging(MiddleManASE)
+
 #
 #   __main__
 #
@@ -69,12 +70,12 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         "host", nargs='?',
-        help="listening address of server or 'any' (default {!r})".format(SERVER_HOST),
+        help="listening address of server or 'any' (default %r)" % (SERVER_HOST,),
         default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
-        help="server port (default {!r})".format(SERVER_PORT),
+        help="server port (default %r)" % (SERVER_PORT,),
         default=SERVER_PORT,
         )
     args = parser.parse_args()
