@@ -100,7 +100,7 @@ class InconsistentParameters(RejectException):
     conditional service argument that should not be present. This condition
     could also elicit a Reject PDU with a Reject Reason of INVALID_TAG.
     """
-    
+
     rejectReason = 'inconsistentParameters'
 
 

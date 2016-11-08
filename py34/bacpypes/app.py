@@ -145,7 +145,7 @@ class DeviceInfoCache:
     def update_device_info(self, info):
         """The application has updated one or more fields in the device
         information record and the cache needs to be updated to reflect the
-        changes.  If this is a cached version of a persistent record then this 
+        changes.  If this is a cached version of a persistent record then this
         is the opportunity to update the database."""
         if _debug: DeviceInfoCache._debug("update_device_info %r", info)
 

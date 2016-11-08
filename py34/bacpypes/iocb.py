@@ -79,7 +79,7 @@ class IOCB(DebugContents):
         , 'ioController', 'ioServerRef', 'ioControllerRef', 'ioClientID', 'ioClientAddr'
         , 'ioComplete', 'ioCallback+', 'ioQueue', 'ioPriority', 'ioTimeout'
         )
-        
+
     def __init__(self, *args, **kwargs):
         global _identNext
 
@@ -126,7 +126,7 @@ class IOCB(DebugContents):
         if '_priority' in kwargs:
             if _debug: IOCB._debug("    - ioPriority: %r", self.ioPriority)
             del kwargs['_priority']
-        
+
         # request has no timeout
         self.ioTimeout = None
 
@@ -140,11 +140,11 @@ class IOCB(DebugContents):
         # already complete?
         if self.ioComplete.isSet():
             self.trigger()
-        
+
     def wait(self, *args):
         """Wait for the completion event to be set."""
         if _debug: IOCB._debug("wait(%d) %r", self.ioID, args)
-        
+
         # waiting from a non-daemon thread could be trouble
         self.ioComplete.wait(*args)
 
@@ -227,7 +227,7 @@ class IOCB(DebugContents):
 class IOChainMixIn(DebugContents):
 
     _debugContents = ( 'ioChain++', )
-    
+
     def __init__(self, iocb):
         if _debug: IOChainMixIn._debug("__init__ %r", iocb)
 
@@ -274,16 +274,16 @@ class IOChainMixIn(DebugContents):
 
         try:
             if _debug: IOChainMixIn._debug("    - decoding")
-                
+
             # let the derived class transform the data
             self.decode()
-            
+
             if _debug: IOChainMixIn._debug("    - decode complete")
         except:
             # extract the error and abort
             err = sys.exc_info()[1]
             if _debug: IOChainMixIn._exception("    - decoding exception: %r", err)
-                
+
             iocb.ioState = ABORTED
             iocb.ioError = err
 
@@ -325,7 +325,7 @@ class IOChainMixIn(DebugContents):
         # if this has completed successfully, pass it up
         if self.ioState == COMPLETED:
             if _debug: IOChainMixIn._debug("    - completed: %r", self.ioResponse)
-                
+
             # change the state and transform the content
             iocb.ioState = COMPLETED
             iocb.ioResponse = self.ioResponse
@@ -333,7 +333,7 @@ class IOChainMixIn(DebugContents):
         # if this aborted, pass that up too
         elif self.ioState == ABORTED:
             if _debug: IOChainMixIn._debug("    - aborted: %r", self.ioError)
-                
+
             # change the state
             iocb.ioState = ABORTED
             iocb.ioError = self.ioError
@@ -355,7 +355,7 @@ class IOChain(IOCB, IOChainMixIn):
         # initialize IOCB part to pick up the ioID
         IOCB.__init__(self, *args, **kwargs)
         IOChainMixIn.__init__(self, chain)
-        
+
 #
 #   IOGroup
 #
@@ -364,7 +364,7 @@ class IOChain(IOCB, IOChainMixIn):
 class IOGroup(IOCB, DebugContents):
 
     _debugContents = ('ioMembers',)
-        
+
     def __init__(self):
         """Initialize a group."""
         if _debug: IOGroup._debug("__init__")
@@ -373,8 +373,8 @@ class IOGroup(IOCB, DebugContents):
         # start with an empty list of members
         self.ioMembers = []
 
-        # start out being done.  When an IOCB is added to the 
-        # group that is not already completed, this state will 
+        # start out being done.  When an IOCB is added to the
+        # group that is not already completed, this state will
         # change to PENDING.
         self.ioState = COMPLETED
         self.ioComplete.set()
@@ -438,7 +438,7 @@ class IOQueue:
 
         self.notempty = threading.Event()
         self.notempty.clear()
-        
+
         self.queue = []
 
     def put(self, iocb):
@@ -673,7 +673,7 @@ class IOQController(IOController):
             if not iocb:
                 break
             if _debug: IOQController._debug("    - iocb: %r", iocb)
-                
+
             # change the state
             iocb.ioState = ABORTED
             iocb.ioError = err

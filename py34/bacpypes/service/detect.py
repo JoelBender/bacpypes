@@ -9,7 +9,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.core import deferred
 
 # some debugging
-_debug = 0 
+_debug = 0
 _log = ModuleLogger(globals())
 
 #
