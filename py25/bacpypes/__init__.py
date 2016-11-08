@@ -69,6 +69,7 @@ from . import apdu
 
 from . import app
 from . import appservice
+from . import service
 
 #
 #   Analysis

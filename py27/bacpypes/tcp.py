@@ -51,11 +51,6 @@ class PickleActorMixIn:
     def response(self, pdu):
         if _debug: PickleActorMixIn._debug("response %r", pdu)
 
-        # short circuit errors
-        if isinstance(pdu, IOError):
-            super(PickleActorMixIn, self).response(rpdu)
-            return
-
         # add the data to our buffer
         self.pickleBuffer += pdu.pduData
 
@@ -905,4 +900,3 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
                 del_actor=del_actor,
                 actor_error=actor_error, error=error,
                 )
-

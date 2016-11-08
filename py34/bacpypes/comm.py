@@ -236,7 +236,7 @@ class PDU(PCI, PDUData):
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
-        if _debug: PDUData._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
+        if _debug: PDU._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
 
         # make/extend the dictionary of content
         if use_dict is None:

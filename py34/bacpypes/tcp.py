@@ -884,5 +884,8 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
 
         # chain this along
         if self.serviceElement:
-            self.sap_request(add_actor=add_actor, del_actor=del_actor)
-
+            self.sap_request(
+                add_actor=add_actor,
+                del_actor=del_actor,
+                actor_error=actor_error, error=error,
+                )

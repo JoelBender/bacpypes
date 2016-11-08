@@ -644,7 +644,7 @@ class ClientSSM(SSM):
 class ServerSSM(SSM):
 
     def __init__(self, sap, remoteDevice):
-        if _debug: ServerSSM._debug("__init__ %s %r %r", sap, remoteDevice)
+        if _debug: ServerSSM._debug("__init__ %s %r", sap, remoteDevice)
         SSM.__init__(self, sap, remoteDevice)
 
     def set_state(self, newState, timer=0):

@@ -154,9 +154,9 @@ class TCPClient(asyncore.dispatcher):
 
         except socket.error, err:
             if (err.args[0] in (61, 111)):
-                TCPClient._debug("    - connection to %r refused", self.peer)
+                if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
-                TCPClient._debug("    - recv socket error: %r", err)
+                if _debug: TCPClient._debug("    - recv socket error: %r", err)
 
             # pass along to a handler
             self.handle_error(err)
@@ -891,6 +891,10 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
 
         # chain this along
         if self.serviceElement:
-            self.sap_request(add_actor=add_actor, del_actor=del_actor)
+            self.sap_request(
+                add_actor=add_actor,
+                del_actor=del_actor,
+                actor_error=actor_error, error=error,
+                )
 
 bacpypes_debugging(StreamToPacketSAP)
