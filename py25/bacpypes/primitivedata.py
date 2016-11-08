@@ -1239,7 +1239,7 @@ class Date(Atomic):
 
     def __init__(self, arg=None, year=255, month=255, day=255, day_of_week=255):
         self.value = (year, month, day, day_of_week)
-        
+
         if arg is None:
             pass
         elif isinstance(arg, Tag):
@@ -1357,7 +1357,7 @@ class Date(Atomic):
         elif day in _special_day_inv:
             pass
         else:
-            try:            
+            try:
                 today = time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
                 day_of_week = time.gmtime(today)[6] + 1
             except OverflowError:

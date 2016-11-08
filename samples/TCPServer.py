@@ -2,7 +2,7 @@
 
 """
 This simple TCP server application listens for one or more client connections
-and echos the incoming lines back to the client.  There is no conversion from 
+and echos the incoming lines back to the client.  There is no conversion from
 incoming streams of content into a line or any other higher-layer concept
 of a packet.
 """

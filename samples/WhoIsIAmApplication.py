@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application builds on the first sample by overriding the default 
+This sample application builds on the first sample by overriding the default
 processing for Who-Is and I-Am requests, counting them, then continuing on
 with the regular processing.  After the run() function has completed it will
 dump a formatted summary of the requests it has received.

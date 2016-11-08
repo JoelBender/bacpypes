@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application shows how to extend the basic functionality of a device 
+This sample application shows how to extend the basic functionality of a device
 to support the ReadPropertyMultiple service.
 """
 

@@ -3,7 +3,7 @@
 """
 Mutliple Read Property
 
-This application has a static list of points that it would like to read.  It reads the 
+This application has a static list of points that it would like to read.  It reads the
 values of each of them in turn and then quits.
 """
 

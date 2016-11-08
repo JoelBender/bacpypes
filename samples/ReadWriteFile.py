@@ -4,7 +4,7 @@
 This application presents a 'console' prompt to the user asking for commands.
 
 The 'readrecord' and 'writerecord' commands are used with record oriented files,
-and the 'readstream' and 'writestream' commands are used with stream oriented 
+and the 'readstream' and 'writestream' commands are used with stream oriented
 files.
 """
 

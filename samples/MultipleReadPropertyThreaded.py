@@ -3,7 +3,7 @@
 """
 Mutliple Read Property
 
-This application has a static list of points that it would like to read.  It reads the 
+This application has a static list of points that it would like to read.  It reads the
 values of each of them in turn and then quits.
 """
 
@@ -137,7 +137,7 @@ def main():
     # let the device object know
     this_device.protocolServicesSupported = services_supported.value
 
-    # create a thread and 
+    # create a thread and
     read_thread = ReadPointListThread(point_list)
     if _debug: _log.debug("    - read_thread: %r", read_thread)
 

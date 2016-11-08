@@ -3,9 +3,9 @@
 """
 This sample application presents itself as a router between two
 IP networks.  This application can run on a single homed machine
-by using the same IP address and two different port numbers, or 
-to be closer to what is typically considered a router, on a 
-multihomed machine using two different IP addresses and the same 
+by using the same IP address and two different port numbers, or
+to be closer to what is typically considered a router, on a
+multihomed machine using two different IP addresses and the same
 port number.
 
 $ python IP2IPRtouer.py addr1 net1 addr2 net2
@@ -51,7 +51,7 @@ class IP2IPRouter:
 
         #== First stack
 
-        # create a generic BIP stack, bound to the Annex J server 
+        # create a generic BIP stack, bound to the Annex J server
         # on the UDP multiplexer
         self.s1_bip = BIPSimple()
         self.s1_annexj = AnnexJCodec()
@@ -65,7 +65,7 @@ class IP2IPRouter:
 
         #== Second stack
 
-        # create a generic BIP stack, bound to the Annex J server 
+        # create a generic BIP stack, bound to the Annex J server
         # on the UDP multiplexer
         self.s2_bip = BIPSimple()
         self.s2_annexj = AnnexJCodec()

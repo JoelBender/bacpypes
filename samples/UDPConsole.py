@@ -20,7 +20,7 @@ The address can be one of the following forms:
     any                      - special tuple ('', 47808)
     any:12345                - special tuple ('', 12345)
 
-Use the --nobroadcast option to prevent the application from opening the 
+Use the --nobroadcast option to prevent the application from opening the
 broadcast socket when one would otherwise be opened.
 
 To send a packet, enter in a string in the form <addr> <message> where <addr>

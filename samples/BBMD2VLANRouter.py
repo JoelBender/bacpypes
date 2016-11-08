@@ -152,7 +152,7 @@ class VLANRouter:
         self.nse = NetworkServiceElement()
         bind(self.nse, self.nsap)
 
-        # create a BBMD, bound to the Annex J server 
+        # create a BBMD, bound to the Annex J server
         # on the UDP multiplexer
         self.bip = BIPBBMD(local_address)
         self.annexj = AnnexJCodec()

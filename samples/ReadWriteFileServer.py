@@ -159,7 +159,7 @@ class LocalStreamAccessFileObject(FileObject):
             start_position = len(self._file_data)
             self._file_data += data
 
-        # no slice assignment, strings are immutable 
+        # no slice assignment, strings are immutable
         else:
             data_len = len(data)
             prechunk = self._file_data[:start_position]

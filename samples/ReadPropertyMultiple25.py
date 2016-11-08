@@ -58,7 +58,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                     obj_type = int(obj_type)
                 elif not get_object_class(obj_type):
                     raise ValueError("unknown object type")
-                
+
                 obj_inst = int(args[i])
                 i += 1
 

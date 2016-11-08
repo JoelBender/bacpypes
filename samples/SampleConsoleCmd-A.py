@@ -56,7 +56,7 @@ class SampleApplication(BIPSimpleApplication):
 class SampleConsoleCmd(ConsoleCmd):
 
     my_cache= {}
-    
+
     def do_set(self, arg):
         """set <key> <value> - change a cache value"""
         if _debug: SampleConsoleCmd._debug("do_set %r", arg)
@@ -81,7 +81,7 @@ class SampleConsoleCmd(ConsoleCmd):
     def do_something(self, arg):
         """something <arg> - do something"""
         print "do something", arg
-        
+
     def do_nothing(self, args):
         """nothing can be done"""
         args = args.split()

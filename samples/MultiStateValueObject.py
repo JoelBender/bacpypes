@@ -53,7 +53,7 @@ def main():
 
     # make a multistate value object
     msvo = MultiStateValueObject(
-        objectIdentifier=('multiStateValue', 1), 
+        objectIdentifier=('multiStateValue', 1),
         objectName='My Special Object',
         presentValue=1,
         numberOfStates=3,

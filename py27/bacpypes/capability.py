@@ -18,10 +18,10 @@ _log = ModuleLogger(globals())
 class Capability(object):
 
     _zindex = 99
-    
+
     def __init__(self):
         if _debug: Capability._debug("__init__")
-        
+
 #
 #   Collector
 #
@@ -42,7 +42,7 @@ class Collector(object):
                 cls.__init__(self)
 
     def _search_capability(self, base):
-        """Given a class, return a list of all of the derived classes that 
+        """Given a class, return a list of all of the derived classes that
         are themselves derived from Capability."""
         if _debug: Collector._debug("_search_capability %r", base)
 
@@ -57,7 +57,7 @@ class Collector(object):
         return rslt
 
     def capability_functions(self, fn):
-        """This generator yields functions that match the 
+        """This generator yields functions that match the
         requested capability sorted by z-index."""
         if _debug: Collector._debug("capability_functions %r", fn)
 
@@ -133,7 +133,7 @@ def compose_capability(base, *classes):
 
 @bacpypes_debugging
 def add_capability(base, *classes):
-    """Add capabilites to an existing base, all objects get the additional 
+    """Add capabilites to an existing base, all objects get the additional
     functionality, but don't get inited.  Use with great care!"""
     if _debug: add_capability._debug("add_capability %r %r", base, classes)
 
