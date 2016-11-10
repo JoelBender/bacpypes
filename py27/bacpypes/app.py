@@ -407,8 +407,8 @@ class ApplicationIOController(IOController, Application):
         # ask the queue to process the request
         queue.request_io(iocb)
 
-    def _confirmation_complete(self, address, apdu):
-        if _debug: ApplicationIOController._debug("_confirmation_complete %r %r", address, apdu)
+    def _app_complete(self, address, apdu):
+        if _debug: ApplicationIOController._debug("_app_complete %r %r", address, apdu)
 
         # look up the queue
         queue = self.queue_by_address.get(address, None)
@@ -444,13 +444,13 @@ class ApplicationIOController(IOController, Application):
 
         # if this was an unconfirmed request, it's complete, no message
         if isinstance(apdu, UnconfirmedRequestPDU):
-            self._confirmation_complete(apdu.pduDestination, None)
+            self._app_complete(apdu.pduDestination, None)
 
     def confirmation(self, apdu):
         if _debug: ApplicationIOController._debug("confirmation %r", apdu)
 
         # this is an ack, error, reject or abort
-        self._confirmation_complete(apdu.pduSource, apdu)
+        self._app_complete(apdu.pduSource, apdu)
 
 #
 #   BIPSimpleApplication
