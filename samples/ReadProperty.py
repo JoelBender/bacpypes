@@ -68,15 +68,22 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
                 request.propertyArrayIndex = int(args[4])
             if _debug: ReadPropertyConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: ReadPropertyConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(request)
 
             # wait for it to complete
             iocb.wait()
 
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
+
             # do something for success
-            if iocb.ioResponse:
+            elif iocb.ioResponse:
                 apdu = iocb.ioResponse
 
                 # should be an ack
@@ -105,9 +112,9 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
                     value.debug_contents(file=sys.stdout)
                 sys.stdout.flush()
 
-            # do something for error/reject/abort
-            if iocb.ioError:
-                sys.stdout.write(str(iocb.ioError) + '\n')
+            # do something with nothing?
+            else:
+                if _debug: ReadPropertyConsoleCmd._debug("    - ioError or ioResponse expected")
 
         except Exception as error:
             ReadPropertyConsoleCmd._exception("exception: %r", error)
