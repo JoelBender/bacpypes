@@ -542,7 +542,7 @@ class IOQueue:
 #
 
 @bacpypes_debugging
-class IOController:
+class IOController(object):
 
     def __init__(self, name=None):
         """Initialize a controller."""
@@ -873,14 +873,14 @@ class ClientController(Client, IOQController):
             self.complete_io(self.active_iocb, pdu)
 
 #
-#   _SieveQueue
+#   SieveQueue
 #
 
 @bacpypes_debugging
-class _SieveQueue(IOQController):
+class SieveQueue(IOQController):
 
     def __init__(self, request_fn, address=None):
-        if _debug: _SieveQueue._debug("__init__ %r %r", request_fn, address)
+        if _debug: SieveQueue._debug("__init__ %r %r", request_fn, address)
         IOQController.__init__(self, str(address))
 
         # save a reference to the request function
@@ -888,7 +888,7 @@ class _SieveQueue(IOQController):
         self.address = address
 
     def process_io(self, iocb):
-        if _debug: _SieveQueue._debug("process_io %r", iocb)
+        if _debug: SieveQueue._debug("process_io %r", iocb)
 
         # this is now an active request
         self.active_io(iocb)
@@ -921,7 +921,7 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(destination_address, None)
         if not queue:
-            queue = _SieveQueue(self.request, destination_address)
+            queue = SieveQueue(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: SieveClientController._debug("    - queue: %r", queue)
 

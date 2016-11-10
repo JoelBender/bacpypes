@@ -8,7 +8,7 @@ import warnings
 
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
-from .iocb import IOQController, IOCB
+from .iocb import IOCB, IOQController, SieveQueue
 
 from .pdu import Address
 
@@ -184,36 +184,6 @@ class DeviceInfoCache:
             del self.cache[cache_address]
 
 #
-#   ApplicationController
-#
-
-@bacpypes_debugging
-class ApplicationController(IOQController):
-
-    def __init__(self, request_fn, address):
-        """Initialize an application controller.  To process requests it only
-        needs the function to call that sends an APDU down the stack, the address
-        parameter is to help with debugging."""
-        if _debug: ApplicationController._debug("__init__ %r %r", request_fn, address)
-        IOQController.__init__(self, str(address))
-
-        # save a reference to the request function
-        self.request_fn = request_fn
-        self.address = address
-
-    def process_io(self, iocb):
-        """Called to start processing a request.  This is called immediately
-        when the controller is idle, otherwise this is called for the next IOCB
-        when the current request has been satisfied."""
-        if _debug: ApplicationController._debug("process_io %r", iocb)
-
-        # this is now an active request
-        self.active_io(iocb)
-
-        # send the request
-        self.request_fn(iocb.args[0])
-
-#
 #   Application
 #
 
@@ -355,68 +325,16 @@ class Application(ApplicationServiceElement, Collector):
     #-----
 
     def request(self, apdu):
-        """Intercept downstream requests and filter them.  For unconfirmed
-        services the APDU is passed down the stack and None is returned.  For
-        confirmed services an IOCB is built with the request and queued to
-        be sent by an application controller.
-        """
+        """Downstream requests are issued by the application."""
         if _debug: Application._debug("request %r", apdu)
 
-        # the parent class request function
-        request_fn = super(Application, self).request
-        if _debug: Application._debug("    - request_fn: %r", request_fn)
-
-        if isinstance(apdu, UnconfirmedRequestPDU):
-            iocb = None
-            request_fn(apdu)
-
-        elif isinstance(apdu, ConfirmedRequestPDU):
-            iocb = IOCB(apdu)
-            if _debug: Application._debug("    - iocb: %r", iocb)
-
-            # get the controller for this destination
-            controller = self.controllers.get(apdu.pduDestination, None)
-            if not controller:
-                if _debug: Application._debug("    - new controller")
-                controller = ApplicationController(
-                    request_fn, apdu.pduDestination,
-                    )
-
-                # keep track of the controller
-                self.controllers[apdu.pduDestination] = controller
-            if _debug: Application._debug("    - controller: %r", controller)
-
-            # request this apdu
-            controller.request_io(iocb)
-
-        # return the iocb if one was created
-        return iocb
+        # continue the request to the application service access point
+        super(Application, self).request(apdu)
 
     def confirmation(self, apdu):
-        """Upstream confirmations are from confirmed services that this
-        application has generated.  The service will be the active IOCB
-        of the application controller."""
+        """Upstream confirmations are the responses from confirmed services
+        that this application has requested."""
         if _debug: Application._debug("confirmation %r", apdu)
-
-        # get the queue for this destination
-        controller = self.controllers.get(apdu.pduSource, None)
-        if _debug: Application._debug("    - controller: %r", controller)
-        if not controller:
-            return
-
-        # this request is complete
-        if isinstance(apdu, (SimpleAckPDU, ComplexAckPDU)):
-            controller.complete_io(controller.active_iocb, apdu)
-        elif isinstance(apdu, (ErrorPDU, RejectPDU, AbortPDU)):
-            controller.abort_io(controller.active_iocb, apdu)
-        else:
-            raise RuntimeError("unrecognized APDU type")
-        if _debug: Application._debug("    - controller finished")
-
-        # if the queue is empty, forget about the controller
-        if not controller.ioQueue.queue:
-            if _debug: Application._debug("    - controller queue is empty")
-            del self.controllers[apdu.pduSource]
 
     def indication(self, apdu):
         if _debug: Application._debug("indication %r", apdu)
@@ -458,11 +376,88 @@ class Application(ApplicationServiceElement, Collector):
                 self.response(resp)
 
 #
+#   ApplicationIOController
+#
+
+@bacpypes_debugging
+class ApplicationIOController(IOController, Application):
+
+    def __init__(self, *args, **kwargs):
+        if _debug: ApplicationIOController._debug("__init__")
+        IOController.__init__(self)
+        Application.__init__(self, *args, **kwargs)
+
+        # queues for each address
+        self.queue_by_address = {}
+
+    def process_io(self, iocb):
+        if _debug: ApplicationIOController._debug("process_io %r", iocb)
+
+        # get the destination address from the pdu
+        destination_address = iocb.args[0].pduDestination
+        if _debug: ApplicationIOController._debug("    - destination_address: %r", destination_address)
+
+        # look up the queue
+        queue = self.queue_by_address.get(destination_address, None)
+        if not queue:
+            queue = SieveQueue(self.request, destination_address)
+            self.queue_by_address[destination_address] = queue
+        if _debug: ApplicationIOController._debug("    - queue: %r", queue)
+
+        # ask the queue to process the request
+        queue.request_io(iocb)
+
+    def _confirmation_complete(self, address, apdu):
+        if _debug: ApplicationIOController._debug("_confirmation_complete %r %r", address, apdu)
+
+        # look up the queue
+        queue = self.queue_by_address.get(address, None)
+        if not queue:
+            ApplicationIOController._debug("no queue for %r" % (source_address,))
+            return
+        if _debug: ApplicationIOController._debug("    - queue: %r", queue)
+
+        # make sure it has an active iocb
+        if not queue.active_iocb:
+            ApplicationIOController._debug("no active request for %r" % (source_address,))
+            return
+
+        # this request is complete
+        if isinstance(apdu, (None.__class__, SimpleAckPDU, ComplexAckPDU)):
+            controller.complete_io(queue.active_iocb, apdu)
+        elif isinstance(apdu, (ErrorPDU, RejectPDU, AbortPDU)):
+            controller.abort_io(queue.active_iocb, apdu)
+        else:
+            raise RuntimeError("unrecognized APDU type")
+        if _debug: Application._debug("    - controller finished")
+
+        # if the queue is empty and idle, forget about the controller
+        if not queue.ioQueue.queue and not queue.active_iocb:
+            if _debug: ApplicationIOController._debug("    - queue is empty")
+            del self.queue_by_address[address]
+
+    def request(self, apdu):
+        if _debug: ApplicationIOController._debug("request %r", apdu)
+
+        # send it downstream
+        super(ApplicationIOController, self).request(apdu)
+
+        # if this was an unconfirmed request, it's complete, no message
+        if isinstance(apdu, UnconfirmedRequestPDU):
+            self._confirmation_complete(apdu.pduDestination, None)
+
+    def confirmation(self, apdu):
+        if _debug: ApplicationIOController._debug("confirmation %r", apdu)
+
+        # this is an ack, error, reject or abort
+        self._confirmation_complete(apdu.pduSource, apdu)
+
+#
 #   BIPSimpleApplication
 #
 
 @bacpypes_debugging
-class BIPSimpleApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
+class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
@@ -512,7 +507,7 @@ class BIPSimpleApplication(Application, WhoIsIAmServices, ReadWritePropertyServi
 #
 
 @bacpypes_debugging
-class BIPForeignApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
+class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
