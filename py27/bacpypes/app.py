@@ -8,7 +8,7 @@ import warnings
 
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
-from .iocb import IOCB, IOQController, SieveQueue
+from .iocb import IOController, SieveQueue
 
 from .pdu import Address
 
@@ -324,18 +324,6 @@ class Application(ApplicationServiceElement, Collector):
 
     #-----
 
-    def request(self, apdu):
-        """Downstream requests are issued by the application."""
-        if _debug: Application._debug("request %r", apdu)
-
-        # continue the request to the application service access point
-        super(Application, self).request(apdu)
-
-    def confirmation(self, apdu):
-        """Upstream confirmations are the responses from confirmed services
-        that this application has requested."""
-        if _debug: Application._debug("confirmation %r", apdu)
-
     def indication(self, apdu):
         if _debug: Application._debug("indication %r", apdu)
 
@@ -424,9 +412,9 @@ class ApplicationIOController(IOController, Application):
 
         # this request is complete
         if isinstance(apdu, (None.__class__, SimpleAckPDU, ComplexAckPDU)):
-            controller.complete_io(queue.active_iocb, apdu)
+            queue.complete_io(queue.active_iocb, apdu)
         elif isinstance(apdu, (ErrorPDU, RejectPDU, AbortPDU)):
-            controller.abort_io(queue.active_iocb, apdu)
+            queue.abort_io(queue.active_iocb, apdu)
         else:
             raise RuntimeError("unrecognized APDU type")
         if _debug: Application._debug("    - controller finished")
@@ -461,7 +449,7 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        Application.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
@@ -511,7 +499,7 @@ class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWrite
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        Application.__init__(self, localDevice, aseID=aseID)
+        ApplicationIOController.__init__(self, localDevice, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
