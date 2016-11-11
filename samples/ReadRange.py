@@ -13,6 +13,7 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 from bacpypes.object import get_object_class, get_datatype
@@ -65,9 +66,12 @@ class ReadRangeConsoleCmd(ConsoleCmd):
                 request.propertyArrayIndex = int(args[4])
             if _debug: ReadRangeConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: ReadRangeConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for it to complete
             iocb.wait()

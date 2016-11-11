@@ -15,6 +15,7 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 from bacpypes.apdu import Error, AbortPDU, \
@@ -120,9 +121,12 @@ class TestConsoleCmd(ConsoleCmd):
             request.pduDestination = Address(addr)
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -179,9 +183,12 @@ class TestConsoleCmd(ConsoleCmd):
             request.pduDestination = Address(addr)
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -240,9 +247,12 @@ class TestConsoleCmd(ConsoleCmd):
             request.pduDestination = Address(addr)
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -299,9 +309,12 @@ class TestConsoleCmd(ConsoleCmd):
             request.pduDestination = Address(addr)
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
-            # give it to the application
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: TestConsoleCmd._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for it to complete
             iocb.wait()

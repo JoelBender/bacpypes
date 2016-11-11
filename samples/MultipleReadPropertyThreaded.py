@@ -14,6 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run, stop, deferred
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
@@ -69,9 +70,12 @@ class ReadPointListThread(Thread):
             request.pduDestination = Address(addr)
             if _debug: ReadPointListApplication._debug("    - request: %r", request)
 
-            # send the request
-            iocb = this_application.request(request)
+            # make an IOCB
+            iocb = IOCB(request)
             if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
+
+            # give it to the application
+            this_application.request_io(iocb)
 
             # wait for the response
             iocb.wait()

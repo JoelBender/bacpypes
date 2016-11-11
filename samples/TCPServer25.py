@@ -45,12 +45,12 @@ bacpypes_debugging(EchoMaster)
 
 class MiddleManASE(ApplicationServiceElement):
 
-    def indication(self, addPeer=None, delPeer=None, actor_error=None, error=None):
-        if addPeer:
-            if _debug: MiddleManASE._debug("indication addPeer=%r", addPeer)
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        if add_actor:
+            if _debug: MiddleManASE._debug("indication add_actor=%r", add_actor)
 
-        if delPeer:
-            if _debug: MiddleManASE._debug("indication delPeer=%r", delPeer)
+        if del_actor:
+            if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
 
         if actor_error:
             if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
