@@ -35,8 +35,8 @@ this_application = None
 
 # point list, set according to your device
 point_list = [
-    ('1.2.3.4', 'analogValue', 1, 'presentValue'),
-    ('1.2.3.4', 'analogValue', 2, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 1, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 2, 'presentValue'),
     ]
 
 #
@@ -68,11 +68,11 @@ class ReadPointListThread(Thread):
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
-            if _debug: ReadPointListApplication._debug("    - request: %r", request)
+            if _debug: ReadPointListThread._debug("    - request: %r", request)
 
             # make an IOCB
             iocb = IOCB(request)
-            if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
+            if _debug: ReadPointListThread._debug("    - iocb: %r", iocb)
 
             # give it to the application
             this_application.request_io(iocb)
