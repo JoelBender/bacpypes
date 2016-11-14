@@ -8,6 +8,7 @@ from ..debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from ..capability import Capability
 
 from ..task import OneShotTask, TaskManager
+from ..iocb import IOCB
 
 from ..basetypes import DeviceAddress, COVSubscription, PropertyValue, \
     Recipient, RecipientProcess, ObjectPropertyReference
