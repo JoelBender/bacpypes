@@ -401,13 +401,13 @@ class ApplicationIOController(IOController, Application):
         # look up the queue
         queue = self.queue_by_address.get(address, None)
         if not queue:
-            ApplicationIOController._debug("no queue for %r" % (source_address,))
+            if _debug: ApplicationIOController._debug("no queue for %r" % (address,))
             return
         if _debug: ApplicationIOController._debug("    - queue: %r", queue)
 
         # make sure it has an active iocb
         if not queue.active_iocb:
-            ApplicationIOController._debug("no active request for %r" % (source_address,))
+            if _debug: ApplicationIOController._debug("no active request for %r" % (address,))
             return
 
         # this request is complete
