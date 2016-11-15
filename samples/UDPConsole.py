@@ -152,13 +152,9 @@ class MiddleMan(Client, Server):
         if _debug: MiddleMan._debug('    - line: %r', line)
 
         if pdu.pduSource == local_unicast_tuple:
-            sys.stdout.write("received %r from self\n") % (
-                line,
-                ))
+            sys.stdout.write("received %r from self\n" % (line,))
         else:
-            sys.stdout.write("received %r from %s\n" % (
-                line, pdu.pduSource,
-                ))
+            sys.stdout.write("received %r from %s\n" % (line, pdu.pduSource))
 
 
 #
@@ -182,13 +178,9 @@ class BroadcastReceiver(Client):
         if _debug: MiddleMan._debug('    - line: %r', line)
 
         if pdu.pduSource == local_unicast_tuple:
-            sys.stdout.write("received broadcast %r from self\n" % (
-                line,
-                ))
+            sys.stdout.write("received broadcast %r from self\n" % (line,))
         else:
-            sys.stdout.write("received broadcast %r from %s\n" % (
-                line, pdu.pduSource,
-                ))
+            sys.stdout.write("received broadcast %r from %s\n" % (line, pdu.pduSource,))
 
 
 #
