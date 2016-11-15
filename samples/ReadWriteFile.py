@@ -41,54 +41,6 @@ _log = ModuleLogger(globals())
 this_application = None
 
 #
-#   TestApplication
-#
-
-@bacpypes_debugging
-class TestApplication(BIPSimpleApplication):
-
-    def request(self, apdu):
-        if _debug: TestApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: TestApplication._debug("confirmation %r", apdu)
-
-        if isinstance(apdu, Error):
-            sys.stdout.write("error: %s\n" % (apdu.errorCode,))
-            sys.stdout.flush()
-
-        elif isinstance(apdu, AbortPDU):
-            apdu.debug_contents()
-
-        elif (isinstance(self._request, AtomicReadFileRequest)) and (isinstance(apdu, AtomicReadFileACK)):
-            # suck out the record data
-            if apdu.accessMethod.recordAccess:
-                value = apdu.accessMethod.recordAccess.fileRecordData
-            elif apdu.accessMethod.streamAccess:
-                value = apdu.accessMethod.streamAccess.fileData
-            TestApplication._debug("    - value: %r", value)
-
-            sys.stdout.write(repr(value) + '\n')
-            sys.stdout.flush()
-
-        elif (isinstance(self._request, AtomicWriteFileRequest)) and (isinstance(apdu, AtomicWriteFileACK)):
-            # suck out the record data
-            if apdu.fileStartPosition is not None:
-                value = apdu.fileStartPosition
-            elif apdu.fileStartRecord is not None:
-                value = apdu.fileStartRecord
-            TestApplication._debug("    - value: %r", value)
-
-            sys.stdout.write(repr(value) + '\n')
-            sys.stdout.flush()
-
-#
 #   TestConsoleCmd
 #
 
@@ -271,7 +223,7 @@ class TestConsoleCmd(ConsoleCmd):
                     value = apdu.fileStartPosition
                 elif apdu.fileStartRecord is not None:
                     value = apdu.fileStartRecord
-                TestApplication._debug("    - value: %r", value)
+                TestConsoleCmd._debug("    - value: %r", value)
 
                 sys.stdout.write(repr(value) + '\n')
                 sys.stdout.flush()
@@ -333,7 +285,7 @@ class TestConsoleCmd(ConsoleCmd):
                     value = apdu.fileStartPosition
                 elif apdu.fileStartRecord is not None:
                     value = apdu.fileStartRecord
-                TestApplication._debug("    - value: %r", value)
+                TestConsoleCmd._debug("    - value: %r", value)
 
                 sys.stdout.write(repr(value) + '\n')
                 sys.stdout.flush()
