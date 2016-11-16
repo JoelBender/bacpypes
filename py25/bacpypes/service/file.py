@@ -28,16 +28,15 @@ class LocalRecordAccessFileObject(FileObject):
                 kwargs,
                 )
 
+        # verify the file access method or provide it
         if 'fileAccessMethod' in kwargs:
             if kwargs['fileAccessMethod'] != 'recordAccess':
                 raise ValueError("inconsistent file access method")
         else:
             kwargs['fileAccessMethod'] = 'recordAccess'
 
-        FileObject.__init__(self,
-            fileAccessMethod='recordAccess',
-             **kwargs
-             )
+        # continue with initialization
+        FileObject.__init__(self, **kwargs)
 
     def __len__(self):
         """ Return the number of records. """
@@ -66,15 +65,15 @@ class LocalStreamAccessFileObject(FileObject):
                 kwargs,
                 )
 
+        # verify the file access method or provide it
         if 'fileAccessMethod' in kwargs:
             if kwargs['fileAccessMethod'] != 'streamAccess':
                 raise ValueError("inconsistent file access method")
         else:
             kwargs['fileAccessMethod'] = 'streamAccess'
 
-        FileObject.__init__(self,
-             **kwargs
-             )
+        # continue with initialization
+        FileObject.__init__(self, **kwargs)
 
     def __len__(self):
         """ Return the number of octets in the file. """

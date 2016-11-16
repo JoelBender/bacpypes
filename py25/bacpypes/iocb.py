@@ -563,6 +563,10 @@ class IOController(object):
         """Called by a client to start processing a request."""
         if _debug: IOController._debug("request_io %r", iocb)
 
+        # check that the parameter is an IOCB
+        if not isinstance(iocb, IOCB):
+            raise TypeError("IOCB expected")
+
         # bind the iocb to this controller
         iocb.ioController = self
 

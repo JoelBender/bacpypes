@@ -8,6 +8,7 @@ from ..debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from ..capability import Capability
 
 from ..task import OneShotTask, TaskManager
+from ..iocb import IOCB
 
 from ..basetypes import DeviceAddress, COVSubscription, PropertyValue, \
     Recipient, RecipientProcess, ObjectPropertyReference
@@ -527,15 +528,16 @@ class ChangeOfValueServices(Capability):
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))
 
-        # send the request
-        iocb = self.request(request)
+        # create an IOCB with the request
+        iocb = IOCB(request)
         if _debug: ChangeOfValueServices._debug("    - iocb: %r", iocb)
 
-        # if this is confirmed, add a callback for the response, otherwise it
-        # was unconfirmed
-        if iocb:
-            iocb.cov = cov
-            iocb.add_callback(self.cov_confirmation)
+        # add a callback for the response, even if it was unconfirmed
+        iocb.cov = cov
+        iocb.add_callback(self.cov_confirmation)
+
+        # send the request via the ApplicationIOController
+        self.request_io(iocb)
 
     def cov_confirmation(self, iocb):
         if _debug: ChangeOfValueServices._debug("cov_confirmation %r", iocb)

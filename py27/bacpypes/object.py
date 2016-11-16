@@ -175,8 +175,11 @@ class Property:
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
             if value is not None:
-                # dive in, the water's fine
-                value = value[arrayIndex]
+                try:
+                    # dive in, the water's fine
+                    value = value[arrayIndex]
+                except IndexError:
+                    raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
         # all set
         return value
@@ -229,7 +232,10 @@ class Property:
 
             # seems to be OK, let the array object take over
             if _debug: Property._debug("    - forwarding to array")
-            arry[arrayIndex] = value
+            try:
+                arry[arrayIndex] = value
+            except IndexError:
+                raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
             # check for monitors, call each one with the old and new value
             if is_monitored:

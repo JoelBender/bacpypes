@@ -13,6 +13,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run, stop, deferred
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
@@ -28,10 +29,13 @@ from bacpypes.service.device import LocalDeviceObject
 _debug = 0
 _log = ModuleLogger(globals())
 
+# globals
+this_application = None
+
 # point list, set according to your device
 point_list = [
-    ('1.2.3.4', 'analogValue', 1, 'presentValue'),
-    ('1.2.3.4', 'analogValue', 2, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 1, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 2, 'presentValue'),
     ]
 
 #
@@ -71,12 +75,15 @@ class ReadPointListApplication(BIPSimpleApplication):
         request.pduDestination = Address(addr)
         if _debug: ReadPointListApplication._debug("    - request: %r", request)
 
-        # send the request
-        iocb = self.request(request)
-        if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
+        # make an IOCB
+        iocb = IOCB(request)
 
         # set a callback for the response
         iocb.add_callback(self.complete_request)
+        if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
+
+        # send the request
+        this_application.request_io(iocb)
 
     def complete_request(self, iocb):
         if _debug: ReadPointListApplication._debug("complete_request %r", iocb)
@@ -115,6 +122,8 @@ class ReadPointListApplication(BIPSimpleApplication):
 #
 
 def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 

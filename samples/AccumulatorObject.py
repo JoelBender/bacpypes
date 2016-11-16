@@ -15,7 +15,8 @@ from bacpypes.basetypes import DateTime, Scale
 from bacpypes.object import AccumulatorObject
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import ReadWritePropertyMultipleServices, LocalDeviceObject
+from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.object import ReadWritePropertyMultipleServices
 
 # some debugging
 _debug = 0
@@ -25,7 +26,6 @@ _log = ModuleLogger(globals())
 #   PulseTask
 #
 
-@bacpypes_debugging
 class PulseTask(RecurringTask):
 
     def __init__(self, accumulator, increment, interval):
@@ -55,6 +55,8 @@ class PulseTask(RecurringTask):
         if _debug: PulseTask._debug("    - value_change_time: %r", value_change_time)
 
         self.accumulator.valueChangeTime = value_change_time
+
+bacpypes_debugging(PulseTask)
 
 #
 #   __main__

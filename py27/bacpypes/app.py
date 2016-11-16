@@ -324,6 +324,16 @@ class Application(ApplicationServiceElement, Collector):
 
     #-----
 
+    def request(self, apdu):
+        if _debug: Application._debug("request %r", apdu)
+
+        # double check the input is the right kind of APDU
+        if not isinstance(apdu, (UnconfirmedRequestPDU, ConfirmedRequestPDU)):
+            raise TypeError("APDU expected")
+
+        # continue
+        super(Application, self).request(apdu)
+
     def indication(self, apdu):
         if _debug: Application._debug("indication %r", apdu)
 
