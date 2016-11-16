@@ -12,8 +12,6 @@ and the :func:`comm.bind` function, so start out by importing them::
 
     >>> from bacpypes.comm import Client, Server, bind
 
-This is a long line of text.
-
 Since the server needs to do something when it gets a request, it 
 needs to provide a function to get it::
 

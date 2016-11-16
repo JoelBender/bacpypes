@@ -38,7 +38,7 @@ do anything::
     >>> some_transformer.transform(10)
     10
 
-Adding A Transformation
+Adding a Transformation
 -----------------------
 
 Create a `Capability` derived class that transforms the value slightly::

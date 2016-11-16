@@ -93,7 +93,7 @@ functions for initiating a Who-Is request by a simple function::
 Validating the parameters, building the `WhoIsRequest` PDU and sending it
 downstream is all handled by the function.
 
-If your application builds common common requests then you can use the new
+If your application builds common requests then you can use the new
 functions or continue without them.  If there are common requests that you
 would like to make and have built into the library your suggestions are
 always welcome.

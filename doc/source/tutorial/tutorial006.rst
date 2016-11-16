@@ -8,10 +8,10 @@ abillity to attach debug handlers to specific components of a stack when it
 starts, and then reproducing whatever situation caused the mis-behaviour.
 
 For longer running applications like gateways it might take some time before 
-a scenerio is ready, in which case it is advantageous to start and stop the debugging 
+a scenario is ready, in which case it is advantageous to start and stop the debugging 
 output, without stopping the application.
 
-For some debugging scenerios it is beneficial to force some values into the 
+For some debugging scenarios it is beneficial to force some values into the 
 stack, or delete some values and see how the application performs.  For example,
 perhaps deleting a routing path associated with a network.
 
@@ -102,7 +102,7 @@ Add these lines to SampleConsoleCmd.py::
 
         def do_something(self, arg):
             """something <arg> - do something"""
-            print "do something", arg
+            print("do something", arg)
 
 The ConsoleCmd will trap a help request ``help something`` into printing out
 the documnetation string.::
@@ -146,7 +146,7 @@ Then delete cache entries with a *del* command::
             try:
                 del self.my_cache[arg]
             except:
-                print arg, "not in cache"
+                print(arg, "not in cache")
     
 And to verify, dump the cache::
 

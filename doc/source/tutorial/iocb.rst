@@ -74,6 +74,7 @@ can check to see if the event is set::
 
 There is also an IOCB state which has one of a collection of enumerated values::
 
+    >>> import bacpypes
     >>> iocb.ioState == bacpypes.iocb.COMPLETED
     True
 
