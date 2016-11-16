@@ -60,8 +60,7 @@ class SampleConsoleCmd(ConsoleCmd):
         """nothing can be done"""
         args = args.split()
         if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
-
-
+            
 #
 #   __main__
 #

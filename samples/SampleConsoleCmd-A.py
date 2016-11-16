@@ -14,7 +14,8 @@ from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -71,7 +72,7 @@ class SampleConsoleCmd(ConsoleCmd):
         try:
             del self.my_cache[arg]
         except:
-            print arg, "not in cache"
+            print(arg, "not in cache")
 
     def do_dump(self, arg):
         """dump - nicely print the cache"""
@@ -80,7 +81,7 @@ class SampleConsoleCmd(ConsoleCmd):
 
     def do_something(self, arg):
         """something <arg> - do something"""
-        print "do something", arg
+        print("do something", arg)
 
     def do_nothing(self, args):
         """nothing can be done"""
