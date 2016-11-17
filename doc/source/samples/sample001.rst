@@ -14,17 +14,16 @@ There is a common pattern to all BACpypes applications such as import statements
 in a similar order, the same debugging initialization, and the same try...except
 wrapper for the __main__ outer block.
 
+Debugging and logging is brought to the application via a decorator (see later in class) and
+you will need :class:`debugging.ModuleLogger`::
+
+    from bacpypes.debugging import bacpypes_debugging, ModuleLogger
+
 All BACpypes applications gather some options from the command line and use the
-ConfigParser module for reading configuration information::
+:class:`consolelogging.ConfigArgumentParser` function for reading configuration 
+information::
 
-    import sys
-    import logging
-    from ConfigParser import ConfigParser
-
-Immediately following the built-in module includes are those for debugging::
-
-    from bacpypes.debugging import Logging, ModuleLogger
-    from bacpypes.consolelogging import ConsoleLogHandler
+    from bacpypes.consolelogging import ConfigArgumentParser
 
 For applications that communicate on the network, it needs the :func:`core.run`
 function::
@@ -34,10 +33,10 @@ function::
 Now there are usually a variety of other imports depending on what the application
 wants to do.  This one is simple, it just needs to create a derived class of 
 :class:`app.BIPSimpleApplication` and an instance of
-:class:`object.LocalDeviceObject`::
+:class:`service.device.LocalDeviceObject`::
 
     from bacpypes.app import BIPSimpleApplication
-    from bacpypes.object import LocalDeviceObject
+    from bacpypes.service.device import LocalDeviceObject
 
 Global variables are initialized before any other classes or functions::
 
@@ -45,64 +44,39 @@ Global variables are initialized before any other classes or functions::
     _debug = 0
     _log = ModuleLogger(globals())
 
-Now skipping down to the main block.  Everything is wrapped in a
+Now skipping down to the main function.  Everything is wrapped in a
 try..except..finally because many "real world" applications send startup and 
-shutdown notfications to other processes and it is important to include 
+shutdown notifications to other processes and it is important to include 
 the exception (or graceful conclusion) of the application along with the
 notification::
 
     #
     #   __main__
     #
-
-    try:
+    
+    def main():
+        
         # code goes here...
+    
+        if _debug: _log.debug("initialization")
+        if _debug: _log.debug("    - args: %r", args)
+    
+        try:
+            # code goes here...
+    
+            _log.debug("initialization")
+            # code goes here...
+    
+            _log.debug("running")
+            # code goes here...
+    
+        except Exception as e:
+            _log.exception("an error has occurred: %s", e)
+        finally:
+            _log.debug("finally")
 
-        _log.debug("initialization")
-        # code goes here...
-
-        _log.debug("running")
-        # code goes here...
-
-    except Exception, e:
-        _log.exception("an error has occurred: %s", e)
-    finally:
-        _log.debug("finally")
-
-Before the application specific code there is template code that lists the names
-of the debugging log handlers (which are affectionately called *buggers*) 
-available to attach debug handlers.  This list changes depending on what has
-been imported, and sometimes it's easy to get lost.  The application simply
-quits after the list::
-
-    if ('--buggers' in sys.argv):
-        loggers = logging.Logger.manager.loggerDict.keys()
-        loggers.sort()
-        for loggerName in loggers:
-            sys.stdout.write(loggerName + '\n')
-        sys.exit(0)
-
-You can get a quick list of the debug loggers defined in this application by
-looking for everything with *__main__* in the name::
-
-    $ python sample001.py --buggers | grep __main__
-
-Now that the names of buggers are known, the *--debug* option will attach a 
-:class:`commandlogging.ConsoleLogHandler` to each of them and consume the section
-of the argv list::
-
-    if ('--debug' in sys.argv):
-        indx = sys.argv.index('--debug')
-        i = indx + 1
-        while (i < len(sys.argv)) and (not sys.argv[i].startswith('--')):
-            ConsoleLogHandler(sys.argv[i])
-            i += 1
-        del sys.argv[indx:i]
-
-Usually the debugging hooks will be added to the end of the parameter and option
-list::
-
-    $ python sample001.py --debug __main__
+    if __name__ == "__main__":
+        main()
 
 Generic Initialization
 ----------------------
@@ -116,18 +90,20 @@ on a BACnet intranet so INI files are used for configuration parameters.
     gathered from the environment, like the server name and address.
 
 The INI file is usually called **BACpypes.ini** and located in the same directory
-as the application, but the '--ini' option is available when it's not::
+as the application, but the '--ini' option is available when it's not. Here is
+the basic example of a INI file::
 
-        # read in a configuration file
-        config = ConfigParser()
-        if ('--ini' in sys.argv):
-            indx = sys.argv.index('--ini')
-            ini_file = sys.argv[indx + 1]
-            if not config.read(ini_file):
-                raise RuntimeError, "configuration file %r not found" % (ini_file,)
-            del sys.argv[indx:indx+2]
-        elif not config.read('BACpypes.ini'):
-            raise RuntimeError, "configuration file not found"
+    [BACpypes]
+    objectName: Betelgeuse
+    address: 192.168.1.2/24
+    objectIdentifier: 599
+    maxApduLengthAccepted: 1024
+    segmentationSupported: segmentedBoth
+    maxSegmentsAccepted: 1024
+    vendorIdentifier: 15
+    foreignPort: 0
+    foreignBBMD: 128.253.109.254
+    foreignTTL: 30
 
 .. tip::
 
@@ -139,42 +115,103 @@ as the application, but the '--ini' option is available when it's not::
         $ cp ../BACpypes~.ini BACpypes.ini
         $ nano BACpypes.ini
 
+.. tip::
+    
+    Windows user may want to have a look to Notepad++ as a file editor. If
+    using the Anaconda suite, you can use Spyder or any other text editor
+    you like.
 
-Now applications will create a :class:`object.LocalDeviceObject` which will
+The INI file must exist when you will run the code.
+
+Filling the blanks
+----------------------
+
+Before the application specific code there is template code that lists the names
+of the debugging log handlers (which are affectionately called *buggers*) 
+available to attach debug handlers.  This list changes depending on what has
+been imported, and sometimes it's easy to get lost.::
+
+    # parse the command line arguments and initialize loggers
+    args = ConfigArgumentParser(description=__doc__).parse_args()
+
+You can get a quick list of the debug loggers defined in this application by
+looking for everything with *__main__* in the name::
+
+    $ python sample001.py --buggers | grep __main__
+
+Will output::
+
+    __main__
+    __main__.SampleApplication
+
+Now that the names of buggers are known, the *--debug* option will attach a 
+:class:`commandlogging.ConsoleLogHandler` to each of them and consume the section
+of the argv list::
+
+Usually the debugging hooks will be added to the end of the parameter and option
+list::
+
+    $ python SampleApplication.py --debug __main__
+
+Will output::
+
+    DEBUG:__main__:initialization
+    DEBUG:__main__:    - args: Namespace(buggers=False, color=False, debug=['__main_
+    _'], ini=<class 'bacpypes.consolelogging.ini'>)
+    DEBUG:__main__:running
+    DEBUG:__main__:fini
+
+Now applications will create a :class:`service.device.LocalDeviceObject` which will
 respond to Who-Is requests for device-address-binding procedures, and 
 Read-Property-Requests to get more details about the device, including its 
 object list, which will only have itself::
 
     # make a device object
-    thisDevice = \
-        LocalDeviceObject( objectName=config.get('BACpypes','objectName')
-            , objectIdentifier=config.getint('BACpypes','objectIdentifier')
-            , maxApduLengthAccepted=config.getint('BACpypes','maxApduLengthAccepted')
-            , segmentationSupported=config.get('BACpypes','segmentationSupported')
-            , vendorIdentifier=config.getint('BACpypes','vendorIdentifier')
-            )
+    this_device = LocalDeviceObject(
+        objectName=args.ini.objectname,
+        objectIdentifier=int(args.ini.objectidentifier),
+        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
+        segmentationSupported=args.ini.segmentationsupported,
+        vendorIdentifier=int(args.ini.vendoridentifier),
+        vendorName="B612",
+        )
+
+.. note::
+
+    As you can see, information from the INI file is used to descrive `this_device`
 
 The application will create a SampleApplication instance::
 
-        # make a test application
-        SampleApplication(thisDevice, config.get('BACpypes','address'))
+    # make a sample application
+    this_application = SampleApplication(this_device, args.ini.address)
+    if _debug: _log.debug("    - this_application: %r", this_application)
+
+We need to add service supported to the device using default values::
+
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
+
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
 Last but not least it is time to run::
 
-        run()
+    run()
 
-Sample Application
-------------------
+SampleApplication Class
+------------------------
 
 The sample application creates a class that does almost nothing.  The definition
 and initialization mirrors the :class:`app.BIPSimpleApplication` and uses the
-usual debugging statements at the front of the method calls::
+usual debugging decorator.::
 
     #
     #   SampleApplication
     #
 
-    class SampleApplication(BIPSimpleApplication, Logging):
+    @bacpypes_debugging
+    class SampleApplication(BIPSimpleApplication):
 
         def __init__(self, device, address):
             if _debug: SampleApplication._debug("__init__ %r %r", device, address)
@@ -226,22 +263,35 @@ enabled::
 The output will include the initialization, running, and finally statements.::
 
     DEBUG:__main__:initialization
-    DEBUG:__main__:    - args: Namespace(buggers=False, color=False, debug=['__main__'], ini=<class 'bacpypes.consolelogging.ini'>)
-    DEBUG:__main__.SampleApplication:__init__ <bacpypes.app.LocalDeviceObject object at 0x7fcd37a2ba90> '192.168.0.10/24'
-    DEBUG:__main__:    - this_application: <__main__.SampleApplication object at 0x7fcd357dea50>
-    DEBUG:__main__:    - services_supported: <bacpypes.basetypes.ServicesSupported object at 0x7fcd357def50>
+    DEBUG:__main__:    - args: Namespace(buggers=False, color=False, debug=['__main_
+    _'], ini=<class 'bacpypes.consolelogging.ini'>)
+    DEBUG:__main__.SampleApplication:__init__ <bacpypes.service.device.LocalDeviceOb
+    ject object at 0x00000000026CC9B0> '192.168.1.2/24'
+    DEBUG:__main__:    - this_application: <__main__.SampleApplication object at 0x0
+    00000000301FC88>
+    DEBUG:__main__:    - services_supported: <bacpypes.basetypes.ServicesSupported 
+    object at 0x000000000301F940>
     DEBUG:__main__:running
 
 To run with debugging on just the SampleApplication class::
 
     $ python SampleApplication.py --debug __main__.SampleApplication
 
-    DEBUG:__main__.SampleApplication:__init__ <bacpypes.app.LocalDeviceObject object at 0x7fadb71bca90> '192.168.0.10/24'
+Will output::
+
+    DEBUG:__main__.SampleApplication:__init__ <bacpypes.service.device.LocalDeviceObject 
+    object at 0x000000000231C9B0> '192.168.1.2/24'
 
 Or to see what is happening at the UDP layer of the program, use that module name::
 
     $ python SampleApplication.py --debug bacpypes.udp
 
+Will output::
+
+    DEBUG:bacpypes.udp.UDPDirector:__init__ ('192.168.1.2', 47808) timeout=0 
+    reuse=False actorClass=<class 'bacpypes.udp.UDPActor'> sid=None sapID=None
+    DEBUG:bacpypes.udp.UDPDirector:    - getsockname: ('192.168.1.2', 47808)
+    
 Or to simplify the output to the methods of instances of the :class:`udp.UDPActor`
 use the class name::
 

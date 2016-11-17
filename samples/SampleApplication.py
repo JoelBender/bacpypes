@@ -16,7 +16,7 @@ from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 #
@@ -52,7 +52,7 @@ class SampleApplication(BIPSimpleApplication):
 #
 
 def main():
-    # parse the command line arguments
+    # parse the command line arguments and initialize loggers
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
     if _debug: _log.debug("initialization")
@@ -65,7 +65,7 @@ def main():
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
-        vendorName="Hello",
+        vendorName="B612",
         )
 
     # make a sample application
