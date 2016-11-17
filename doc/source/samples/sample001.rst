@@ -309,3 +309,31 @@ buried in the stack::
 
     $ python SampleApplication.py --debug bacpypes.netservice.NetworkServiceElement
 
+Sending Log to a file
+----------------------
+
+The current --debug command line option takes a list of named debugging access 
+points and attaches a StreamHandler which sends the output to sys.stderr. 
+There is a way to send the debugging output to a 
+RotatingFileHandler by providing a file name, and optionally maxBytes and 
+backupCount. For example, this invocation sends the main application debugging 
+to standard error and the debugging output of the bacpypes.udp module to the 
+traffic.txt file::
+
+    $ python SampleApplication.py --debug __main__ bacpypes.udp:traffic.txt
+
+By default the `maxBytes` is zero so there is no rotating file, but it can be 
+provided, for example this limits the file size to 1MB::
+
+    $ python SampleApplication.py --debug __main__ bacpypes.udp:traffic.txt:1048576
+
+If `maxBytes` is provided, then by default the `backupCount` is 10, but it can also 
+be specified, so this limits the output to one hundred files::
+
+    $ python SampleApplication.py --debug __main__ bacpypes.udp:traffic.txt:1048576:100
+
+The definition of debug::
+
+    positional arguments:
+        --debug [DEBUG [ DEBUG ... ]]
+            DEBUG ::= debugger [ : fileName [ : maxBytes [ : backupCount ]]]
