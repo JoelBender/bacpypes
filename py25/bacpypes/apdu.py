@@ -1323,10 +1323,10 @@ class SubscribeCOVPropertyRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('subscriberProcessIdentifier', Unsigned, 0)
         , Element('monitoredObjectIdentifier', ObjectIdentifier, 1)
-        , Element('issueConfirmedNotifications', Boolean, 2)
-        , Element('lifetime', Unsigned, 3)
+        , Element('issueConfirmedNotifications', Boolean, 2, True)
+        , Element('lifetime', Unsigned, 3, True)
         , Element('monitoredPropertyIdentifier', PropertyReference, 4)
-        , Element('covIncrement', Real, 5)
+        , Element('covIncrement', Real, 5, True)
         ]
 
 register_confirmed_request_type(SubscribeCOVPropertyRequest)
