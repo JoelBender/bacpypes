@@ -8,8 +8,11 @@ separate and overlapping functionality.  The original design was motivated
 by a component architecture where collections of components that needed to be
 mixed together were specified outside the application in a database.
 
-The sample applications in this section are available in the unit test.  Start
-out importing the classes in the module::
+The sample applications in this section are available in tutorial folder.
+Note that you can also find them in the unit test folder as they are part of the
+test suites.
+
+Start out importing the classes in the module::
 
     >>> from bacpypes.capability import Capability, Collector
 

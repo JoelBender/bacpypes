@@ -1,4 +1,3 @@
-
 Sample 2 - Who-Is/I-Am Counter
 ==============================
 
@@ -8,6 +7,14 @@ with the regular processing.
 
 The description of this sample will be about the parts that are different from
 sample 1.
+
+.. note::
+
+    New in 0.15 ! As you've seen reading :ref:`Capabilities`, the new API allows
+    mixing functionnality to application more easily. In fact, by default, 
+    inheriting from :class:`app.BISimpleApplication` includes 
+    :class:`service.device.WhoIsIAmServices` and 
+    :class:`service.device.ReadWritePropertyServices` capabilities.
 
 Counters
 --------
@@ -32,7 +39,9 @@ Processing Service Requests
 
 When an instance of the :class:`app.Application` receives a request it attempts
 to look up a function based on the message.  So when a WhoIsRequest APDU is
-received, there should be a do_WhoIsRequest function.
+received, there should be a do_WhoIsRequest function. In fact, 
+:class:`services.device.WhoIsIAmServices` provides this function. For the sake 
+of this sample, we will override it so we can count requests.
 
 The beginning is going to be standard boiler plate function header::
 
@@ -57,7 +66,7 @@ processing::
         # pass back to the default implementation
         BIPSimpleApplication.do_WhoIsRequest(self, apdu)
 
-The do_IAmRequest function is similer::
+The do_IAmRequest function is similar::
 
     def do_IAmRequest(self, apdu):
         """Given an I-Am request, cache it."""
@@ -85,10 +94,10 @@ By building the key out of elements in a useful order, it is simple enough
 to sort the dictionary items and print them out, and being able to unpack
 the key in the for loop is a nice feature of Python::
 
-    print "----- Who Is -----"
+    print("----- Who Is -----")
     for (src, lowlim, hilim), count in sorted(who_is_counter.items()):
-        print "%-20s %8s %8s %4d" % (src, lowlim, hilim, count)
-    print
+        print("%-20s %8s %8s %4d" % (src, lowlim, hilim, count))
+    print("")
 
 Pairing up the requests and responses can be a useful exercize, but in most
 cases the I-Am response from a device will be a unicast message directly back
@@ -122,7 +131,7 @@ Let it run for a minute, then Press <ctrl-C> to end it.  It will output its resu
             deviceInstanceRangeHighLimit = 59L
             pduData = x''
     [clipped...]
-    ^CDEBUG:__main__:fini
+    DEBUG:__main__:fini
     ----- Who Is -----
     10001:0x0040ae007e01        1        1    1
     10001:0x0040ae007e01     9830     9830    1

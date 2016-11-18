@@ -53,7 +53,7 @@ Basic Commands
 All of the commands supported are listed in the :mod:`consolecmd` documentation.
 The simplest way to learn the commands is to try them::
 
-    $ python SampleConsoleCmd.py 
+    $ python Tutorial/SampleConsoleCmd.py 
     > hi
     *** Unknown syntax: hi
 
@@ -159,7 +159,7 @@ And to verify, dump the cache::
 And when the sample application is run, note the new commands
 show up in the help list::
 
-    $ python SampleConsoleCmd.py
+    $ python Tutorial/SampleConsoleCmd.py
     > help
     
     Documented commands (type help <topic>):

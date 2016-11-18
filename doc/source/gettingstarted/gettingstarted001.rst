@@ -234,7 +234,14 @@ them to be.
 
 Now start the application::
 
-    $ python WhoIsIAm.py
+    $ python Tutorial/WhoIsIAm.py
+
+.. note::
+
+    The samples folder contains a Tutorial folder holding all the samples
+    that you will need too follow along this tutorial.
+    Later, the folder `HandsOnLabs` will be used as it contains the samples
+    that are fully explained in this document (see table of content)
 
 You will be presented with a prompt (>), and you can get help::
 
