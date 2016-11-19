@@ -50,8 +50,14 @@ No protocol analysis workbench would be complete without an installed
 copy of `Wireshark <http://www.wireshark.org/>`_::
 
     $ sudo apt-get install wireshark
-    or
-    $ https://www.wireshark.org/download.html
+   
+or if you use Windows, `download it here <https://www.wireshark.org/download.html>`_
+
+.. caution::
+
+    Don't forget to **turn off your firewall** before beginning to play
+    with BACpypes ! It will prevent you from hours of researches when
+    your code won't work as it should !
 
 
 Configuring the Workstation
