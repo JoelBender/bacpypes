@@ -10,7 +10,7 @@ sample 1.
 
 .. note::
 
-    New in 0.15 ! As you've seen reading :ref:`Capabilities`, the new API allows
+    New in 0.15! As you've seen reading :ref:`Capabilities`, the new API allows
     mixing functionnality to application more easily. In fact, by default, 
     inheriting from :class:`app.BISimpleApplication` includes 
     :class:`service.device.WhoIsIAmServices` and 

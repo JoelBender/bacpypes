@@ -146,10 +146,8 @@ Will output::
 
 Now that the names of buggers are known, the *--debug* option will attach a 
 :class:`commandlogging.ConsoleLogHandler` to each of them and consume the section
-of the argv list::
-
-Usually the debugging hooks will be added to the end of the parameter and option
-list::
+of the argv list.  Usually the debugging hooks will be added to the end of the
+parameter and option list::
 
     $ python SampleApplication.py --debug __main__
 
