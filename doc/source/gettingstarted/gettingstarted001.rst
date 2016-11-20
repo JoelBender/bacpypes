@@ -25,16 +25,18 @@ need...
   mysterious BACnet device, so you won't be distracted by lots of other network traffic.
 
 - a BACnetIP/BACnet-MSTP Router if your mysterious device is an MSTP device (BACpypes is
-actually a BACnetIP software)
+  actually a BACnetIP software)
 
-* If running Windows, installing Python may be a challenge. Some packages make your life
-easier so have a look to Continuum Analytics Anaconda or Enthought Canopy
+- If running Windows, installing Python may be a challenge. Some packages make your life
+  easier so have a look to Continuum Analytics Anaconda or Enthought Canopy
 
 Before getting this test environment set up and while you are still connected 
 to the internet, install the BACpypes library::
 
     $ sudo easy_install bacpypes
-    or
+
+or::
+
     $ sudo pip install bacpypes
 
 And while you are at it, get a copy of the BACpypes project from GitHub.  It 
