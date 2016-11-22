@@ -25,10 +25,13 @@ need...
   mysterious BACnet device, so you won't be distracted by lots of other network traffic.
 
 - a BACnetIP/BACnet-MSTP Router if your mysterious device is an MSTP device (BACpypes is
-  actually a BACnetIP software)
+  actually BACnet/IP software)
 
-- If running Windows, installing Python may be a challenge. Some packages make your life
-  easier so have a look to Continuum Analytics Anaconda or Enthought Canopy
+- if you are running on Windows, installing Python may be a challenge. Some
+  Python packages make your life easier by including the core Python plus
+  many other data processing toolkits, so have a look at Continuum Analytics
+  `Anaconda <https://www.continuum.io/downloads>`_ or Enthought
+  `Canopy <https://www.enthought.com/products/canopy/>`_.
 
 Before getting this test environment set up and while you are still connected 
 to the internet, install the BACpypes library::
@@ -40,26 +43,25 @@ or::
     $ sudo pip install bacpypes
 
 And while you are at it, get a copy of the BACpypes project from GitHub.  It 
-contains the library source code, sample code, and this documentation::
+contains the library source code, sample code, and this documentation.  Install
+the `Git <https://en.wikipedia.org/wiki/Git>`_ software from
+`here <https://git-scm.com/downloads>`_, then make a local copy of the
+repository by cloning it::
 
     $ git clone https://github.com/JoelBender/bacpypes.git
-
-* If running windows, you will need to install Git first
-
-    $ https://git-scm.com/download/win
 
 No protocol analysis workbench would be complete without an installed 
 copy of `Wireshark <http://www.wireshark.org/>`_::
 
     $ sudo apt-get install wireshark
    
-or if you use Windows, `download it here <https://www.wireshark.org/download.html>`_
+or if you use Windows, `download it here <https://www.wireshark.org/download.html>`_.
 
 .. caution::
 
     Don't forget to **turn off your firewall** before beginning to play
-    with BACpypes ! It will prevent you from hours of researches when
-    your code won't work as it should !
+    with BACpypes! It will prevent you from hours of researches when
+    your code won't work as it should!
 
 
 Configuring the Workstation
@@ -240,9 +242,9 @@ in the I-Am packet decoding you will see some of its
 configuration parameters that should match what you expected 
 them to be.
 
-Now start the application::
+Now start the simplest tutorial application::
 
-    $ python Tutorial/WhoIsIAm.py
+    $ python samples/Tutorial/WhoIsIAm.py
 
 .. note::
 
@@ -271,9 +273,9 @@ BACnet communications traffic.  Generate the basic I-Am message::
     > iam
 
 You should see Wireshark capture your I-Am message containing your configuration 
-parameters.  This is a "global broadcast" message. 
-Your test device will see it but since your test device probably 
-isn't looking for you, it will not respond to the message.
+parameters.  This is a "global broadcast" message.  Your test device will see
+it but since your test device probably isn't looking for you, it will not
+respond to the message.
 
 
 Binding to the Test Device
@@ -321,9 +323,9 @@ identifier::
 
     > whois 1000 1000
 
-If the site has a numbering scheme for groups of BACnet 
-devices (i.e. grouped by building), then it is 
-common to look for all the devices in a specific building as a group::
+If the site has a numbering scheme for groups of BACnet devices (i.e. grouped
+by building), then it is common to look for all the devices in a specific
+building as a group::
 
     > whois 203000 203099
 
