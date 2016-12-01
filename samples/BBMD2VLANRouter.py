@@ -5,18 +5,12 @@ This sample application presents itself as a BBMD sitting on an IP network
 that is also a router to a VLAN.  The VLAN has a device on it with an analog
 value object that returns a random value for the present value.
 
-$ python BBMD2VLANRouter.py addr1 net1 addr2 net2
-
-    addr1       - local address like 192.168.1.2/24:47808
-    net1        - network number
-    addr2       - local address like 12
-    net2        - network number
-
 Note that the device instance number of the virtual device will be 100 times
 the network number plus the address (net2 * 100 + addr2).
 """
 
 import random
+import argparse
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
@@ -175,7 +169,10 @@ class VLANRouter:
 
 def main():
     # parse the command line arguments
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
 
     # add an argument for interval
     parser.add_argument('addr1', type=str,
