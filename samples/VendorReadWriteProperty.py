@@ -15,15 +15,18 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
 
 from bacpypes.apdu import Error, AbortPDU, SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
-from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
+from bacpypes.primitivedata import Tag, Null, Atomic, Integer, Unsigned, Real
 from bacpypes.constructeddata import Array, Any
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 import VendorAVObject
 
@@ -33,63 +36,6 @@ _log = ModuleLogger(globals())
 
 # globals
 this_application = None
-
-#
-#   ReadPropertyApplication
-#
-
-@bacpypes_debugging
-class ReadPropertyApplication(BIPSimpleApplication):
-
-    def __init__(self, *args):
-        if _debug: ReadPropertyApplication._debug("__init__ %r", args)
-        BIPSimpleApplication.__init__(self, *args)
-
-        # keep track of requests to line up responses
-        self._request = None
-
-    def request(self, apdu):
-        if _debug: ReadPropertyApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: ReadPropertyApplication._debug("confirmation %r", apdu)
-
-        if isinstance(apdu, Error):
-            sys.stdout.write("error: %s\n" % (apdu.errorCode,))
-            sys.stdout.flush()
-
-        elif isinstance(apdu, AbortPDU):
-            apdu.debug_contents()
-
-        if isinstance(apdu, SimpleAckPDU):
-            sys.stdout.write("ack\n")
-            sys.stdout.flush()
-
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
-            # find the datatype
-            datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier, VendorAVObject.vendor_id)
-            if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
-            if not datatype:
-                raise TypeError("unknown datatype")
-
-            # special case for array parts, others are managed by cast_out
-            if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                if apdu.propertyArrayIndex == 0:
-                    value = apdu.propertyValue.cast_out(Unsigned)
-                else:
-                    value = apdu.propertyValue.cast_out(datatype.subtype)
-            else:
-                value = apdu.propertyValue.cast_out(datatype)
-            if _debug: ReadPropertyApplication._debug("    - value: %r", value)
-
-            sys.stdout.write(str(value) + '\n')
-            sys.stdout.flush()
 
 #
 #   ReadWritePropertyConsoleCmd
@@ -134,8 +80,46 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
                 request.propertyArrayIndex = int(args[4])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: ReadWritePropertyConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # peek at the value tag
+                value_tag = apdu.propertyValue.tagList.Peek()
+                if _debug: ReadWritePropertyConsoleCmd._debug("    - value_tag: %r", value_tag)
+
+                # make sure that it is application tagged
+                if value_tag.tagClass != Tag.applicationTagClass:
+                    sys.stdout.write("value is not application encoded\n")
+
+                else:
+                    # find the datatype
+                    datatype = Tag._app_tag_class[value_tag.tagNumber]
+                    if _debug: ReadWritePropertyConsoleCmd._debug("    - datatype: %r", datatype)
+                    if not datatype:
+                        raise TypeError("unknown datatype")
+
+                    # cast out the value
+                    value = apdu.propertyValue.cast_out(datatype)
+                    if _debug: ReadWritePropertyConsoleCmd._debug("    - value: %r", value)
+
+                    sys.stdout.write("%s (%s)\n" % (value, datatype))
+
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             ReadWritePropertyConsoleCmd._exception("exception: %r", error)
@@ -224,8 +208,23 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
             if _debug: ReadWritePropertyConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: ReadWritePropertyConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                sys.stdout.write("ack\n")
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             ReadWritePropertyConsoleCmd._exception("exception: %r", error)
@@ -253,7 +252,7 @@ def main():
         )
 
     # make a simple application
-    this_application = ReadPropertyApplication(this_device, args.ini.address)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # get the services supported
     services_supported = this_application.get_services_supported()

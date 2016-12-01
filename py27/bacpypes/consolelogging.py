@@ -28,7 +28,7 @@ BACPYPES_BACKUPCOUNT = int(os.getenv('BACPYPES_BACKUPCOUNT', 5))
 #
 
 def ConsoleLogHandler(loggerRef='', handler=None, level=logging.DEBUG, color=None):
-    """Add a handler with our custom formatter to a logger."""
+    """Add a handler to stderr with our custom formatter to a logger."""
     if isinstance(loggerRef, logging.Logger):
         pass
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 """
-This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+This application presents a 'console' prompt to the user asking for
+subscribe commands which create SubscribeCOVRequests.  The other commands are
+for changing the type of reply to the confirmed COV notification that gets
+sent.
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
@@ -11,13 +12,15 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class
-
 from bacpypes.apdu import SubscribeCOVRequest, \
     SimpleAckPDU, RejectPDU, AbortPDU
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -40,33 +43,17 @@ class SubscribeCOVApplication(BIPSimpleApplication):
         if _debug: SubscribeCOVApplication._debug("__init__ %r", args)
         BIPSimpleApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
-
-    def request(self, apdu):
-        if _debug: SubscribeCOVApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: SubscribeCOVApplication._debug("confirmation %r", apdu)
-
-        # continue normally
-        super(SubscribeCOVApplication, self).confirmation(apdu)
-
-    def indication(self, apdu):
-        if _debug: SubscribeCOVApplication._debug("indication %r", apdu)
-
-        # continue normally
-        super(SubscribeCOVApplication, self).indication(apdu)
-
     def do_ConfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_ConfirmedCOVNotificationRequest %r", apdu)
         global rsvp
+
+        print("{} changed\n    {}".format(
+            apdu.monitoredObjectIdentifier,
+            ",\n    ".join("{} = {}".format(
+                element.propertyIdentifier,
+                str(element.value),
+                ) for element in apdu.listOfValues),
+            ))
 
         if rsvp[0]:
             # success
@@ -89,6 +76,13 @@ class SubscribeCOVApplication(BIPSimpleApplication):
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 
+        print("{} changed\n    {}".format(
+            apdu.monitoredObjectIdentifier,
+            ",\n    ".join("{} is {}".format(
+                element.propertyIdentifier,
+                str(element.value),
+                ) for element in apdu.listOfValues),
+            ))
 
 #
 #   SubscribeCOVConsoleCmd
@@ -99,6 +93,8 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
         """subscribe addr proc_id obj_type obj_inst [ confirmed ] [ lifetime ]
+
+        Generate a SubscribeCOVRequest and wait for the response.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
@@ -149,14 +145,32 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
 
             if _debug: SubscribeCOVConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: SubscribeCOVConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                if _debug: SubscribeCOVConsoleCmd._debug("    - response: %r", iocb.ioResponse)
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                if _debug: SubscribeCOVConsoleCmd._debug("    - error: %r", iocb.ioError)
 
         except Exception as e:
             SubscribeCOVConsoleCmd._exception("exception: %r", e)
 
     def do_ack(self, args):
         """ack
+
+        When confirmed COV notification requests arrive, respond with a
+        simple acknowledgement.
         """
         args = args.split()
         if _debug: SubscribeCOVConsoleCmd._debug("do_ack %r", args)
@@ -166,18 +180,24 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_reject(self, args):
         """reject reason
+
+        When confirmed COV notification requests arrive, respond with a
+        reject PDU with the provided reason.
         """
         args = args.split()
-        if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
+        if _debug: SubscribeCOVConsoleCmd._debug("do_reject %r", args)
         global rsvp
 
         rsvp = (False, args[0], None)
 
     def do_abort(self, args):
         """abort reason
+
+        When confirmed COV notification requests arrive, respond with an
+        abort PDU with the provided reason.
         """
         args = args.split()
-        if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
+        if _debug: SubscribeCOVConsoleCmd._debug("do_abort %r", args)
         global rsvp
 
         rsvp = (False, None, args[0])

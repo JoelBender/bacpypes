@@ -10,8 +10,12 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.primitivedata import CharacterString
+from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import MultiStateValueObject
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -49,11 +53,11 @@ def main():
 
     # make a multistate value object
     msvo = MultiStateValueObject(
-        objectIdentifier=('multiStateValue', 1), 
+        objectIdentifier=('multiStateValue', 1),
         objectName='My Special Object',
         presentValue=1,
         numberOfStates=3,
-        stateText=['red', 'green', 'blue'],
+        stateText=ArrayOf(CharacterString)(['red', 'green', 'blue']),
         )
     _log.debug("    - msvo: %r", msvo)
 

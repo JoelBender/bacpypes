@@ -14,7 +14,8 @@ from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -59,8 +60,7 @@ class SampleConsoleCmd(ConsoleCmd):
         """nothing can be done"""
         args = args.split()
         if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
-
-
+            
 #
 #   __main__
 #
@@ -93,6 +93,7 @@ def main():
 
     # make a console
     this_console = SampleConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()

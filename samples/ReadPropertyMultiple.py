@@ -13,106 +13,26 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
 
-from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, ReadAccessSpecification, Error, AbortPDU, ReadPropertyMultipleACK
+from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, \
+    ReadAccessSpecification, ReadPropertyMultipleACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
 from bacpypes.basetypes import PropertyIdentifier
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
-this_console = None
-
-#
-#   ReadPropertyMultipleApplication
-#
-
-@bacpypes_debugging
-class ReadPropertyMultipleApplication(BIPSimpleApplication):
-
-    def __init__(self, *args):
-        if _debug: ReadPropertyMultipleApplication._debug("__init__ %r", args)
-        BIPSimpleApplication.__init__(self, *args)
-
-        # keep track of requests to line up responses
-        self._request = None
-
-    def request(self, apdu):
-        if _debug: ReadPropertyMultipleApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: ReadPropertyMultipleApplication._debug("confirmation %r", apdu)
-
-        if isinstance(apdu, Error):
-            sys.stdout.write("error: %s\n" % (apdu.errorCode,))
-            sys.stdout.flush()
-
-        elif isinstance(apdu, AbortPDU):
-            apdu.debug_contents()
-
-        elif (isinstance(self._request, ReadPropertyMultipleRequest)) and (isinstance(apdu, ReadPropertyMultipleACK)):
-            # loop through the results
-            for result in apdu.listOfReadAccessResults:
-                # here is the object identifier
-                objectIdentifier = result.objectIdentifier
-                if _debug: ReadPropertyMultipleApplication._debug("    - objectIdentifier: %r", objectIdentifier)
-
-                # now come the property values per object
-                for element in result.listOfResults:
-                    # get the property and array index
-                    propertyIdentifier = element.propertyIdentifier
-                    if _debug: ReadPropertyMultipleApplication._debug("    - propertyIdentifier: %r", propertyIdentifier)
-                    propertyArrayIndex = element.propertyArrayIndex
-                    if _debug: ReadPropertyMultipleApplication._debug("    - propertyArrayIndex: %r", propertyArrayIndex)
-
-                    # here is the read result
-                    readResult = element.readResult
-
-                    sys.stdout.write(propertyIdentifier)
-                    if propertyArrayIndex is not None:
-                        sys.stdout.write("[" + str(propertyArrayIndex) + "]")
-
-                    # check for an error
-                    if readResult.propertyAccessError is not None:
-                        sys.stdout.write(" ! " + str(readResult.propertyAccessError) + '\n')
-
-                    else:
-                        # here is the value
-                        propertyValue = readResult.propertyValue
-
-                        # find the datatype
-                        datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
-                        if _debug: ReadPropertyMultipleApplication._debug("    - datatype: %r", datatype)
-                        if not datatype:
-                            raise TypeError("unknown datatype")
-
-                        # special case for array parts, others are managed by cast_out
-                        if issubclass(datatype, Array) and (propertyArrayIndex is not None):
-                            if propertyArrayIndex == 0:
-                                value = propertyValue.cast_out(Unsigned)
-                            else:
-                                value = propertyValue.cast_out(datatype.subtype)
-                        else:
-                            value = propertyValue.cast_out(datatype)
-                        if _debug: ReadPropertyMultipleApplication._debug("    - value: %r", value)
-
-                        sys.stdout.write(" = " + str(value) + '\n')
-                    sys.stdout.flush()
 
 #
 #   ReadPropertyMultipleConsoleCmd
@@ -140,7 +60,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                     obj_type = int(obj_type)
                 elif not get_object_class(obj_type):
                     raise ValueError("unknown object type")
-                
+
                 obj_inst = int(args[i])
                 i += 1
 
@@ -195,8 +115,76 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
             request.pduDestination = Address(addr)
             if _debug: ReadPropertyMultipleConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: ReadPropertyMultipleConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # should be an ack
+                if not isinstance(apdu, ReadPropertyMultipleACK):
+                    if _debug: ReadPropertyMultipleConsoleCmd._debug("    - not an ack")
+                    return
+
+                # loop through the results
+                for result in apdu.listOfReadAccessResults:
+                    # here is the object identifier
+                    objectIdentifier = result.objectIdentifier
+                    if _debug: ReadPropertyMultipleConsoleCmd._debug("    - objectIdentifier: %r", objectIdentifier)
+
+                    # now come the property values per object
+                    for element in result.listOfResults:
+                        # get the property and array index
+                        propertyIdentifier = element.propertyIdentifier
+                        if _debug: ReadPropertyMultipleConsoleCmd._debug("    - propertyIdentifier: %r", propertyIdentifier)
+                        propertyArrayIndex = element.propertyArrayIndex
+                        if _debug: ReadPropertyMultipleConsoleCmd._debug("    - propertyArrayIndex: %r", propertyArrayIndex)
+
+                        # here is the read result
+                        readResult = element.readResult
+
+                        sys.stdout.write(propertyIdentifier)
+                        if propertyArrayIndex is not None:
+                            sys.stdout.write("[" + str(propertyArrayIndex) + "]")
+
+                        # check for an error
+                        if readResult.propertyAccessError is not None:
+                            sys.stdout.write(" ! " + str(readResult.propertyAccessError) + '\n')
+
+                        else:
+                            # here is the value
+                            propertyValue = readResult.propertyValue
+
+                            # find the datatype
+                            datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
+                            if _debug: ReadPropertyMultipleConsoleCmd._debug("    - datatype: %r", datatype)
+                            if not datatype:
+                                raise TypeError("unknown datatype")
+
+                            # special case for array parts, others are managed by cast_out
+                            if issubclass(datatype, Array) and (propertyArrayIndex is not None):
+                                if propertyArrayIndex == 0:
+                                    value = propertyValue.cast_out(Unsigned)
+                                else:
+                                    value = propertyValue.cast_out(datatype.subtype)
+                            else:
+                                value = propertyValue.cast_out(datatype)
+                            if _debug: ReadPropertyMultipleConsoleCmd._debug("    - value: %r", value)
+
+                            sys.stdout.write(" = " + str(value) + '\n')
+                        sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             ReadPropertyMultipleConsoleCmd._exception("exception: %r", error)
@@ -224,7 +212,7 @@ def main():
         )
 
     # make a simple application
-    this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # get the services supported
     services_supported = this_application.get_services_supported()

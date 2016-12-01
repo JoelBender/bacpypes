@@ -2,7 +2,7 @@
 
 """
 This application presents a 'console' prompt to the user asking for Who-Is and I-Am
-commands which create the related APDUs, then lines up the coorresponding I-Am
+commands which create the related APDUs, then lines up the corresponding I-Am
 for incoming traffic and prints out the contents.
 """
 
@@ -15,17 +15,19 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-
 from bacpypes.apdu import WhoIsRequest, IAmRequest
 from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
+
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 # globals
+this_device = None
 this_application = None
 
 #
@@ -92,26 +94,27 @@ class WhoIsIAmApplication(BIPSimpleApplication):
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
-        """whois [ <addr>] [ <lolimit> <hilimit> ]"""
+        """whois [ <addr> ] [ <lolimit> <hilimit> ]"""
         args = args.split()
         if _debug: WhoIsIAmConsoleCmd._debug("do_whois %r", args)
 
         try:
-            # build a request
+            # gather the parameters
             request = WhoIsRequest()
             if (len(args) == 1) or (len(args) == 3):
-                request.pduDestination = Address(args[0])
+                addr = Address(args[0])
                 del args[0]
             else:
-                request.pduDestination = GlobalBroadcast()
+                addr = GlobalBroadcast()
 
             if len(args) == 2:
-                request.deviceInstanceRangeLowLimit = int(args[0])
-                request.deviceInstanceRangeHighLimit = int(args[1])
-            if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
+                lolimit = int(args[0])
+                hilimit = int(args[1])
+            else:
+                lolimit = hilimit = None
 
-            # give it to the application
-            this_application.request(request)
+            # code lives in the device service
+            this_application.who_is(lolimit, hilimit, addr)
 
         except Exception as error:
             WhoIsIAmConsoleCmd._exception("exception: %r", error)
@@ -121,23 +124,8 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         args = args.split()
         if _debug: WhoIsIAmConsoleCmd._debug("do_iam %r", args)
 
-        try:
-            # build a request
-            request = IAmRequest()
-            request.pduDestination = GlobalBroadcast()
-
-            # set the parameters from the device object
-            request.iAmDeviceIdentifier = this_device.objectIdentifier
-            request.maxAPDULengthAccepted = this_device.maxApduLengthAccepted
-            request.segmentationSupported = this_device.segmentationSupported
-            request.vendorID = this_device.vendorIdentifier
-            if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
-
-            # give it to the application
-            this_application.request(request)
-
-        except Exception as error:
-            WhoIsIAmConsoleCmd._exception("exception: %r", error)
+        # code lives in the device service
+        this_application.i_am()
 
     def do_rtn(self, args):
         """rtn <addr> <net> ... """
@@ -161,6 +149,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 #
 
 def main():
+    global this_device
     global this_application
 
     # parse the command line arguments

@@ -44,19 +44,19 @@ class UDPActor:
         # add a timer
         self.timeout = director.timeout
         if self.timeout > 0:
-            self.timer = FunctionTask(self.IdleTimeout)
+            self.timer = FunctionTask(self.idle_timeout)
             self.timer.install_task(_time() + self.timeout)
         else:
             self.timer = None
 
         # tell the director this is a new actor
-        self.director.AddActor(self)
+        self.director.add_actor(self)
 
-    def IdleTimeout(self):
-        if _debug: UDPActor._debug("IdleTimeout")
+    def idle_timeout(self):
+        if _debug: UDPActor._debug("idle_timeout")
 
         # tell the director this is gone
-        self.director.RemoveActor(self)
+        self.director.del_actor(self)
 
     def indication(self, pdu):
         if _debug: UDPActor._debug("indication %r", pdu)
@@ -77,6 +77,13 @@ class UDPActor:
 
         # process this as a response from the director
         self.director.response(pdu)
+
+    def handle_error(self, error=None):
+        if _debug: UDPActor._debug("handle_error %r", error)
+
+        # pass along to the director
+        if error is not None:
+            self.director.actor_error(self, error)
 
 #
 #   UDPPickleActor
@@ -156,52 +163,63 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
         # start with an empty peer pool
         self.peers = {}
 
-    def AddActor(self, actor):
+    def add_actor(self, actor):
         """Add an actor when a new one is connected."""
-        if _debug: UDPDirector._debug("AddActor %r", actor)
+        if _debug: UDPDirector._debug("add_actor %r", actor)
 
         self.peers[actor.peer] = actor
 
         # tell the ASE there is a new client
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def RemoveActor(self, actor):
+    def del_actor(self, actor):
         """Remove an actor when the socket is closed."""
-        if _debug: UDPDirector._debug("RemoveActor %r", actor)
+        if _debug: UDPDirector._debug("del_actor %r", actor)
 
         del self.peers[actor.peer]
 
         # tell the ASE the client has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
 
-    def GetActor(self, address):
+    def actor_error(self, actor, error):
+        if _debug: UDPDirector._debug("actor_error %r %r", actor, error)
+
+        # tell the ASE the actor had an error
+        if self.serviceElement:
+            self.sap_request(actor_error=actor, error=error)
+
+    def get_actor(self, address):
         return self.peers.get(address, None)
 
     def handle_connect(self):
-        if _debug: deferred(UDPDirector._debug, "handle_connect")
+        if _debug: UDPDirector._debug("handle_connect")
 
     def readable(self):
         return 1
 
     def handle_read(self):
-        if _debug: deferred(UDPDirector._debug, "handle_read")
+        if _debug: UDPDirector._debug("handle_read")
 
         try:
             msg, addr = self.socket.recvfrom(65536)
-            if _debug: deferred(UDPDirector._debug, "    - received %d octets from %s", len(msg), addr)
+            if _debug: UDPDirector._debug("    - received %d octets from %s", len(msg), addr)
 
             # send the PDU up to the client
             deferred(self._response, PDU(msg, source=addr))
 
         except socket.timeout as err:
-            deferred(UDPDirector._error, "handle_read socket timeout: %s", err)
-        except OSError as err:
+            if _debug: UDPDirector._debug("    - socket timeout: %s", err)
+
+        except socket.error as err:
             if err.args[0] == 11:
                 pass
             else:
-                deferred(UDPDirector._error, "handle_read socket error: %s", err)
+                if _debug: UDPDirector._debug("    - socket error: %s", err)
+
+                # pass along to a handler
+                self.handle_error(err)
 
     def writable(self):
         """Return true iff there is a request pending."""
@@ -209,23 +227,36 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
     def handle_write(self):
         """get a PDU from the queue and send it."""
-        if _debug: deferred(UDPDirector._debug, "handle_write")
+        if _debug: UDPDirector._debug("handle_write")
 
         try:
             pdu = self.request.get()
 
             sent = self.socket.sendto(pdu.pduData, pdu.pduDestination)
-            if _debug: deferred(UDPDirector._debug, "    - sent %d octets to %s", sent, pdu.pduDestination)
+            if _debug: UDPDirector._debug("    - sent %d octets to %s", sent, pdu.pduDestination)
 
-        except OSError as err:
-            deferred(UDPDirector._error, "handle_write socket error: %s", err)
+        except socket.error as err:
+            if _debug: UDPDirector._debug("    - socket error: %s", err)
+
+            # get the peer
+            peer = self.peers.get(pdu.pduDestination, None)
+            if peer:
+                # let the actor handle the error
+                peer.handle_error(err)
+            else:
+                # let the director handle the error
+                self.handle_error(err)
 
     def handle_close(self):
         """Remove this from the monitor when it's closed."""
-        if _debug: deferred(UDPDirector._debug, "handle_close")
+        if _debug: UDPDirector._debug("handle_close")
 
         self.close()
         self.socket = None
+
+    def handle_error(self, error=None):
+        """Handle an error..."""
+        if _debug: UDPDirector._debug("handle_error %r", error)
 
     def indication(self, pdu):
         """Client requests are queued for delivery."""

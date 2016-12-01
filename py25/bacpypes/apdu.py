@@ -4,7 +4,7 @@
 Application Layer Protocol Data Units
 """
 
-from .errors import DecodingError
+from .errors import DecodingError, TooManyArguments
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import PCI, PDUData
@@ -692,6 +692,7 @@ class APCISequence(APCI, Sequence):
         # trailing unmatched tags
         if self._tag_list:
             if _debug: APCISequence._debug("    - trailing unmatched tags")
+            raise TooManyArguments()
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""

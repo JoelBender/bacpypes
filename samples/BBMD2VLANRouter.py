@@ -28,8 +28,10 @@ from bacpypes.pdu import Address
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
-from bacpypes.app import LocalDeviceObject, Application
+from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
+from bacpypes.service.device import LocalDeviceObject, WhoIsIAmServices
+from bacpypes.service.object import ReadWritePropertyServices
 
 from bacpypes.primitivedata import Real
 from bacpypes.object import AnalogValueObject, Property
@@ -89,7 +91,7 @@ class RandomAnalogValueObject(AnalogValueObject):
 #
 
 @bacpypes_debugging
-class VLANApplication(Application):
+class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
@@ -101,6 +103,10 @@ class VLANApplication(Application):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(vlan_device)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -151,7 +157,7 @@ class VLANRouter:
         self.nse = NetworkServiceElement()
         bind(self.nse, self.nsap)
 
-        # create a BBMD, bound to the Annex J server 
+        # create a BBMD, bound to the Annex J server
         # on the UDP multiplexer
         self.bip = BIPBBMD(local_address)
         self.annexj = AnnexJCodec()

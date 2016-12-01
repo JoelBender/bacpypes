@@ -11,3 +11,4 @@ from . import test_pdu
 from . import test_client
 from . import test_server
 
+from . import test_capability

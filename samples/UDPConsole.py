@@ -20,7 +20,7 @@ The address can be one of the following forms:
     any                      - special tuple ('', 47808)
     any:12345                - special tuple ('', 12345)
 
-Use the --nobroadcast option to prevent the application from opening the 
+Use the --nobroadcast option to prevent the application from opening the
 broadcast socket when one would otherwise be opened.
 
 To send a packet, enter in a string in the form <addr> <message> where <addr>
@@ -95,15 +95,25 @@ local_broadcast_tuple = None
 @bacpypes_debugging
 class MiddleMan(Client, Server):
 
+    """
+    An instance of this class sits between the UDPDirector and the
+    console.  Downstream packets from a console have no concept of a
+    destination, so this is interpreted from the text and then a new
+    PDU is sent to the director.  Upstream packets could be simply
+    forwarded to the console, in that case the source address is ignored,
+    this application interprets the source address for the user.
+    """
+
     def indication(self, pdu):
         if _debug: MiddleMan._debug('indication %r', pdu)
 
+        # empty downstream packets mean EOF
         if not pdu.pduData:
             stop()
             return
 
         # decode the line and trim off the eol
-        line = pdu.pduData.decode('utf_8')[:-1]
+        line = pdu.pduData.decode('utf-8')[:-1]
         if _debug: MiddleMan._debug('    - line: %r', line)
 
         line_parts = line.split(' ', 1)
@@ -144,9 +154,7 @@ class MiddleMan(Client, Server):
         if pdu.pduSource == local_unicast_tuple:
             sys.stdout.write("received %r from self\n" % (line,))
         else:
-            sys.stdout.write("received %r from %s\n" % (
-                line, pdu.pduSource,
-                ))
+            sys.stdout.write("received %r from %s\n" % (line, pdu.pduSource))
 
 
 #
@@ -156,19 +164,23 @@ class MiddleMan(Client, Server):
 @bacpypes_debugging
 class BroadcastReceiver(Client):
 
+    """
+    An instance of this class sits above the UDPDirector that is
+    associated with the broadcast address.  There are no downstream
+    packets, and it interprets the source address for the user.
+    """
+
     def confirmation(self, pdu):
         if _debug: BroadcastReceiver._debug('confirmation %r', pdu)
 
         # decode the line
-        line = pdu.pduData.decode('utf_8')
+        line = pdu.pduData.decode('utf-8')
         if _debug: MiddleMan._debug('    - line: %r', line)
 
         if pdu.pduSource == local_unicast_tuple:
             sys.stdout.write("received broadcast %r from self\n" % (line,))
         else:
-            sys.stdout.write("received broadcast %r from %s\n" % (
-                line, pdu.pduSource,
-                ))
+            sys.stdout.write("received broadcast %r from %s\n" % (line, pdu.pduSource,))
 
 
 #
@@ -176,8 +188,10 @@ class BroadcastReceiver(Client):
 #
 
 def main():
+    global local_unicast_tuple, local_broadcast_tuple
+
     # parse the command line arguments
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(usage=__doc__)
     parser.add_argument("address",
         help="address of socket",
         )

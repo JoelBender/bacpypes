@@ -1,25 +1,21 @@
 #!/usr/bin/env python
 
 """
-Sample Application
-==================
-
-This sample application is the simplest BACpypes application that is
-a complete stack.  Using an INI file it will configure a
-LocalDeviceObject, create a SampleApplication instance, and run,
-waiting for a keyboard interrupt or a TERM signal to quit.
-
-There is no input or output for this application, but by adding --debug to
-the command line when it is run you can check the behavior of the stack by
-seeing what is sent and received.
+This sample application is a simple BACpypes application that
+presents a console prompt.  Almost identical to the SampleApplication,
+the BACnet application is minimal, but with the console commands
+that match the command line options like 'buggers' and 'debug' the
+user can add debugging "on the fly".
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
+from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -54,6 +50,46 @@ class SampleApplication(BIPSimpleApplication):
 
 
 #
+#   SampleConsoleCmd
+#
+
+@bacpypes_debugging
+class SampleConsoleCmd(ConsoleCmd):
+
+    my_cache= {}
+
+    def do_set(self, arg):
+        """set <key> <value> - change a cache value"""
+        if _debug: SampleConsoleCmd._debug("do_set %r", arg)
+
+        key, value = arg.split()
+        self.my_cache[key] = value
+
+    def do_del(self, arg):
+        """del <key> - delete a cache entry"""
+        if _debug: SampleConsoleCmd._debug("do_del %r", arg)
+
+        try:
+            del self.my_cache[arg]
+        except:
+            print(arg, "not in cache")
+
+    def do_dump(self, arg):
+        """dump - nicely print the cache"""
+        if _debug: SampleConsoleCmd._debug("do_dump %r", arg)
+        print(self.my_cache)
+
+    def do_something(self, arg):
+        """something <arg> - do something"""
+        print("do something", arg)
+
+    def do_nothing(self, args):
+        """nothing can be done"""
+        args = args.split()
+        if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
+
+
+#
 #   __main__
 #
 
@@ -71,12 +107,10 @@ def main():
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
-        vendorName="Hello",
         )
 
     # make a sample application
     this_application = SampleApplication(this_device, args.ini.address)
-    if _debug: _log.debug("    - this_application: %r", this_application)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -84,6 +118,12 @@ def main():
 
     # let the device object know
     this_device.protocolServicesSupported = services_supported.value
+
+    # make a console
+    this_console = SampleConsoleCmd()
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 

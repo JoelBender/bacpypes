@@ -79,7 +79,7 @@ def run(spin=SPIN):
 
                 # call the functions
                 for fn, args, kwargs in fnlist:
-                    # if _debug: run._debug("    - call: %r %r %r", fn, args, kwargs)
+#                   if _debug: run._debug("    - call: %r %r %r", fn, args, kwargs)
                     fn( *args, **kwargs)
 
                 # done with this list
@@ -210,12 +210,21 @@ if hasattr(signal, 'SIGUSR1'):
 #   deferred
 #
 
+@bacpypes_debugging
 def deferred(fn, *args, **kwargs):
-    # _log.debug("deferred %r %r %r", fn, args, kwargs)
-    global deferredFns
+#   if _debug:
+#       deferred._debug("deferred %r %r %r", fn, args, kwargs)
+#       for filename, lineno, _, _ in traceback.extract_stack()[-6:-1]:
+#           deferred._debug("    %s:%s" % (filename.split('/')[-1], lineno))
+    global deferredFns, taskManager
 
     # append it to the list
     deferredFns.append((fn, args, kwargs))
+
+    # trigger the task manager event
+    if taskManager and taskManager.trigger:
+#       if _debug: deferred._debug("    - trigger")
+        taskManager.trigger.set()
 
 #
 #   enable_sleeping

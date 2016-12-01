@@ -5,9 +5,9 @@
 Errors
 ======
 
-This module defines exception class for errors that it detects in the 
-configuration of the stack or in encoding and decoding PDUs.  All of these
-exceptions are derived from ValueError from the built-in exceptions module.
+This module defines the exception class for errors it detects in the 
+configuration of the stack or in encoding or decoding PDUs.  All of these
+exceptions are derived from ValueError (in Python's built-in exceptions module).
 
 Classes
 -------
@@ -30,6 +30,6 @@ Classes
 
     This error is raised while PDU data is being decoded, which typically means
     some unstructured data like an octet stream is being turned into structured
-    data.  There may be values in the pdu being decoded that are not
+    data.  There may be values in the PDU being decoded that are not
     appropriate, or not enough data such as a truncated packet.
 

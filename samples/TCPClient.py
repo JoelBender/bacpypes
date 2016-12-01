@@ -8,9 +8,9 @@ content into a line or any other higher-layer concept of a packet.
 
 import os
 
-from bacpypes.debugging import bacpypes_debugging, ModuleLogger
+from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
-from bacpypes.core import run, stop
+from bacpypes.core import run, stop, deferred
 from bacpypes.task import TaskManager
 from bacpypes.comm import PDU, Client, Server, bind, ApplicationServiceElement
 
@@ -33,7 +33,6 @@ server_address = None
 #   MiddleMan
 #
 
-@bacpypes_debugging
 class MiddleMan(Client, Server):
     """
     An instance of this class sits between the TCPClientDirector and the
@@ -57,36 +56,47 @@ class MiddleMan(Client, Server):
     def confirmation(self, pdu):
         if _debug: MiddleMan._debug("confirmation %r", pdu)
 
+        # check for errors
+        if isinstance(pdu, Exception):
+            if _debug: MiddleMan._debug("    - exception: %s", pdu)
+            return
+
         # pass it along
         self.response(pdu)
 
+bacpypes_debugging(MiddleMan)
 
 #
 #   MiddleManASE
 #
 
-@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
+    """
+    An instance of this class is bound to the director, which is a
+    ServiceAccessPoint.  It receives notifications of new actors connected
+    to a server, actors that are going away when the connections are closed,
+    and socket errors.
+    """
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        if add_actor:
+            if _debug: MiddleManASE._debug("indication add_actor=%r", add_actor)
 
-    def indication(self, addPeer=None, delPeer=None):
-        """
-        This function is called by the TCPDirector when the client connects to
-        or disconnects from a server.  It is called with addPeer or delPeer
-        keyword parameters, but not both.
-        """
-        if _debug: MiddleManASE._debug('indication addPeer=%r delPeer=%r', addPeer, delPeer)
+        if del_actor:
+            if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
 
-        if addPeer:
-            if _debug: MiddleManASE._debug("    - add peer %s", addPeer)
-
-        if delPeer:
-            if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
+        if actor_error:
+            if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
 
         # if there are no clients, quit
         if not self.elementService.clients:
             if _debug: MiddleManASE._debug("    - quitting")
             stop()
 
+bacpypes_debugging(MiddleManASE)
+
+#
+#   main
+#
 
 def main():
     """
@@ -98,13 +108,18 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         "host", nargs='?',
-        help="address of host (default {!r})".format(SERVER_HOST),
+        help="address of host (default %r)" % (SERVER_HOST,),
         default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
-        help="server port (default {!r})".format(SERVER_PORT),
+        help="server port (default %r)" % (SERVER_PORT,),
         default=SERVER_PORT,
+        )
+    parser.add_argument(
+        "--hello", action="store_true",
+        default=False,
+        help="send a hello message",
         )
     args = parser.parse_args()
 
@@ -135,12 +150,17 @@ def main():
     if _debug: _log.debug("    - task_manager: %r", task_manager)
 
     # don't wait to connect
-    this_director.connect(server_address)
+    deferred(this_director.connect, server_address)
+
+    # send hello maybe
+    if args.hello:
+        deferred(this_middle_man.indication, PDU(xtob('68656c6c6f0a')))
 
     if _debug: _log.debug("running")
 
     run()
 
+    if _debug: _log.debug("fini")
 
 if __name__ == "__main__":
     main()

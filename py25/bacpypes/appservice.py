@@ -1063,8 +1063,7 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         Client.__init__(self, cid)
         ServiceAccessPoint.__init__(self, sap)
 
-        # save a reference to the local device object and the cache
-        self.localDevice = localDevice
+        # save a reference to the device information cache
         self.deviceInfoCache = deviceInfoCache
 
         # client settings
