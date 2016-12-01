@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.5
 
 """
 This simple TCP server application listens for one or more client connections

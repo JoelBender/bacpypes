@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.5
 
 """
 This simple TCP client application connects to a server and sends the text
