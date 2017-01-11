@@ -20,6 +20,7 @@ _log = ModuleLogger(globals())
 
 # configuration
 BACPYPES_DEBUG = os.getenv('BACPYPES_DEBUG', '')
+BACPYPES_COLOR = os.getenv('BACPYPES_COLOR', None)
 BACPYPES_MAXBYTES = int(os.getenv('BACPYPES_MAXBYTES', 1048576))
 BACPYPES_BACKUPCOUNT = int(os.getenv('BACPYPES_BACKUPCOUNT', 5))
 
@@ -130,6 +131,8 @@ class ArgumentParser(argparse.ArgumentParser):
         # check for debugging from the environment
         if BACPYPES_DEBUG:
             result_args.debug.extend(BACPYPES_DEBUG.split())
+        if BACPYPES_COLOR:
+            result_args.color = True
 
         # keep track of which files are going to be used
         file_handlers = {}
