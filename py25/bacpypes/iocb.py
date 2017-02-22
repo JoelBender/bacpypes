@@ -204,7 +204,7 @@ class IOCB(DebugContents):
         if self.ioTimeout:
             self.ioTimeout.suspend_task()
         else:
-            self.ioTimeout = FunctionTask(self.Abort, err)
+            self.ioTimeout = FunctionTask(self.abort, err)
 
         # (re)schedule it
         self.ioTimeout.install_task(_time() + delay)
