@@ -159,7 +159,7 @@ class IOCB(DebugContents):
         # if there's a timer, cancel it
         if self.ioTimeout:
             if _debug: IOCB._debug("    - cancel timeout")
-            self.ioTimeout.SuspendTask()
+            self.ioTimeout.suspend_task()
 
         # set the completion event
         self.ioComplete.set()
