@@ -25,6 +25,7 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # configuration
+BACPYPES_INI = os.getenv('BACPYPES_INI', 'BACpypes.ini')
 BACPYPES_DEBUG = os.getenv('BACPYPES_DEBUG', '')
 BACPYPES_COLOR = os.getenv('BACPYPES_COLOR', None)
 BACPYPES_MAXBYTES = int(os.getenv('BACPYPES_MAXBYTES', 1048576))
@@ -209,7 +210,7 @@ class ConfigArgumentParser(ArgumentParser):
         # add a way to read a configuration file
         self.add_argument('--ini',
             help="device object configuration file",
-            default="BACpypes.ini",
+            default=BACPYPES_INI,
             )
 
     def parse_args(self, *args, **kwargs):
