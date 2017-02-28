@@ -499,13 +499,13 @@ class EngineeringUnits(Enumerated):
         , 'megavoltAmperes':10
         , 'ampereSeconds':238
         , 'ampereSquareHours':246
-        , 'voltAmpereHours':239 #VAh
+        , 'voltAmpereHours':239 #VAh
         , 'kilovoltAmpereHours':240 #kVAh
         , 'megavoltAmpereHours':241 #MVAh
         , 'voltAmperesReactive':11
         , 'kilovoltAmperesReactive':12
         , 'megavoltAmperesReactive':13
-        , 'voltAmpereHoursReactive':242 #varh
+        , 'voltAmpereHoursReactive':242 #varh
         , 'kilovoltAmpereHoursReactive':243 #kvarh
         , 'megavoltAmpereHoursReactive':244 #Mvarh
         , 'voltsPerDegreeKelvin':176
