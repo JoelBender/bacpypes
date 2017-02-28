@@ -481,6 +481,7 @@ class EngineeringUnits(Enumerated):
         , 'henrys':171
         , 'ohms':4
         , 'ohmMeters':172
+        , 'ohmMeterPerSquareMeter':237
         , 'milliohms':145
         , 'kilohms':122
         , 'megohms':123
@@ -496,9 +497,17 @@ class EngineeringUnits(Enumerated):
         , 'voltAmperes':8
         , 'kilovoltAmperes':9
         , 'megavoltAmperes':10
+        , 'ampereSeconds':238
+        , 'ampereSquareHours':246
+        , 'voltAmpereHours':239 #VAh
+        , 'kilovoltAmpereHours':240 #kVAh
+        , 'megavoltAmpereHours':241 #MVAh
         , 'voltAmperesReactive':11
         , 'kilovoltAmperesReactive':12
         , 'megavoltAmperesReactive':13
+        , 'voltAmpereHoursReactive':242 #varh
+        , 'kilovoltAmpereHoursReactive':243 #kvarh
+        , 'megavoltAmpereHoursReactive':244 #Mvarh
         , 'voltsPerDegreeKelvin':176
         , 'voltsPerMeter':177
         , 'degreesPhase':14
@@ -509,6 +518,7 @@ class EngineeringUnits(Enumerated):
         , 'kilojoules':17
         , 'kilojoulesPerKilogram':125
         , 'megajoules':126
+        , 'joulesPerHours':247
         , 'wattHours':18
         , 'kilowattHours':19
         , 'megawattHours':146
@@ -581,6 +591,7 @@ class EngineeringUnits(Enumerated):
         , 'pascals':53
         , 'hectopascals':133
         , 'kilopascals':54
+        , 'pascalSeconds':253
         , 'millibars':134
         , 'bars':55
         , 'poundsForcePerSquareInch':56
@@ -619,7 +630,9 @@ class EngineeringUnits(Enumerated):
         , 'feetPerMinute':77
         , 'milesPerHour':78
         , 'cubicFeet':79
+        , 'cubicFeetPerDay':248
         , 'cubicMeters':80
+        , 'cubicMetersPerDay':249
         , 'imperialGallons':81
         , 'milliliters':197
         , 'liters':82
@@ -681,6 +694,8 @@ class EngineeringUnits(Enumerated):
         , 'microgramsPerCubicMeter':219
         , 'nanogramsPerCubicMeter':220
         , 'gramsPerCubicCentimeter':221
+        , 'wattHoursPerCubicMeter':250
+        , 'joulesPerCubicMeter':251
         , 'becquerels':222
         , 'kilobecquerels':223
         , 'megabecquerels':224
