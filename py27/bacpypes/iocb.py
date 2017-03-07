@@ -160,7 +160,7 @@ class IOCB(DebugContents):
         # if there's a timer, cancel it
         if self.ioTimeout:
             if _debug: IOCB._debug("    - cancel timeout")
-            self.ioTimeout.SuspendTask()
+            self.ioTimeout.suspend_task()
 
         # set the completion event
         self.ioComplete.set()
@@ -205,7 +205,7 @@ class IOCB(DebugContents):
         if self.ioTimeout:
             self.ioTimeout.suspend_task()
         else:
-            self.ioTimeout = FunctionTask(self.Abort, err)
+            self.ioTimeout = FunctionTask(self.abort, err)
 
         # (re)schedule it
         self.ioTimeout.install_task(_time() + delay)

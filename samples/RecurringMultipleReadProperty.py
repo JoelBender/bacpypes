@@ -13,6 +13,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run, deferred
+from bacpypes.iocb import IOCB
 from bacpypes.task import RecurringTask
 
 from bacpypes.pdu import Address
@@ -101,12 +102,15 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
         request.pduDestination = Address(addr)
         if _debug: PrairieDog._debug("    - request: %r", request)
 
-        # send the request
-        iocb = self.request(request)
+        # make an IOCB
+        iocb = IOCB(request)
         if _debug: PrairieDog._debug("    - iocb: %r", iocb)
 
         # set a callback for the response
         iocb.add_callback(self.complete_request)
+
+        # give it to the application
+        self.request_io(iocb)
 
     def complete_request(self, iocb):
         if _debug: PrairieDog._debug("complete_request %r", iocb)

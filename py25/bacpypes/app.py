@@ -503,6 +503,12 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
         # bind the BIP stack to the network, no network number
         self.nsap.bind(self.bip)
 
+    def close_socket(self):
+        if _debug: BIPSimpleApplication._debug("close_socket")
+
+        # pass to the multiplexer, then down to the sockets
+        self.mux.close_socket()
+
 bacpypes_debugging(BIPSimpleApplication)
 
 #
@@ -549,6 +555,12 @@ class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWrite
 
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
+
+    def close_socket(self):
+        if _debug: BIPForeignApplication._debug("close_socket")
+
+        # pass to the multiplexer, then down to the sockets
+        self.mux.close_socket()
 
 bacpypes_debugging(BIPForeignApplication)
 

@@ -248,6 +248,12 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
                 # let the director handle the error
                 self.handle_error(err)
 
+    def close_socket(self):
+        """Close the socket."""
+        if _debug: UDPDirector._debug("close_socket")
+
+        self.socket.close()
+
     def handle_close(self):
         """Remove this from the monitor when it's closed."""
         if _debug: UDPDirector._debug("handle_close")
