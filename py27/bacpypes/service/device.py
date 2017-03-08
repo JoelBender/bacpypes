@@ -287,6 +287,28 @@ class WhoHasIHaveServices(Capability):
             if _debug: WhoIsIAmServices._debug("    - no local device")
             return
 
+        # if this has limits, check them like Who-Is
+        if apdu.limits is not None:
+            # extract the parameters
+            low_limit = apdu.limits.deviceInstanceRangeLowLimit
+            high_limit = apdu.limits.deviceInstanceRangeHighLimit
+
+            # check for consistent parameters
+            if (low_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
+            if (low_limit < 0) or (low_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
+            if (high_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
+            if (high_limit < 0) or (high_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
+
+            # see we should respond
+            if (self.localDevice.objectIdentifier[1] < low_limit):
+                return
+            if (self.localDevice.objectIdentifier[1] > high_limit):
+                return
+
         # find the object
         if apdu.object.objectIdentifier is not None:
             obj = self.objectIdentifier.get(apdu.object.objectIdentifier, None)
@@ -294,8 +316,10 @@ class WhoHasIHaveServices(Capability):
             obj = self.objectName.get(apdu.object.objectName, None)
         else:
             raise InconsistentParameters("object identifier or object name required")
+
+        # maybe we don't have it
         if not obj:
-            raise ExecutionError(errorClass='object', errorCode='unknownObject')
+            return
 
         # send out the response
         self.i_have(obj, address=apdu.pduSource)
