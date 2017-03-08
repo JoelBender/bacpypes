@@ -81,7 +81,7 @@ And the new class works as intended::
     >>> some_transformer.transform(10)
     100
 
-And the classes can be mixed in together:
+And the classes can be mixed in together::
 
     class ExampleThree(BaseCollector, PlusOne, TimesTen):
         pass
