@@ -530,6 +530,10 @@ class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWrite
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(localDevice)
 
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
+
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
 
