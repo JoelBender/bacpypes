@@ -36,7 +36,7 @@ And creating an instance::
 In addition to the other command line options that are typically included in
 BACpypes applications, this can be wrapped::
 
-    if '--console' in sys.agv:
+    if '--console' in sys.argv:
         ConsoleCmd()
 
 Command Recall
