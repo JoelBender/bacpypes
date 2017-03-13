@@ -85,7 +85,7 @@ Running the Application
 
 Allow the application to run for a few minutes.  Then end it so it will output its results.::
 
-    ^CDEBUG:__main__:fini
+    DEBUG:__main__:fini
     ----- Who Has -----
     
     ----- I Have -----

@@ -4,12 +4,12 @@ Stacking with Debug
 ===================
 
 This tutorial uses the same :class:`comm.Client`, :class:`comm.Server` classes
-from the previous one, so continuing on from previous tutorial, all we needs is 
+from the previous one, so continuing on from previous tutorial, all we need is 
 to import the class:`comm.Debug`::
 
     >>> from bacpypes.comm import Debug
 
-Because there could be lots of Debug instances, it could be confusing if you
+Because there could be lots of **Debug** instances, it could be confusing if you
 didn't know which instance was generating the output.  So initialize the debug 
 instance with a name::
 
@@ -23,7 +23,7 @@ are :term:`upstream` messages.
 
 The :func:`comm.bind` function takes an arbitrary number of objects.  It 
 assumes that the first one will always be a client, the last one is a server, 
-and the objects in the middle are hybreds which can be
+and the objects in the middle are hybrids which can be
 bound with the client to its left, and to the server on its right::
 
     >>> bind(c, d, s)

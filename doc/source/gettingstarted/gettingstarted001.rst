@@ -6,7 +6,7 @@ Getting Started
 Ah, so you are interested in getting started with BACnet and Python.  Welcome 
 to BACpypes, I hope you enjoy your journey.  This tutorial starts with  
 just enough of the basics of BACnet to get a workstation communicating with 
-another device.  We will cover installing the library, and downloading and 
+another device.  We will cover installing the library, downloading and 
 configuring the samples applications.
 
 Basic Assumptions
@@ -17,22 +17,36 @@ with a device from another company that uses BACnet.  Your employer has
 given you a test device and purchased a copy of the BACnet standard.  I will 
 need...
 
-- a development workstation running some flavor of Linux, complete with 
-  the latest version of Python (2.7 or 3.4) and
+- a development workstation running some flavor of Linux or Windows, complete with 
+  the latest version of Python (2.7 or >3.4) and
   `setup tools <https://pypi.python.org/pypi/setuptools#unix-based-systems-including-mac-os-x>`_.
 
 - a small Ethernet hub into which you can plug both your workstation and your 
   mysterious BACnet device, so you won't be distracted by lots of other network traffic.
 
+- a BACnetIP/BACnet-MSTP Router if your mysterious device is an MSTP device (BACpypes is
+  actually BACnet/IP software)
+
+- if you are running on Windows, installing Python may be a challenge. Some
+  Python packages make your life easier by including the core Python plus
+  many other data processing toolkits, so have a look at Continuum Analytics
+  `Anaconda <https://www.continuum.io/downloads>`_ or Enthought
+  `Canopy <https://www.enthought.com/products/canopy/>`_.
+
 Before getting this test environment set up and while you are still connected 
 to the internet, install the BACpypes library::
 
     $ sudo easy_install bacpypes
-    or
+
+or::
+
     $ sudo pip install bacpypes
 
 And while you are at it, get a copy of the BACpypes project from GitHub.  It 
-contains the library source code, sample code, and this documentation::
+contains the library source code, sample code, and this documentation.  Install
+the `Git <https://en.wikipedia.org/wiki/Git>`_ software from
+`here <https://git-scm.com/downloads>`_, then make a local copy of the
+repository by cloning it::
 
     $ git clone https://github.com/JoelBender/bacpypes.git
 
@@ -40,6 +54,14 @@ No protocol analysis workbench would be complete without an installed
 copy of `Wireshark <http://www.wireshark.org/>`_::
 
     $ sudo apt-get install wireshark
+   
+or if you use Windows, `download it here <https://www.wireshark.org/download.html>`_.
+
+.. caution::
+
+    Don't forget to **turn off your firewall** before beginning to play
+    with BACpypes! It will prevent you from hours of researches when
+    your code won't work as it should!
 
 
 Configuring the Workstation
@@ -55,6 +77,15 @@ from scratch.
    is 192.168.0.10, subnet mask 255.255.0.0, gateway address 192.168.0.1.
    You are going to be joining the same network, so pick 192.168.0.11 
    for your workstation address and use the same subnet mask 255.255.0.0.
+
+   If working with MSTP devices, base your workstation address on the address
+   of the BACnetIP Router.
+
+*Network Number*
+   If working with a BACnetIP router and an MSTP device, you will need to know
+   the network number configured inside the router. Every BACnet network **must**
+   have a unique numeric identifier. You will often see the magical number **2000** 
+   but you can choose anything between 1 to 0xFFFE.
 
 *Device Identifier*
    Every BACnet device on a BACnet network **must** have a unique numeric 
@@ -121,6 +152,20 @@ of the sample configuration file, and edit it for your site::
     communicate as peers, so it is not unusual for an application to 
     act as both a client and a server at the same time.
 
+A typical BACpypes.ini file contains 
+
+    [BACpypes]
+    objectName: Betelgeuse
+    address: 192.168.1.2/24
+    objectIdentifier: 599
+    maxApduLengthAccepted: 1024
+    segmentationSupported: segmentedBoth
+    maxSegmentsAccepted: 1024
+    vendorIdentifier: 15
+    foreignPort: 0
+    foreignBBMD: 128.253.109.254
+    foreignTTL: 30
+
 
 UDP Communications Issues
 -------------------------
@@ -144,7 +189,9 @@ number of bits in the network portion, which in turn implies a
 subnet mask, in this case **255.255.0.0**.  Unicast messages will 
 be sent to the IP address, and broadcast messages will be sent to
 the broadcast address **192.168.255.255** which is the network 
-portion of the address with all 1's in the host portion.
+portion of the address with all 1's in the host portion. In this example, 
+the default port 47808 (0xBAC0) is used but you could provide and different
+one, **192.168.0.11:47809/16**.
 
 To receive both unicast and broadcast addresses, BACpypes  
 opens two sockets, one for unicast traffic and one that only listens 
@@ -195,9 +242,16 @@ in the I-Am packet decoding you will see some of its
 configuration parameters that should match what you expected 
 them to be.
 
-Now start the application::
+Now start the simplest tutorial application::
 
-    $ python WhoIsIAm.py
+    $ python samples/Tutorial/WhoIsIAm.py
+
+.. note::
+
+    The samples folder contains a Tutorial folder holding all the samples
+    that you will need too follow along this tutorial.
+    Later, the folder `HandsOnLabs` will be used as it contains the samples
+    that are fully explained in this document (see table of content)
 
 You will be presented with a prompt (>), and you can get help::
 
@@ -219,9 +273,9 @@ BACnet communications traffic.  Generate the basic I-Am message::
     > iam
 
 You should see Wireshark capture your I-Am message containing your configuration 
-parameters.  This is a "global broadcast" message. 
-Your test device will see it but since your test device probably 
-isn't looking for you, it will not respond to the message.
+parameters.  This is a "global broadcast" message.  Your test device will see
+it but since your test device probably isn't looking for you, it will not
+respond to the message.
 
 
 Binding to the Test Device
@@ -269,9 +323,9 @@ identifier::
 
     > whois 1000 1000
 
-If the site has a numbering scheme for groups of BACnet 
-devices (i.e. grouped by building), then it is 
-common to look for all the devices in a specific building as a group::
+If the site has a numbering scheme for groups of BACnet devices (i.e. grouped
+by building), then it is common to look for all the devices in a specific
+building as a group::
 
     > whois 203000 203099
 

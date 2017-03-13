@@ -65,7 +65,7 @@ def ModuleLogger(globs):
     that aren't necessary.
     """
     # make sure that _debug is defined
-    if not globs.has_key('_debug'):
+    if '_debug' not in globs:
         raise RuntimeError("define _debug before creating a module logger")
 
     # create a logger to be assigned to _log

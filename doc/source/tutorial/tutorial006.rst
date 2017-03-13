@@ -8,10 +8,10 @@ abillity to attach debug handlers to specific components of a stack when it
 starts, and then reproducing whatever situation caused the mis-behaviour.
 
 For longer running applications like gateways it might take some time before 
-a scenerio is ready, in which case it is advantageous to start and stop the debugging 
+a scenario is ready, in which case it is advantageous to start and stop the debugging 
 output, without stopping the application.
 
-For some debugging scenerios it is beneficial to force some values into the 
+For some debugging scenarios it is beneficial to force some values into the 
 stack, or delete some values and see how the application performs.  For example,
 perhaps deleting a routing path associated with a network.
 
@@ -53,7 +53,7 @@ Basic Commands
 All of the commands supported are listed in the :mod:`consolecmd` documentation.
 The simplest way to learn the commands is to try them::
 
-    $ python SampleConsoleCmd.py 
+    $ python Tutorial/SampleConsoleCmd.py 
     > hi
     *** Unknown syntax: hi
 
@@ -102,7 +102,7 @@ Add these lines to SampleConsoleCmd.py::
 
         def do_something(self, arg):
             """something <arg> - do something"""
-            print "do something", arg
+            print("do something", arg)
 
 The ConsoleCmd will trap a help request ``help something`` into printing out
 the documnetation string.::
@@ -146,7 +146,7 @@ Then delete cache entries with a *del* command::
             try:
                 del self.my_cache[arg]
             except:
-                print arg, "not in cache"
+                print(arg, "not in cache")
     
 And to verify, dump the cache::
 
@@ -159,7 +159,7 @@ And to verify, dump the cache::
 And when the sample application is run, note the new commands
 show up in the help list::
 
-    $ python SampleConsoleCmd.py
+    $ python Tutorial/SampleConsoleCmd.py
     > help
     
     Documented commands (type help <topic>):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-Mutliple Read Property
+Recurring Read Property
 
-This application has a static list of points that it would like to read.  It reads the 
-values of each of them in turn and then quits.
+This application has a static list of points that it would like to read.  It
+reads the values of each of them in turn and then quits.
 """
 
 from collections import deque
@@ -16,12 +16,14 @@ from bacpypes.core import run, deferred
 from bacpypes.task import RecurringTask
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -41,19 +43,14 @@ point_list = [
 class PrairieDog(BIPSimpleApplication, RecurringTask):
 
     def __init__(self, interval, *args):
-        if _debug: PrairieDog._debug("__init__ %r, %r", interval, args)
+        if _debug: PrairieDog._debug("__init__ %r %r", interval, args)
         BIPSimpleApplication.__init__(self, *args)
         RecurringTask.__init__(self, interval * 1000)
 
-        # keep track of requests to line up responses
-        self._request = None
-
-        # start out idle
+        # no longer busy
         self.is_busy = False
-        self.point_queue = deque()
-        self.response_values = []
 
-        # install it
+        # install the task
         self.install_task()
 
     def process_task(self):
@@ -97,28 +94,26 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
         addr, obj_type, obj_inst, prop_id = self.point_queue.popleft()
 
         # build a request
-        self._request = ReadPropertyRequest(
+        request = ReadPropertyRequest(
             objectIdentifier=(obj_type, obj_inst),
             propertyIdentifier=prop_id,
             )
-        self._request.pduDestination = Address(addr)
-        if _debug: PrairieDog._debug("    - request: %r", self._request)
+        request.pduDestination = Address(addr)
+        if _debug: PrairieDog._debug("    - request: %r", request)
 
-        # forward it along
-        BIPSimpleApplication.request(self, self._request)
+        # send the request
+        iocb = self.request(request)
+        if _debug: PrairieDog._debug("    - iocb: %r", iocb)
 
-    def confirmation(self, apdu):
-        if _debug: PrairieDog._debug("confirmation %r", apdu)
+        # set a callback for the response
+        iocb.add_callback(self.complete_request)
 
-        if isinstance(apdu, Error):
-            if _debug: PrairieDog._debug("    - error: %r", apdu)
-            self.response_values.append(apdu)
+    def complete_request(self, iocb):
+        if _debug: PrairieDog._debug("complete_request %r", iocb)
 
-        elif isinstance(apdu, AbortPDU):
-            if _debug: PrairieDog._debug("    - abort: %r", apdu)
-            self.response_values.append(apdu)
+        if iocb.ioResponse:
+            apdu = iocb.ioResponse
 
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
             # find the datatype
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: PrairieDog._debug("    - datatype: %r", datatype)
@@ -137,6 +132,10 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
 
             # save the value
             self.response_values.append(value)
+
+        if iocb.ioError:
+            if _debug: PrairieDog._debug("    - error: %r", iocb.ioError)
+            self.response_values.append(iocb.ioError)
 
         # fire off another request
         deferred(self.next_request)

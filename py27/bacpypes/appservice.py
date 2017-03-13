@@ -644,7 +644,7 @@ class ClientSSM(SSM):
 class ServerSSM(SSM):
 
     def __init__(self, sap, remoteDevice):
-        if _debug: ServerSSM._debug("__init__ %s %r %r", sap, remoteDevice)
+        if _debug: ServerSSM._debug("__init__ %s %r", sap, remoteDevice)
         SSM.__init__(self, sap, remoteDevice)
 
     def set_state(self, newState, timer=0):
@@ -1061,8 +1061,7 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         Client.__init__(self, cid)
         ServiceAccessPoint.__init__(self, sap)
 
-        # save a reference to the local device object and the cache
-        self.localDevice = localDevice
+        # save a reference to the device information cache
         self.deviceInfoCache = deviceInfoCache
 
         # client settings

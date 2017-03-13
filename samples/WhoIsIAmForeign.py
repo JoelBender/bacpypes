@@ -13,13 +13,15 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.app import LocalDeviceObject, BIPForeignApplication
-
 from bacpypes.apdu import WhoIsRequest, IAmRequest
 from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
+
+from bacpypes.app import BIPForeignApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -111,8 +113,12 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
                 request.deviceInstanceRangeHighLimit = int(args[1])
             if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
 
         except Exception as err:
             WhoIsIAmConsoleCmd._exception("exception: %r", err)
@@ -134,8 +140,12 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
             request.vendorID = this_device.vendorIdentifier
             if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
 
         except Exception as err:
             WhoIsIAmConsoleCmd._exception("exception: %r", err)

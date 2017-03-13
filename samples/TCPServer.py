@@ -2,7 +2,7 @@
 
 """
 This simple TCP server application listens for one or more client connections
-and echos the incoming lines back to the client.  There is no conversion from 
+and echos the incoming lines back to the client.  There is no conversion from
 incoming streams of content into a line or any other higher-layer concept
 of a packet.
 """
@@ -28,7 +28,6 @@ SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
 #   EchoMaster
 #
 
-@bacpypes_debugging
 class EchoMaster(Client):
 
     def confirmation(self, pdu):
@@ -37,28 +36,30 @@ class EchoMaster(Client):
         # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
+bacpypes_debugging(EchoMaster)
 
 #
 #   MiddleManASE
 #
 
-@bacpypes_debugging
 class MiddleManASE(ApplicationServiceElement):
+    """
+    An instance of this class is bound to the director, which is a
+    ServiceAccessPoint.  It receives notifications of new actors connected
+    from a client, actors that are going away when the connections are closed,
+    and socket errors.
+    """
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        if add_actor:
+            if _debug: MiddleManASE._debug("indication add_actor=%r", add_actor)
 
-    def indication(self, addPeer=None, delPeer=None):
-        """
-        This function is called by the TCPDirector when the client connects to
-        or disconnects from a server.  It is called with addPeer or delPeer
-        keyword parameters, but not both.
-        """
-        if _debug: MiddleManASE._debug('indication addPeer=%r delPeer=%r', addPeer, delPeer)
+        if del_actor:
+            if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
 
-        if addPeer:
-            if _debug: MiddleManASE._debug("    - add peer %s", addPeer)
+        if actor_error:
+            if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
 
-        if delPeer:
-            if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
-
+bacpypes_debugging(MiddleManASE)
 
 #
 #   __main__
@@ -69,12 +70,12 @@ def main():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
         "host", nargs='?',
-        help="listening address of server or 'any' (default {!r})".format(SERVER_HOST),
+        help="listening address of server or 'any' (default %r)" % (SERVER_HOST,),
         default=SERVER_HOST,
         )
     parser.add_argument(
         "port", nargs='?', type=int,
-        help="server port (default {!r})".format(SERVER_PORT),
+        help="server port (default %r)" % (SERVER_PORT,),
         default=SERVER_PORT,
         )
     args = parser.parse_args()

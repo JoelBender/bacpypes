@@ -47,6 +47,7 @@ setup(
     url="https://github.com/JoelBender/bacpypes",
     packages=[
         'bacpypes',
+        'bacpypes.service',
     ],
     package_dir={
         'bacpypes': os.path.join(source_folder, 'bacpypes'),

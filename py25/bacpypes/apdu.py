@@ -4,7 +4,7 @@
 Application Layer Protocol Data Units
 """
 
-from .errors import DecodingError
+from .errors import DecodingError, TooManyArguments
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import PCI, PDUData
@@ -692,6 +692,7 @@ class APCISequence(APCI, Sequence):
         # trailing unmatched tags
         if self._tag_list:
             if _debug: APCISequence._debug("    - trailing unmatched tags")
+            raise TooManyArguments()
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -1323,10 +1324,10 @@ class SubscribeCOVPropertyRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('subscriberProcessIdentifier', Unsigned, 0)
         , Element('monitoredObjectIdentifier', ObjectIdentifier, 1)
-        , Element('issueConfirmedNotifications', Boolean, 2)
-        , Element('lifetime', Unsigned, 3)
+        , Element('issueConfirmedNotifications', Boolean, 2, True)
+        , Element('lifetime', Unsigned, 3, True)
         , Element('monitoredPropertyIdentifier', PropertyReference, 4)
-        , Element('covIncrement', Real, 5)
+        , Element('covIncrement', Real, 5, True)
         ]
 
 register_confirmed_request_type(SubscribeCOVPropertyRequest)

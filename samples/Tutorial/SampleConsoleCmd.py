@@ -14,7 +14,8 @@ from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -55,39 +56,11 @@ class SampleApplication(BIPSimpleApplication):
 @bacpypes_debugging
 class SampleConsoleCmd(ConsoleCmd):
 
-    my_cache= {}
-    
-    def do_set(self, arg):
-        """set <key> <value> - change a cache value"""
-        if _debug: SampleConsoleCmd._debug("do_set %r", arg)
-
-        key, value = arg.split()
-        self.my_cache[key] = value
-
-    def do_del(self, arg):
-        """del <key> - delete a cache entry"""
-        if _debug: SampleConsoleCmd._debug("do_del %r", arg)
-
-        try:
-            del self.my_cache[arg]
-        except:
-            print arg, "not in cache"
-
-    def do_dump(self, arg):
-        """dump - nicely print the cache"""
-        if _debug: SampleConsoleCmd._debug("do_dump %r", arg)
-        print(self.my_cache)
-
-    def do_something(self, arg):
-        """something <arg> - do something"""
-        print "do something", arg
-        
     def do_nothing(self, args):
         """nothing can be done"""
         args = args.split()
         if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
-
-
+            
 #
 #   __main__
 #
@@ -120,6 +93,7 @@ def main():
 
     # make a console
     this_console = SampleConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()

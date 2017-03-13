@@ -2,8 +2,9 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyRequest PDUs, waits for the response, then decodes the
+value if it is application encoded.  This is useful for reading the values
+of propietary properties when the datatype isn't known.
 """
 
 import sys
@@ -13,13 +14,17 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import get_object_class
+from bacpypes.object import get_datatype, get_object_class
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Tag
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
+
 
 # some debugging
 _debug = 0
@@ -27,64 +32,6 @@ _log = ModuleLogger(globals())
 
 # globals
 this_application = None
-
-#
-#   ReadPropertyAnyApplication
-#
-
-@bacpypes_debugging
-class ReadPropertyAnyApplication(BIPSimpleApplication):
-
-    def __init__(self, *args):
-        if _debug: ReadPropertyAnyApplication._debug("__init__ %r", args)
-        BIPSimpleApplication.__init__(self, *args)
-
-        # keep track of requests to line up responses
-        self._request = None
-
-    def request(self, apdu):
-        if _debug: ReadPropertyAnyApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: ReadPropertyAnyApplication._debug("confirmation %r", apdu)
-
-        if isinstance(apdu, Error):
-            sys.stdout.write("error: %s\n" % (apdu.errorCode,))
-            sys.stdout.flush()
-
-        elif isinstance(apdu, AbortPDU):
-            apdu.debug_contents()
-
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
-            # peek at the value tag
-            value_tag = apdu.propertyValue.tagList.Peek()
-            if _debug: ReadPropertyAnyApplication._debug("    - value_tag: %r", value_tag)
-
-            # make sure that it is application tagged
-            if value_tag.tagClass != Tag.applicationTagClass:
-                sys.stdout.write("value is not application encoded\n")
-
-            else:
-                # find the datatype
-                datatype = Tag._app_tag_class[value_tag.tagNumber]
-                if _debug: ReadPropertyAnyApplication._debug("    - datatype: %r", datatype)
-                if not datatype:
-                    raise TypeError("unknown datatype")
-
-                # cast out the value
-                value = apdu.propertyValue.cast_out(datatype)
-                if _debug: ReadPropertyAnyApplication._debug("    - value: %r", value)
-
-                sys.stdout.write(str(value) + '\n')
-
-            sys.stdout.flush()
-
 
 #
 #   ReadPropertyAnyConsoleCmd
@@ -108,9 +55,6 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
 
             obj_inst = int(obj_inst)
 
-            if prop_id.isdigit():
-                prop_id = int(prop_id)
-
             # build a request
             request = ReadPropertyRequest(
                 objectIdentifier=(obj_type, obj_inst),
@@ -122,12 +66,49 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
                 request.propertyArrayIndex = int(args[4])
             if _debug: ReadPropertyAnyConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: ReadPropertyAnyConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
+
+            # wait for it to complete
+            iocb.wait()
+
+            # do something for success
+            if iocb.ioResponse:
+                apdu = iocb.ioResponse
+
+                # peek at the value tag
+                value_tag = apdu.propertyValue.tagList.Peek()
+                if _debug: ReadPropertyAnyConsoleCmd._debug("    - value_tag: %r", value_tag)
+
+                # make sure that it is application tagged
+                if value_tag.tagClass != Tag.applicationTagClass:
+                    sys.stdout.write("value is not application encoded\n")
+
+                else:
+                    # find the datatype
+                    datatype = Tag._app_tag_class[value_tag.tagNumber]
+                    if _debug: ReadPropertyAnyConsoleCmd._debug("    - datatype: %r", datatype)
+                    if not datatype:
+                        raise TypeError("unknown datatype")
+
+                    # cast out the value
+                    value = apdu.propertyValue.cast_out(datatype)
+                    if _debug: ReadPropertyAnyConsoleCmd._debug("    - value: %r", value)
+
+                    sys.stdout.write("%s (%s)\n" % (value, datatype))
+
+                sys.stdout.flush()
+
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
         except Exception as error:
             ReadPropertyAnyConsoleCmd._exception("exception: %r", error)
-
 
 #
 #   __main__
@@ -152,7 +133,7 @@ def main():
         )
 
     # make a simple application
-    this_application = ReadPropertyAnyApplication(this_device, args.ini.address)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
     if _debug: _log.debug("    - this_application: %r", this_application)
 
     # get the services supported

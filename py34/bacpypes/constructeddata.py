@@ -292,7 +292,7 @@ class Sequence(object):
             if element.optional and value is None:
                 continue
             if not element.optional and value is None:
-                file.write("%s%s is a required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
+                file.write("%s%s is a missing required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
                 continue
 
             if element.klass in _sequence_of_classes:

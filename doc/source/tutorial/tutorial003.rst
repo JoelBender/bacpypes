@@ -9,7 +9,7 @@ According to `Wikipedia <http://en.wikipedia.org/wiki/Protocol_data_unit>`_ a
     Information that is delivered as a unit among peer entities of a network 
     and that may contain control information, address information, or data.
 
-BACpypes uses a slght variation of this definition in that it bundles the 
+BACpypes uses a slight variation of this definition in that it bundles the 
 address information with the control information.  It considers addressing as  
 part of how the data should be delivered, along with other concepts like how
 important the PDU data is relative to other PDUs.
@@ -46,7 +46,12 @@ Begin with importing the base class::
 
 Create a new PDU with some simple content::
 
-    >>> pdu = PDU("hello")
+    >>> pdu = PDU(b"hello")
+
+.. caution::
+
+    If you are not using Python 3, you don't need to specify the bytes type.
+    >>> pdu = PDU("Hello")
 
 We can then see the contents of the PDU as it will be seen on the network 
 wire and by Wireshark - as a sequence of octets (printed as hex encoded strings)::
@@ -66,7 +71,7 @@ can be sent somewhere::
 
 Of course, we could have provided the addressing information when we created the PDU::
 
-    >>> pdu = PDU("hello", source=1, destination=2)
+    >>> pdu = PDU(b"hello", source=1, destination=2)
     >>> pdu.debug_contents()
         pduSource = 1
         pduDestination = 2
@@ -125,7 +130,7 @@ Decoding
 Decoding always consumes some number of octets from the front of the PDU data.  
 Lets create a pdu and then use decoding to consume it::
 
-    >>> pdu=PDU('hello!!')
+    >>> pdu=PDU(b'hello!!')
     >>> pdu.debug_contents()
         pduData = x'68.65.6c.6c.6f.21.21'
 
@@ -161,7 +166,7 @@ A *put* is an implicit append operation::
 
     >>> pdu.debug_contents()
         pduData = x''
-    >>> pdu.put(104)
+    >>> pdu.put(108)
     >>> pdu.debug_contents()
         pduData = x'6c'
 

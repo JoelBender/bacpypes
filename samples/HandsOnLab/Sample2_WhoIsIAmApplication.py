@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application builds on the first sample by overriding the default 
+This sample application builds on the first sample by overriding the default
 processing for Who-Is and I-Am requests, counting them, then continuing on
 with the regular processing.  After the run() function has completed it will
 dump a formatted summary of the requests it has received.
@@ -14,7 +14,8 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -48,7 +49,7 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         who_is_counter[key] += 1
 
-        # pass back to the default implementation
+        # continue with the default implementation
         BIPSimpleApplication.do_WhoIsRequest(self, apdu)
 
     def do_IAmRequest(self, apdu):
@@ -63,7 +64,8 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         i_am_counter[key] += 1
 
-        # no default implementation
+        # continue with the default implementation
+        BIPSimpleApplication.do_IAmRequest(self, apdu)
 
 #
 #   __main__

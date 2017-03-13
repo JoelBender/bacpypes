@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 
 """
-Sample Application
-==================
-
 This sample application is the simplest BACpypes application that is
 a complete stack.  Using an INI file it will configure a
 LocalDeviceObject, create a SampleApplication instance, and run,
 waiting for a keyboard interrupt or a TERM signal to quit.
-
-There is no input or output for this application, but by adding --debug to
-the command line when it is run you can check the behavior of the stack by
-seeing what is sent and received.
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
@@ -19,10 +12,11 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 #
@@ -58,7 +52,7 @@ class SampleApplication(BIPSimpleApplication):
 #
 
 def main():
-    # parse the command line arguments
+    # parse the command line arguments and initialize loggers
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
     if _debug: _log.debug("initialization")
@@ -71,7 +65,7 @@ def main():
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
-        vendorName="Hello",
+        vendorName="B612",
         )
 
     # make a sample application

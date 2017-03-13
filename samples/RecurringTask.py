@@ -25,12 +25,10 @@ class PrairieDog(RecurringTask):
 
     def __init__(self, dog_number, interval):
         if _debug: PrairieDog._debug("__init__ %r %r", dog_number, interval)
+        RecurringTask.__init__(self, interval)
 
         # save the identity
         self.dog_number = dog_number
-
-        # this is a recurring task
-        RecurringTask.__init__(self, interval)
 
         # install it
         self.install_task()

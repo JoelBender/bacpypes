@@ -68,24 +68,38 @@ essential components of a BACpypes application and how the pieces fit together.
     tutorial/tutorial003.rst
     tutorial/tutorial004.rst
     tutorial/tutorial006.rst
+    tutorial/iocb.rst
+    tutorial/capability.rst
 
+Migration
+---------
 
-Samples
--------
-
-BACpypes comes with a variety of sample applications.  Some are a framework
-for building larger applications.  Some are standalone analysis tools  
-that don't require a connection to a network.
+If you are upgrading your BACpypes applications to a newer version there are
+guidelines of the types of changes you might need to make.
 
 .. toctree::
     :maxdepth: 1
 
-    samples/sample001.rst
-    samples/sample002.rst
-    samples/sample003.rst
-    samples/sample004.rst
-    samples/sample005.rst
-    samples/sample014.rst
+    migration/migration001.rst
+
+Hands-on Lab
+-------------
+
+BACpypes comes with a variety of sample applications.  Some are a framework
+for building larger applications.  Some are standalone analysis tools  
+that don't require a connection to a network. 
+
+The first samples you should have a look too are located inside the 
+`samples/HandsOnLab` folder. Those samples are fully explained in the 
+documentation so you can follow along and get your head around BACpypes.
+
+Other less documented samples are available directly in the `samples`
+folder.
+
+.. toctree::
+    :maxdepth: 1
+
+    samples/sample_index.rst
 
 
 Glossary

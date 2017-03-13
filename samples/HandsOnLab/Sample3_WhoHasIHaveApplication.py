@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application builds on the first sample by overriding the default 
+This sample application builds on the first sample by overriding the default
 processing for Who-Has and I-Have requests, counting them, then continuing on
 with the regular processing.  After the run() function has completed it will
 dump a formatted summary of the requests it has received.  Note that these
@@ -15,7 +15,8 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
