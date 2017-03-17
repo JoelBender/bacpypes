@@ -451,6 +451,62 @@ class ApplicationIOController(IOController, Application):
         self._app_complete(apdu.pduSource, apdu)
 
 #
+#   BIPApplication
+#
+
+class BIPApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
+
+    def __init__(self, localDevice, localAddress, bbmdAddress=None, bbmdTTL=None, deviceInfoCache=None, aseID=None):
+        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
+
+        # include a application decoder
+        self.asap = ApplicationServiceAccessPoint()
+
+        # pass the device object to the state machine access point so it
+        # can know if it should support segmentation
+        self.smap = StateMachineAccessPoint(localDevice)
+
+        # NB: THIS ADDED FROM BIPSIMPLEAPP
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
+
+        # a network service access point will be needed
+        self.nsap = NetworkServiceAccessPoint()
+
+        # give the NSAP a generic network layer service element
+        self.nse = NetworkServiceElement()
+        bind(self.nse, self.nsap)
+
+        # bind the top layers
+        bind(self, self.asap, self.smap, self.nsap)
+
+        # create a generic BIP stack, bound to the Annex J server
+        # on the UDP multiplexer
+        if bbmdAddress is not None:
+            self.bip = BIPForeign(bbmdAddress, bbmdTTL)
+            mux_no_broadcast = True
+        else:
+            self.bip = BIPSimple()
+            mux_no_broadcast = False
+
+        self.annexj = AnnexJCodec()
+        self.mux = UDPMultiplexer(
+            self.localAddress, noBroadcast=mux_no_broadcast)
+
+        # bind the bottom layers
+        bind(self.bip, self.annexj, self.mux.annexJ)
+
+        # bind the NSAP to the stack, no network number
+        self.nsap.bind(self.bip)
+
+#
 #   BIPSimpleApplication
 #
 
