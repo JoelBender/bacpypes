@@ -474,7 +474,6 @@ class BIPApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropert
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(localDevice)
 
-        # NB: THIS ADDED FROM BIPSIMPLEAPP
         # the segmentation state machines need access to the same device
         # information cache as the application
         self.smap.deviceInfoCache = self.deviceInfoCache
