@@ -507,6 +507,12 @@ class BIPApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropert
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
 
+    def close_socket(self):
+        if _debug: BIPApplication._debug("close_socket")
+
+        # pass to the multiplexer, then down to the sockets
+        self.mux.close_socket()
+
 #
 #   BIPSimpleApplication
 #
