@@ -513,112 +513,22 @@ class BIPApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropert
 #
 
 @bacpypes_debugging
-class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
+class BIPSimpleApplication(BIPApplication):
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
-
-        # local address might be useful for subclasses
-        if isinstance(localAddress, Address):
-            self.localAddress = localAddress
-        else:
-            self.localAddress = Address(localAddress)
-
-        # include a application decoder
-        self.asap = ApplicationServiceAccessPoint()
-
-        # pass the device object to the state machine access point so it
-        # can know if it should support segmentation
-        self.smap = StateMachineAccessPoint(localDevice)
-
-        # the segmentation state machines need access to the same device
-        # information cache as the application
-        self.smap.deviceInfoCache = self.deviceInfoCache
-
-        # a network service access point will be needed
-        self.nsap = NetworkServiceAccessPoint()
-
-        # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
-        bind(self.nse, self.nsap)
-
-        # bind the top layers
-        bind(self, self.asap, self.smap, self.nsap)
-
-        # create a generic BIP stack, bound to the Annex J server
-        # on the UDP multiplexer
-        self.bip = BIPSimple()
-        self.annexj = AnnexJCodec()
-        self.mux = UDPMultiplexer(self.localAddress)
-
-        # bind the bottom layers
-        bind(self.bip, self.annexj, self.mux.annexJ)
-
-        # bind the BIP stack to the network, no network number
-        self.nsap.bind(self.bip)
-
-    def close_socket(self):
-        if _debug: BIPSimpleApplication._debug("close_socket")
-
-        # pass to the multiplexer, then down to the sockets
-        self.mux.close_socket()
+        BIPApplication.__init__(self, localDevice, localAddress, deviceInfoCache=deviceInfoCache, aseID=aseID)
 
 #
 #   BIPForeignApplication
 #
 
 @bacpypes_debugging
-class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
+class BIPForeignApplication(BIPApplication):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        ApplicationIOController.__init__(self, localDevice, aseID=aseID)
-
-        # local address might be useful for subclasses
-        if isinstance(localAddress, Address):
-            self.localAddress = localAddress
-        else:
-            self.localAddress = Address(localAddress)
-
-        # include a application decoder
-        self.asap = ApplicationServiceAccessPoint()
-
-        # pass the device object to the state machine access point so it
-        # can know if it should support segmentation
-        self.smap = StateMachineAccessPoint(localDevice)
-
-        # the segmentation state machines need access to the same device
-        # information cache as the application
-        self.smap.deviceInfoCache = self.deviceInfoCache
-
-        # a network service access point will be needed
-        self.nsap = NetworkServiceAccessPoint()
-
-        # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
-        bind(self.nse, self.nsap)
-
-        # bind the top layers
-        bind(self, self.asap, self.smap, self.nsap)
-
-        # create a generic BIP stack, bound to the Annex J server
-        # on the UDP multiplexer
-        self.bip = BIPForeign(bbmdAddress, bbmdTTL)
-        self.annexj = AnnexJCodec()
-        self.mux = UDPMultiplexer(self.localAddress, noBroadcast=True)
-
-        # bind the bottom layers
-        bind(self.bip, self.annexj, self.mux.annexJ)
-
-        # bind the NSAP to the stack, no network number
-        self.nsap.bind(self.bip)
-
-    def close_socket(self):
-        if _debug: BIPForeignApplication._debug("close_socket")
-
-        # pass to the multiplexer, then down to the sockets
-        self.mux.close_socket()
+        BIPApplication.__init__(self, localDevice, localAddress, bbmdAddress=bbmdAddress, bbmdTTL=bbmdTTL, aseID=aseID)
 
 #
 #   BIPNetworkApplication
