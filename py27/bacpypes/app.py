@@ -454,9 +454,11 @@ class ApplicationIOController(IOController, Application):
 #   BIPApplication
 #
 
+@bacpypes_debugging
 class BIPApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, bbmdAddress=None, bbmdTTL=None, deviceInfoCache=None, aseID=None):
+        if _debug: BIPApplication._debug("__init__ %r %r deviceInfoCache=%r %r %r aseID=%r", localDevice, localAddress, deviceInfoCache, bbmdAddress, bbmdTTL, aseID)
         ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
