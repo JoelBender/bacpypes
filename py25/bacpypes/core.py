@@ -29,9 +29,15 @@ sleeptime = 0.0
 
 SPIN = 1.0
 
-def run(spin=SPIN):
-    if _debug: run._debug("run spin=%r", spin)
+def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
+    if _debug: run._debug("run spin=%r sigterm=%r, sigusr1=%r", spin, sigterm, sigusr1)
     global running, taskManager, deferredFns, sleeptime
+
+    # install the signal handlers if they have been provided (issue #112)
+    if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
+        signal.signal(signal.SIGTERM, sigterm)
+    if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
+        signal.signal(signal.SIGUSR1, sigusr1)
 
     # reference the task manager (a singleton)
     taskManager = TaskManager()
@@ -165,10 +171,6 @@ def stop(*args):
 
 bacpypes_debugging(stop)
 
-# set a TERM signal handler
-if hasattr(signal, 'SIGTERM'):
-    signal.signal(signal.SIGTERM, stop)
-
 #
 #   print_stack
 #
@@ -206,10 +208,6 @@ def print_stack(sig, frame):
 
 bacpypes_debugging(print_stack)
 
-# set a USR1 signal handler to print a stack trace
-if hasattr(signal, 'SIGUSR1'):
-    signal.signal(signal.SIGUSR1, print_stack)
-
 #
 #   deferred
 #
@@ -242,3 +240,4 @@ def enable_sleeping(stime=0.001):
     sleeptime = stime
 
 bacpypes_debugging(enable_sleeping)
+
