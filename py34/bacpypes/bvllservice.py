@@ -129,7 +129,7 @@ class UDPMultiplexer:
                 return
 
         elif pdu.pduDestination.addrType == Address.localStationAddr:
-            dest = pdu.pduDestination.addrTuple
+            dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)
 
         else:

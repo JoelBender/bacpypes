@@ -86,7 +86,7 @@ class ReadWritePropertyServices(Capability):
             if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
         except PropertyError:
-            raise ExecutionError(errorClass='object', errorCode='unknownProperty')
+            raise ExecutionError(errorClass='property', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)
@@ -131,7 +131,7 @@ class ReadWritePropertyServices(Capability):
             if _debug: ReadWritePropertyServices._debug("    - resp: %r", resp)
 
         except PropertyError:
-            raise ExecutionError(errorClass='object', errorCode='unknownProperty')
+            raise ExecutionError(errorClass='property', errorCode='unknownProperty')
 
         # return the result
         self.response(resp)

@@ -267,7 +267,7 @@ class Sequence(object):
 
                     # save the result
                     setattr(self, element.name, value)
-                except DecodingError:
+                except (DecodingError, InvalidTag) as err:
                     # if the context tag was matched, the substructure has to be decoded
                     # correctly.
                     if element.context is None and element.optional:
