@@ -1,33 +1,25 @@
 #!/usr/bin/env python
 
 """
-Sample Application
-==================
-
-This sample application is the simplest BACpypes application that is
-a complete stack.  Using an INI file it will configure a
-LocalDeviceObject, create a SampleApplication instance, and run,
-waiting for a keyboard interrupt or a TERM signal to quit.
-
-There is no input or output for this application, but by adding --debug to
-the command line when it is run you can check the behavior of the stack by
-seeing what is sent and received.
+This sample application is a simple BACpypes application that
+presents a console prompt.  Almost identical to the SampleApplication,
+the BACnet application is minimal, but with the console commands
+that match the command line options like 'buggers' and 'debug' the
+user can add debugging "on the fly".
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
+from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-# globals
-this_device = None
-this_application = None
 
 #
 #   SampleApplication
@@ -58,10 +50,22 @@ class SampleApplication(BIPSimpleApplication):
 
 
 #
+#   SampleConsoleCmd
+#
+
+@bacpypes_debugging
+class SampleConsoleCmd(ConsoleCmd):
+
+    def do_nothing(self, args):
+        """nothing can be done"""
+        args = args.split()
+        if _debug: SampleConsoleCmd._debug("do_nothing %r", args)
+            
+#
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -75,12 +79,10 @@ try:
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
-        vendorName="Hello",
         )
 
     # make a sample application
     this_application = SampleApplication(this_device, args.ini.address)
-    if _debug: _log.debug("    - this_application: %r", this_application)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -89,12 +91,18 @@ try:
     # let the device object know
     this_device.protocolServicesSupported = services_supported.value
 
+    # make a console
+    this_console = SampleConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
     run()
 
-except Exception as err:
-    _log.exception("an error has occurred: %s", err)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+if __name__ == "__main__":
+    main()

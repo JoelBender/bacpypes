@@ -50,14 +50,23 @@ class ConsoleClient(asyncore.file_dispatcher, Client):
 
     def handle_read(self):
         if _debug: deferred(ConsoleClient._debug, "handle_read")
-        data = sys.stdin.read()
+
+        # read from stdin and encode it
+        data = sys.stdin.read().encode('utf-8')
         if _debug: deferred(ConsoleClient._debug, "    - data: %r", data)
+
+        # make a PDU and send it downstream
         deferred(self.request, PDU(data))
 
     def confirmation(self, pdu):
         if _debug: deferred(ConsoleClient._debug, "confirmation %r", pdu)
         try:
-            sys.stdout.write(pdu.pduData)
+            # decode the data
+            data = pdu.pduData.decode('utf-8')
+            if _debug: deferred(ConsoleClient._debug, "    - data: %r", data)
+
+            # send it out
+            sys.stdout.write(data)
         except Exception as err:
             ConsoleClient._exception("Confirmation sys.stdout.write exception: %r", err)
 
@@ -81,13 +90,22 @@ class ConsoleServer(asyncore.file_dispatcher, Server):
 
     def handle_read(self):
         if _debug: deferred(ConsoleServer._debug, "handle_read")
-        data = sys.stdin.read()
+
+        # read from stdin and encode it
+        data = sys.stdin.read().encode('utf-8')
         if _debug: deferred(ConsoleServer._debug, "    - data: %r", data)
+
+        # make a PDU and send it upstream
         deferred(self.response, PDU(data))
 
     def indication(self, pdu):
-        if _debug: deferred(ConsoleServer._debug, "Indication %r", pdu)
+        if _debug: deferred(ConsoleServer._debug, "indication %r", pdu)
         try:
-            sys.stdout.write(pdu.pduData)
+            # decode the data
+            data = pdu.pduData.decode('utf-8')
+            if _debug: deferred(ConsoleServer._debug, "    - data: %r", data)
+
+            # send it out
+            sys.stdout.write(data)
         except Exception as err:
-            ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)
+            ConsoleServer._exception("indication sys.stdout.write exception: %r", err)

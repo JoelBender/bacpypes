@@ -5,6 +5,8 @@ Object
 """
 
 import sys
+from copy import copy as _copy
+from collections import defaultdict
 
 from .errors import ConfigurationError, ExecutionError, \
     InvalidParameterDatatype
@@ -172,8 +174,11 @@ class Property(Logging):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
             if value is not None:
-                # dive in, the water's fine
-                value = value[arrayIndex]
+                try:
+                    # dive in, the water's fine
+                    value = value[arrayIndex]
+                except IndexError:
+                    raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
         # all set
         return value
@@ -209,6 +214,9 @@ class Property(Logging):
                         self.identifier, self.datatype.__name__,
                         ))
 
+        # local check if the property is monitored
+        is_monitored = self.identifier in obj._property_monitors
+
         if arrayIndex is not None:
             if not issubclass(self.datatype, Array):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
@@ -218,14 +226,34 @@ class Property(Logging):
             if arry is None:
                 raise RuntimeError("%s uninitialized array" % (self.identifier,))
 
+            if is_monitored:
+                old_value = _copy(arry)
+
             # seems to be OK, let the array object take over
             if _debug: Property._debug("    - forwarding to array")
-            arry[arrayIndex] = value
+            try:
+                arry[arrayIndex] = value
+            except IndexError:
+                raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
-            return
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, arry)
 
-        # seems to be OK
-        obj._values[self.identifier] = value
+        else:
+            if is_monitored:
+                old_value = obj._values.get(self.identifier, None)
+
+            # seems to be OK
+            obj._values[self.identifier] = value
+
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, value)
 
 #
 #   StandardProperty
@@ -358,6 +386,9 @@ class Object(Logging):
         # start with a clean dict of values
         self._values = {}
 
+        # empty list of property monitors
+        self._property_monitors = defaultdict(list)
+
         # start with a clean array of property identifiers
         if 'propertyList' in initargs:
             propertyList = None
@@ -432,6 +463,49 @@ class Object(Logging):
         if _debug: Object._debug("    - deferring to %r", prop)
 
         return prop.WriteProperty(self, value, direct=True)
+
+    def add_property(self, prop):
+        """Add a property to an object.  The property is an instance of
+        a Property or one of its derived classes.  Adding a property
+        disconnects it from the collection of properties common to all of the
+        objects of its class."""
+        if _debug: Object._debug("add_property %r", prop)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # save the property reference and default value (usually None)
+        self._properties[prop.identifier] = prop
+        self._values[prop.identifier] = prop.default
+
+        # tell the object it has a new property
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier not in property_list:
+                if _debug: Object._debug("    - adding to property list")
+                property_list.append(prop.identifier)
+
+    def delete_property(self, prop):
+        """Delete a property from an object.  The property is an instance of
+        a Property or one of its derived classes, but only the property
+        is relavent.  Deleting a property disconnects it from the collection of
+        properties common to all of the objects of its class."""
+        if _debug: Object._debug("delete_property %r", value)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # delete the property from the dictionary and values
+        del self._properties[prop.identifier]
+        if prop.identifier in self._values:
+            del self._values[prop.identifier]
+
+        # remove the property identifier from its list of know properties
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier in property_list:
+                if _debug: Object._debug("    - removing from property list")
+                property_list.remove(prop.identifier)
 
     def ReadProperty(self, propid, arrayIndex=None):
         if _debug: Object._debug("ReadProperty %r arrayIndex=%r", propid, arrayIndex)
@@ -522,13 +596,14 @@ class Object(Logging):
                 file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
             previous_attrs = attrs
 
-        # build a list of properties "bottom up"
+        # build a list of property identifiers "bottom up"
         property_names = []
+        properties_seen = set()
         for c in klasses:
-            properties = getattr(c, 'properties', [])
-            for property in properties:
-                if property.identifier not in property_names:
-                    property_names.append(property.identifier)
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
         # print out the values
         for property_name in property_names:
@@ -1282,6 +1357,7 @@ class DeviceObject(Object):
         , OptionalProperty('timeSynchronizationInterval', Unsigned)
         , OptionalProperty('alignIntervals', Boolean)
         , OptionalProperty('intervalOffset', Unsigned)
+        , OptionalProperty('serialNumber', CharacterString)
         ]
 
 register_object_type(DeviceObject)

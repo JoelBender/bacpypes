@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application builds on the first sample by overriding the default 
+This sample application builds on the first sample by overriding the default
 processing for Who-Has and I-Have requests, counting them, then continuing on
 with the regular processing.  After the run() function has completed it will
 dump a formatted summary of the requests it has received.  Note that these
@@ -15,15 +15,12 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-# globals
-this_device = None
-this_application = None
 
 # counters
 who_has_counter = defaultdict(int)
@@ -76,7 +73,7 @@ class WhoHasIHaveApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -107,6 +104,8 @@ try:
     # run until stopped, ^C works
     run()
 
+    _log.debug("fini")
+
     print("----- Who Has -----")
     for (src, objname), count in sorted(who_has_counter.items()):
         print("%-20s %-30s %4d" % (src, objname, count))
@@ -117,7 +116,5 @@ try:
         print("%-20s %-20s %-20s %-20s %4d" % (src, devid, objid, objname, count))
     print("")
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+if __name__ == "__main__":
+    main()

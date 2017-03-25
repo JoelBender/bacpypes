@@ -201,7 +201,7 @@ class Sequence(object):
                 else:
                     if tag.tagClass != Tag.applicationTagClass or tag.tagNumber != element.klass._app_tag:
                         if not element.optional:
-                            raise InvalidParameterDatatype("'%s' expected application tag %s" % (element.name, Tag._app_tag_name[element.klass._app_tag]))
+                            raise InvalidParameterDatatype("%s expected application tag %s" % (element.name, Tag._app_tag_name[element.klass._app_tag]))
                         else:
                             setattr(self, element.name, None)
                             continue
@@ -266,7 +266,7 @@ class Sequence(object):
 
                     # save the result
                     setattr(self, element.name, value)
-                except DecodingError:
+                except (DecodingError, InvalidTag), err:
                     # if the context tag was matched, the substructure has to be decoded
                     # correctly.
                     if element.context is None and element.optional:
@@ -291,7 +291,7 @@ class Sequence(object):
             if element.optional and value is None:
                 continue
             if not element.optional and value is None:
-                file.write("%s%s is a required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
+                file.write("%s%s is a missing required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
                 continue
 
             if element.klass in _sequence_of_classes:

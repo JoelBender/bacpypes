@@ -5,18 +5,12 @@ This sample application presents itself as a BBMD sitting on an IP network
 that is also a router to a VLAN.  The VLAN has a device on it with an analog
 value object that returns a random value for the present value.
 
-$ python BBMD2VLANRouter.py addr1 net1 addr2 net2
-
-    addr1       - local address like 192.168.1.2/24:47808
-    net1        - network number
-    addr2       - local address like 12
-    net2        - network number
-
 Note that the device instance number of the virtual device will be 100 times
 the network number plus the address (net2 * 100 + addr2).
 """
 
 import random
+import argparse
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
@@ -28,8 +22,10 @@ from bacpypes.pdu import Address
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
-from bacpypes.app import LocalDeviceObject, Application
+from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
+from bacpypes.service.device import LocalDeviceObject, WhoIsIAmServices
+from bacpypes.service.object import ReadWritePropertyServices
 
 from bacpypes.primitivedata import Real
 from bacpypes.object import AnalogValueObject, Property
@@ -89,7 +85,7 @@ class RandomAnalogValueObject(AnalogValueObject):
 #
 
 @bacpypes_debugging
-class VLANApplication(Application):
+class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
@@ -101,6 +97,10 @@ class VLANApplication(Application):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(vlan_device)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -151,7 +151,7 @@ class VLANRouter:
         self.nse = NetworkServiceElement()
         bind(self.nse, self.nsap)
 
-        # create a BBMD, bound to the Annex J server 
+        # create a BBMD, bound to the Annex J server
         # on the UDP multiplexer
         self.bip = BIPBBMD(local_address)
         self.annexj = AnnexJCodec()
@@ -169,7 +169,10 @@ class VLANRouter:
 
 def main():
     # parse the command line arguments
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
 
     # add an argument for interval
     parser.add_argument('addr1', type=str,

@@ -108,12 +108,12 @@ class PDUData(object):
         super(PDUData, self).__init__(*args, **kwargs)
 
         # function acts like a copy constructor
-        if isinstance(data, PDUData) or isinstance(data, PDU):
-            self.pduData = _copy(data.pduData)
-        elif data is None:
+        if data is None:
             self.pduData = ''
         elif isinstance(data, str):
             self.pduData = data
+        elif isinstance(data, PDUData) or isinstance(data, PDU):
+            self.pduData = _copy(data.pduData)
         else:
             raise TypeError("string expected")
 
@@ -198,7 +198,7 @@ bacpypes_debugging(PDUData)
 
 class PDU(PCI, PDUData):
 
-    def __init__(self, data='', **kwargs):
+    def __init__(self, data=None, **kwargs):
         if _debug: PDU._debug("__init__ %r %r", data, kwargs)
 
         # pick up some optional kwargs

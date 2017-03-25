@@ -102,6 +102,14 @@ class UDPMultiplexer:
         self.annexH = _MultiplexServer(self)
         self.annexJ = _MultiplexServer(self)
 
+    def close_socket(self):
+        if _debug: UDPMultiplexer._debug("close_socket")
+
+        # pass along the close to the director(s)
+        self.directPort.close_socket()
+        if self.broadcastPort:
+            self.broadcastPort.close_socket()
+
     def indication(self, server, pdu):
         if _debug: UDPMultiplexer._debug("indication %r %r", server, pdu)
 
@@ -110,7 +118,7 @@ class UDPMultiplexer:
             dest = self.addrBroadcastTuple
             if _debug: UDPMultiplexer._debug("    - requesting local broadcast: %r", dest)
         elif pdu.pduDestination.addrType == Address.localStationAddr:
-            dest = pdu.pduDestination.addrTuple
+            dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)
         else:
             raise RuntimeError("invalid destination address type")

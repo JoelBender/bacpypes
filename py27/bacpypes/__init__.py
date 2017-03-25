@@ -18,7 +18,7 @@ if _sys.platform not in _supported_platforms:
 #   Project Metadata
 #
 
-__version__ = '0.14.0'
+__version__ = '0.15.2'
 __author__ = 'Joel Bender'
 __email__ = 'joel@carrickbender.com'
 
@@ -29,6 +29,8 @@ __email__ = 'joel@carrickbender.com'
 from . import comm
 from . import task
 from . import singleton
+from . import capability
+from . import iocb
 
 #
 #   Link Layer Modules
@@ -67,6 +69,7 @@ from . import apdu
 
 from . import app
 from . import appservice
+from . import service
 
 #
 #   Analysis

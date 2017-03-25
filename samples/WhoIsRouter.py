@@ -13,6 +13,7 @@ from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork
+
 from bacpypes.app import BIPNetworkApplication
 
 # some debugging
@@ -34,16 +35,8 @@ class WhoIsRouterApplication(BIPNetworkApplication):
         if _debug: WhoIsRouterApplication._debug("__init__ %r", args)
         BIPNetworkApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
-
     def request(self, adapter, npdu):
         if _debug: WhoIsRouterApplication._debug("request %r %r", adapter, npdu)
-
-        # save a copy of the request
-        self._request = npdu
-
-        # forward it along
         BIPNetworkApplication.request(self, adapter, npdu)
 
     def indication(self, adapter, npdu):
@@ -103,7 +96,9 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -125,7 +120,7 @@ try:
 
     run()
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

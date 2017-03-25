@@ -4,38 +4,34 @@
 Application Module
 """
 
+import warnings
+
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from .comm import ApplicationServiceElement, bind
+from .iocb import IOController, SieveQueue
 
-from .pdu import Address, LocalStation, RemoteStation
+from .pdu import Address
 
-from .primitivedata import Atomic, Date, Null, ObjectIdentifier, Time, Unsigned
-from .constructeddata import Any, Array, ArrayOf
+from .primitivedata import ObjectIdentifier
 
+from .capability import Collector
 from .appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from .netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from .bvllservice import BIPSimple, BIPForeign, AnnexJCodec, UDPMultiplexer
 
-from .object import Property, PropertyError, DeviceObject, \
-    registered_object_types, register_object_type
-from .apdu import ConfirmedRequestPDU, SimpleAckPDU, RejectPDU, RejectReason
-from .apdu import IAmRequest, ReadPropertyACK, Error
-from .errors import ExecutionError, \
-    RejectException, UnrecognizedService, MissingRequiredParameter, \
-        ParameterOutOfRange, \
-    AbortException
+from .apdu import UnconfirmedRequestPDU, ConfirmedRequestPDU, \
+    SimpleAckPDU, ComplexAckPDU, ErrorPDU, RejectPDU, AbortPDU, Error
+
+from .errors import ExecutionError, UnrecognizedService, AbortException, RejectException
 
 # for computing protocol services supported
 from .apdu import confirmed_request_types, unconfirmed_request_types, \
     ConfirmedServiceChoice, UnconfirmedServiceChoice
 from .basetypes import ServicesSupported
 
-from .apdu import \
-    AtomicReadFileACK, \
-        AtomicReadFileACKAccessMethodChoice, \
-            AtomicReadFileACKAccessMethodRecordAccess, \
-            AtomicReadFileACKAccessMethodStreamAccess, \
-    AtomicWriteFileACK
+# basic services
+from .service.device import WhoIsIAmServices
+from .service.object import ReadWritePropertyServices
 
 # some debugging
 _debug = 0
@@ -111,7 +107,7 @@ class DeviceInfoCache:
             info.deviceIdentifier = apdu.iAmDeviceIdentifier[1]
 
         # update the rest of the values
-        info.maxApduLengthAccepted = apdu.maxApduLengthAccepted
+        info.maxApduLengthAccepted = apdu.maxAPDULengthAccepted
         info.segmentationSupported = apdu.segmentationSupported
         info.vendorID = apdu.vendorID
 
@@ -149,7 +145,7 @@ class DeviceInfoCache:
     def update_device_info(self, info):
         """The application has updated one or more fields in the device
         information record and the cache needs to be updated to reflect the
-        changes.  If this is a cached version of a persistent record then this 
+        changes.  If this is a cached version of a persistent record then this
         is the opportunity to update the database."""
         if _debug: DeviceInfoCache._debug("update_device_info %r", info)
 
@@ -188,138 +184,52 @@ class DeviceInfoCache:
             del self.cache[cache_address]
 
 #
-#   CurrentDateProperty
-#
-
-class CurrentDateProperty(Property):
-
-    def __init__(self, identifier):
-        Property.__init__(self, identifier, Date, default=None, optional=True, mutable=False)
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        # access an array
-        if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
-
-        # get the value
-        now = Date()
-        now.now()
-        return now.value
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   CurrentTimeProperty
-#
-
-class CurrentTimeProperty(Property):
-
-    def __init__(self, identifier):
-        Property.__init__(self, identifier, Time, default=None, optional=True, mutable=False)
-
-    def ReadProperty(self, obj, arrayIndex=None):
-        # access an array
-        if arrayIndex is not None:
-            raise TypeError("{0} is unsubscriptable".format(self.identifier))
-
-        # get the value
-        now = Time()
-        now.now()
-        return now.value
-
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
-
-#
-#   LocalDeviceObject
-#
-
-@bacpypes_debugging
-class LocalDeviceObject(DeviceObject):
-
-    properties = \
-        [ CurrentTimeProperty('localTime')
-        , CurrentDateProperty('localDate')
-        ]
-
-    defaultProperties = \
-        { 'maxApduLengthAccepted': 1024
-        , 'segmentationSupported': 'segmentedBoth'
-        , 'maxSegmentsAccepted': 16
-        , 'apduSegmentTimeout': 20000
-        , 'apduTimeout': 3000
-        , 'numberOfApduRetries': 3
-        }
-
-    def __init__(self, **kwargs):
-        if _debug: LocalDeviceObject._debug("__init__ %r", kwargs)
-
-        # fill in default property values not in kwargs
-        for attr, value in LocalDeviceObject.defaultProperties.items():
-            if attr not in kwargs:
-                kwargs[attr] = value
-
-        # check for registration
-        if self.__class__ not in registered_object_types.values():
-            if 'vendorIdentifier' not in kwargs:
-                raise RuntimeError("vendorIdentifier required to auto-register the LocalDeviceObject class")
-            register_object_type(self.__class__, vendor_id=kwargs['vendorIdentifier'])
-
-        # check for local time
-        if 'localDate' in kwargs:
-            raise RuntimeError("localDate is provided by LocalDeviceObject and cannot be overridden")
-        if 'localTime' in kwargs:
-            raise RuntimeError("localTime is provided by LocalDeviceObject and cannot be overridden")
-
-        # proceed as usual
-        DeviceObject.__init__(self, **kwargs)
-
-        # create a default implementation of an object list for local devices.
-        # If it is specified in the kwargs, that overrides this default.
-        if ('objectList' not in kwargs):
-            self.objectList = ArrayOf(ObjectIdentifier)([self.objectIdentifier])
-
-            # if the object has a property list and one wasn't provided
-            # in the kwargs, then it was created by default and the objectList
-            # property should be included
-            if ('propertyList' not in kwargs) and self.propertyList:
-                # make sure it's not already there
-                if 'objectList' not in self.propertyList:
-                    self.propertyList.append('objectList')
-
-#
 #   Application
 #
 
 @bacpypes_debugging
-class Application(ApplicationServiceElement):
+class Application(ApplicationServiceElement, Collector):
 
-    def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
+    def __init__(self, localDevice=None, localAddress=None, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
 
+        # local objects by ID and name
+        self.objectName = {}
+        self.objectIdentifier = {}
+
         # keep track of the local device
-        self.localDevice = localDevice
+        if localDevice:
+            self.localDevice = localDevice
+
+            # bind the device object to this application
+            localDevice._app = self
+
+            # local objects by ID and name
+            self.objectName[localDevice.objectName] = localDevice
+            self.objectIdentifier[localDevice.objectIdentifier] = localDevice
+
+        # local address deprecated, but continue to use the old initializer
+        if localAddress is not None:
+            warnings.warn(
+                "local address at the application layer deprecated",
+                DeprecationWarning,
+                )
+
+            # allow the address to be cast to the correct type
+            if isinstance(localAddress, Address):
+                self.localAddress = localAddress
+            else:
+                self.localAddress = Address(localAddress)
 
         # use the provided cache or make a default one
-        if deviceInfoCache:
-            self.deviceInfoCache = deviceInfoCache
-        else:
-            self.deviceInfoCache = DeviceInfoCache()
+        self.deviceInfoCache = deviceInfoCache or DeviceInfoCache()
 
-        # bind the device object to this application
-        localDevice._app = self
+        # controllers for managing confirmed requests as a client
+        self.controllers = {}
 
-        # allow the address to be cast to the correct type
-        if isinstance(localAddress, Address):
-            self.localAddress = localAddress
-        else:
-            self.localAddress = Address(localAddress)
-
-        # local objects by ID and name
-        self.objectName = {localDevice.objectName:localDevice}
-        self.objectIdentifier = {localDevice.objectIdentifier:localDevice}
+        # now set up the rest of the capabilities
+        Collector.__init__(self)
 
     def add_object(self, obj):
         """Add an object to the local collection."""
@@ -347,8 +257,10 @@ class Application(ApplicationServiceElement):
         self.objectName[object_name] = obj
         self.objectIdentifier[object_identifier] = obj
 
-        # append the new object's identifier to the device's object list
-        self.localDevice.objectList.append(object_identifier)
+        # append the new object's identifier to the local device's object list
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            self.localDevice.objectList.append(object_identifier)
 
         # let the object know which application stack it belongs to
         obj._app = self
@@ -366,8 +278,10 @@ class Application(ApplicationServiceElement):
         del self.objectIdentifier[object_identifier]
 
         # remove the object's identifier from the device's object list
-        indx = self.localDevice.objectList.index(object_identifier)
-        del self.localDevice.objectList[indx]
+        # if there is one and it has an object list property
+        if self.localDevice and self.localDevice.objectList:
+            indx = self.localDevice.objectList.index(object_identifier)
+            del self.localDevice.objectList[indx]
 
         # make sure the object knows it's detached from an application
         obj._app = None
@@ -410,6 +324,16 @@ class Application(ApplicationServiceElement):
 
     #-----
 
+    def request(self, apdu):
+        if _debug: Application._debug("request %r", apdu)
+
+        # double check the input is the right kind of APDU
+        if not isinstance(apdu, (UnconfirmedRequestPDU, ConfirmedRequestPDU)):
+            raise TypeError("APDU expected")
+
+        # continue
+        super(Application, self).request(apdu)
+
     def indication(self, apdu):
         if _debug: Application._debug("indication %r", apdu)
 
@@ -449,345 +373,99 @@ class Application(ApplicationServiceElement):
                 resp = Error(errorClass='device', errorCode='operationalProblem', context=apdu)
                 self.response(resp)
 
-    def do_WhoIsRequest(self, apdu):
-        """Respond to a Who-Is request."""
-        if _debug: Application._debug("do_WhoIsRequest %r", apdu)
+#
+#   ApplicationIOController
+#
 
-        # extract the parameters
-        low_limit = apdu.deviceInstanceRangeLowLimit
-        high_limit = apdu.deviceInstanceRangeHighLimit
+@bacpypes_debugging
+class ApplicationIOController(IOController, Application):
 
-        # check for consistent parameters
-        if (low_limit is not None):
-            if (high_limit is None):
-                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
-            if (low_limit < 0) or (low_limit > 4194303):
-                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
-        if (high_limit is not None):
-            if (low_limit is None):
-                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
-            if (high_limit < 0) or (high_limit > 4194303):
-                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
+    def __init__(self, *args, **kwargs):
+        if _debug: ApplicationIOController._debug("__init__")
+        IOController.__init__(self)
+        Application.__init__(self, *args, **kwargs)
 
-        # see we should respond
-        if (low_limit is not None):
-            if (self.localDevice.objectIdentifier[1] < low_limit):
-                return
-        if (high_limit is not None):
-            if (self.localDevice.objectIdentifier[1] > high_limit):
-                return
+        # queues for each address
+        self.queue_by_address = {}
 
-        # create a I-Am "response" back to the source
-        iAm = IAmRequest()
-        iAm.pduDestination = apdu.pduSource
-        iAm.iAmDeviceIdentifier = self.localDevice.objectIdentifier
-        iAm.maxAPDULengthAccepted = self.localDevice.maxApduLengthAccepted
-        iAm.segmentationSupported = self.localDevice.segmentationSupported
-        iAm.vendorID = self.localDevice.vendorIdentifier
-        if _debug: Application._debug("    - iAm: %r", iAm)
+    def process_io(self, iocb):
+        if _debug: ApplicationIOController._debug("process_io %r", iocb)
 
-        # away it goes
-        self.request(iAm)
+        # get the destination address from the pdu
+        destination_address = iocb.args[0].pduDestination
+        if _debug: ApplicationIOController._debug("    - destination_address: %r", destination_address)
 
-    def do_IAmRequest(self, apdu):
-        """Respond to an I-Am request."""
-        if _debug: Application._debug("do_IAmRequest %r", apdu)
+        # look up the queue
+        queue = self.queue_by_address.get(destination_address, None)
+        if not queue:
+            queue = SieveQueue(self.request, destination_address)
+            self.queue_by_address[destination_address] = queue
+        if _debug: ApplicationIOController._debug("    - queue: %r", queue)
 
-    def do_ReadPropertyRequest(self, apdu):
-        """Return the value of some property of one of our objects."""
-        if _debug: Application._debug("do_ReadPropertyRequest %r", apdu)
+        # ask the queue to process the request
+        queue.request_io(iocb)
 
-        # extract the object identifier
-        objId = apdu.objectIdentifier
+    def _app_complete(self, address, apdu):
+        if _debug: ApplicationIOController._debug("_app_complete %r %r", address, apdu)
 
-        # check for wildcard
-        if (objId == ('device', 4194303)):
-            if _debug: Application._debug("    - wildcard device identifier")
-            objId = self.localDevice.objectIdentifier
+        # look up the queue
+        queue = self.queue_by_address.get(address, None)
+        if not queue:
+            ApplicationIOController._debug("no queue for %r" % (address,))
+            return
+        if _debug: ApplicationIOController._debug("    - queue: %r", queue)
 
-        # get the object
-        obj = self.get_object_id(objId)
-        if _debug: Application._debug("    - object: %r", obj)
-
-        if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        else:
-            try:
-                # get the datatype
-                datatype = obj.get_datatype(apdu.propertyIdentifier)
-                if _debug: Application._debug("    - datatype: %r", datatype)
-
-                # get the value
-                value = obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex)
-                if _debug: Application._debug("    - value: %r", value)
-                if value is None:
-                    raise PropertyError(apdu.propertyIdentifier)
-
-                # change atomic values into something encodeable
-                if issubclass(datatype, Atomic):
-                    value = datatype(value)
-                elif issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                    if apdu.propertyArrayIndex == 0:
-                        value = Unsigned(value)
-                    elif issubclass(datatype.subtype, Atomic):
-                        value = datatype.subtype(value)
-                    elif not isinstance(value, datatype.subtype):
-                        raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                            .format(datatype.subtype.__name__, type(value).__name__))
-                elif not isinstance(value, datatype):
-                    raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                        .format(datatype.__name__, type(value).__name__))
-                if _debug: Application._debug("    - encodeable value: %r", value)
-
-                # this is a ReadProperty ack
-                resp = ReadPropertyACK(context=apdu)
-                resp.objectIdentifier = objId
-                resp.propertyIdentifier = apdu.propertyIdentifier
-                resp.propertyArrayIndex = apdu.propertyArrayIndex
-
-                # save the result in the property value
-                resp.propertyValue = Any()
-                resp.propertyValue.cast_in(value)
-
-            except PropertyError:
-                resp = Error(errorClass='object', errorCode='unknownProperty', context=apdu)
-        if _debug: Application._debug("    - resp: %r", resp)
-
-        # return the result
-        self.response(resp)
-
-    def do_WritePropertyRequest(self, apdu):
-        """Change the value of some property of one of our objects."""
-        if _debug: Application._debug("do_WritePropertyRequest %r", apdu)
-
-        # get the object
-        obj = self.get_object_id(apdu.objectIdentifier)
-        if _debug: Application._debug("    - object: %r", obj)
-
-        if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        else:
-            try:
-                # check if the property exists
-                if obj.ReadProperty(apdu.propertyIdentifier, apdu.propertyArrayIndex) is None:
-                    raise PropertyError(apdu.propertyIdentifier)
-
-                # get the datatype, special case for null
-                if apdu.propertyValue.is_application_class_null():
-                    datatype = Null
-                else:
-                    datatype = obj.get_datatype(apdu.propertyIdentifier)
-                if _debug: Application._debug("    - datatype: %r", datatype)
-
-                # special case for array parts, others are managed by cast_out
-                if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                    if apdu.propertyArrayIndex == 0:
-                        value = apdu.propertyValue.cast_out(Unsigned)
-                    else:
-                        value = apdu.propertyValue.cast_out(datatype.subtype)
-                else:
-                    value = apdu.propertyValue.cast_out(datatype)
-                if _debug: Application._debug("    - value: %r", value)
-
-                # change the value
-                value = obj.WriteProperty(apdu.propertyIdentifier, value, apdu.propertyArrayIndex, apdu.priority)
-
-                # success
-                resp = SimpleAckPDU(context=apdu)
-
-            except PropertyError:
-                resp = Error(errorClass='object', errorCode='unknownProperty', context=apdu)
-        if _debug: Application._debug("    - resp: %r", resp)
-
-        # return the result
-        self.response(resp)
-
-    def do_AtomicReadFileRequest(self, apdu):
-        """Return one of our records."""
-        if _debug: Application._debug("do_AtomicReadFileRequest %r", apdu)
-
-        if (apdu.fileIdentifier[0] != 'file'):
-            resp = Error(errorClass='services', errorCode='inconsistentObjectType', context=apdu)
-            if _debug: Application._debug("    - error resp: %r", resp)
-            self.response(resp)
+        # make sure it has an active iocb
+        if not queue.active_iocb:
+            ApplicationIOController._debug("no active request for %r" % (address,))
             return
 
-        # get the object
-        obj = self.get_object_id(apdu.fileIdentifier)
-        if _debug: Application._debug("    - object: %r", obj)
+        # this request is complete
+        if isinstance(apdu, (None.__class__, SimpleAckPDU, ComplexAckPDU)):
+            queue.complete_io(queue.active_iocb, apdu)
+        elif isinstance(apdu, (ErrorPDU, RejectPDU, AbortPDU)):
+            queue.abort_io(queue.active_iocb, apdu)
+        else:
+            raise RuntimeError("unrecognized APDU type")
+        if _debug: Application._debug("    - controller finished")
 
-        if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        elif apdu.accessMethod.recordAccess:
-            # check against the object
-            if obj.fileAccessMethod != 'recordAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-            ### verify start is valid - double check this (empty files?)
-            elif (apdu.accessMethod.recordAccess.fileStartRecord < 0) or \
-                    (apdu.accessMethod.recordAccess.fileStartRecord >= len(obj)):
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileStartPosition',
-                    context=apdu
-                    )
-            else:
-                # pass along to the object
-                end_of_file, record_data = obj.ReadFile(
-                    apdu.accessMethod.recordAccess.fileStartRecord,
-                    apdu.accessMethod.recordAccess.requestedRecordCount,
-                    )
-                if _debug: Application._debug("    - record_data: %r", record_data)
+        # if the queue is empty and idle, forget about the controller
+        if not queue.ioQueue.queue and not queue.active_iocb:
+            if _debug: ApplicationIOController._debug("    - queue is empty")
+            del self.queue_by_address[address]
 
-                # this is an ack
-                resp = AtomicReadFileACK(context=apdu,
-                    endOfFile=end_of_file,
-                    accessMethod=AtomicReadFileACKAccessMethodChoice(
-                        recordAccess=AtomicReadFileACKAccessMethodRecordAccess(
-                            fileStartRecord=apdu.accessMethod.recordAccess.fileStartRecord,
-                            returnedRecordCount=len(record_data),
-                            fileRecordData=record_data,
-                            ),
-                        ),
-                    )
+    def request(self, apdu):
+        if _debug: ApplicationIOController._debug("request %r", apdu)
 
-        elif apdu.accessMethod.streamAccess:
-            # check against the object
-            if obj.fileAccessMethod != 'streamAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-            ### verify start is valid - double check this (empty files?)
-            elif (apdu.accessMethod.streamAccess.fileStartPosition < 0) or \
-                    (apdu.accessMethod.streamAccess.fileStartPosition >= len(obj)):
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileStartPosition',
-                    context=apdu
-                    )
-            else:
-                # pass along to the object
-                end_of_file, record_data = obj.ReadFile(
-                    apdu.accessMethod.streamAccess.fileStartPosition,
-                    apdu.accessMethod.streamAccess.requestedOctetCount,
-                    )
-                if _debug: Application._debug("    - record_data: %r", record_data)
+        # send it downstream
+        super(ApplicationIOController, self).request(apdu)
 
-                # this is an ack
-                resp = AtomicReadFileACK(context=apdu,
-                    endOfFile=end_of_file,
-                    accessMethod=AtomicReadFileACKAccessMethodChoice(
-                        streamAccess=AtomicReadFileACKAccessMethodStreamAccess(
-                            fileStartPosition=apdu.accessMethod.streamAccess.fileStartPosition,
-                            fileData=record_data,
-                            ),
-                        ),
-                    )
+        # if this was an unconfirmed request, it's complete, no message
+        if isinstance(apdu, UnconfirmedRequestPDU):
+            self._app_complete(apdu.pduDestination, None)
 
-        if _debug: Application._debug("    - resp: %r", resp)
+    def confirmation(self, apdu):
+        if _debug: ApplicationIOController._debug("confirmation %r", apdu)
 
-        # return the result
-        self.response(resp)
-
-    def do_AtomicWriteFileRequest(self, apdu):
-        """Return one of our records."""
-        if _debug: Application._debug("do_AtomicWriteFileRequest %r", apdu)
-
-        if (apdu.fileIdentifier[0] != 'file'):
-            resp = Error(errorClass='services', errorCode='inconsistentObjectType', context=apdu)
-            if _debug: Application._debug("    - error resp: %r", resp)
-            self.response(resp)
-            return
-
-        # get the object
-        obj = self.get_object_id(apdu.fileIdentifier)
-        if _debug: Application._debug("    - object: %r", obj)
-
-        if not obj:
-            resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-        elif apdu.accessMethod.recordAccess:
-            # check against the object
-            if obj.fileAccessMethod != 'recordAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-                if _debug: Application._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
-
-            # check for read-only
-            if obj.readOnly:
-                resp = Error(errorClass='services',
-                    errorCode='fileAccessDenied',
-                    context=apdu
-                    )
-                if _debug: Application._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
-
-            # pass along to the object
-            start_record = obj.WriteFile(
-                apdu.accessMethod.recordAccess.fileStartRecord,
-                apdu.accessMethod.recordAccess.recordCount,
-                apdu.accessMethod.recordAccess.fileRecordData,
-                )
-            if _debug: Application._debug("    - start_record: %r", start_record)
-
-            # this is an ack
-            resp = AtomicWriteFileACK(context=apdu,
-                fileStartRecord=start_record,
-                )
-
-        elif apdu.accessMethod.streamAccess:
-            # check against the object
-            if obj.fileAccessMethod != 'streamAccess':
-                resp = Error(errorClass='services',
-                    errorCode='invalidFileAccessMethod',
-                    context=apdu
-                    )
-                if _debug: Application._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
-
-            # check for read-only
-            if obj.readOnly:
-                resp = Error(errorClass='services',
-                    errorCode='fileAccessDenied',
-                    context=apdu
-                    )
-                if _debug: Application._debug("    - error resp: %r", resp)
-                self.response(resp)
-                return
-
-            # pass along to the object
-            start_position = obj.WriteFile(
-                apdu.accessMethod.streamAccess.fileStartPosition,
-                apdu.accessMethod.streamAccess.fileData,
-                )
-            if _debug: Application._debug("    - start_position: %r", start_position)
-
-            # this is an ack
-            resp = AtomicWriteFileACK(context=apdu,
-                fileStartPosition=start_position,
-                )
-
-        if _debug: Application._debug("    - resp: %r", resp)
-
-        # return the result
-        self.response(resp)
+        # this is an ack, error, reject or abort
+        self._app_complete(apdu.pduSource, apdu)
 
 #
 #   BIPSimpleApplication
 #
 
 @bacpypes_debugging
-class BIPSimpleApplication(Application):
+class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        Application.__init__(self, localDevice, localAddress, deviceInfoCache, aseID)
+        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -822,16 +500,28 @@ class BIPSimpleApplication(Application):
         # bind the BIP stack to the network, no network number
         self.nsap.bind(self.bip)
 
+    def close_socket(self):
+        if _debug: BIPSimpleApplication._debug("close_socket")
+
+        # pass to the multiplexer, then down to the sockets
+        self.mux.close_socket()
+
 #
 #   BIPForeignApplication
 #
 
 @bacpypes_debugging
-class BIPForeignApplication(Application):
+class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
         if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        Application.__init__(self, localDevice, localAddress, aseID)
+        ApplicationIOController.__init__(self, localDevice, aseID=aseID)
+
+        # local address might be useful for subclasses
+        if isinstance(localAddress, Address):
+            self.localAddress = localAddress
+        else:
+            self.localAddress = Address(localAddress)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -839,6 +529,10 @@ class BIPForeignApplication(Application):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(localDevice)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -861,6 +555,12 @@ class BIPForeignApplication(Application):
 
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
+
+    def close_socket(self):
+        if _debug: BIPForeignApplication._debug("close_socket")
+
+        # pass to the multiplexer, then down to the sockets
+        self.mux.close_socket()
 
 #
 #   BIPNetworkApplication
@@ -896,4 +596,3 @@ class BIPNetworkApplication(NetworkServiceElement):
 
         # bind the NSAP to the stack, no network number
         self.nsap.bind(self.bip)
-

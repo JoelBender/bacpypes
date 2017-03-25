@@ -78,8 +78,10 @@ _max_apdu_response_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
     None, None, None, None, None, None, None, None]
 
 def encode_max_apdu_length_accepted(arg):
-    for i, v in enumerate(_max_apdu_response_encoding):
-        if (v <= arg):
+    """Return the encoding of the highest encodable value less than the
+    value of the arg."""
+    for i in range(5, -1, -1):
+        if (arg >= _max_apdu_response_encoding[i]):
             return i
 
     raise ValueError("invalid max APDU length accepted: {0}".format(arg))
@@ -1315,10 +1317,10 @@ class SubscribeCOVPropertyRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('subscriberProcessIdentifier', Unsigned, 0)
         , Element('monitoredObjectIdentifier', ObjectIdentifier, 1)
-        , Element('issueConfirmedNotifications', Boolean, 2)
-        , Element('lifetime', Unsigned, 3)
+        , Element('issueConfirmedNotifications', Boolean, 2, True)
+        , Element('lifetime', Unsigned, 3, True)
         , Element('monitoredPropertyIdentifier', PropertyReference, 4)
-        , Element('covIncrement', Real, 5)
+        , Element('covIncrement', Real, 5, True)
         ]
 
 register_confirmed_request_type(SubscribeCOVPropertyRequest)

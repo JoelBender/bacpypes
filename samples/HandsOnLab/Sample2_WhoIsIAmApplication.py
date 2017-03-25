@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This sample application builds on the first sample by overriding the default 
+This sample application builds on the first sample by overriding the default
 processing for Who-Is and I-Am requests, counting them, then continuing on
 with the regular processing.  After the run() function has completed it will
 dump a formatted summary of the requests it has received.
@@ -14,15 +14,12 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-# globals
-this_device = None
-this_application = None
 
 # counters
 who_is_counter = defaultdict(int)
@@ -52,7 +49,7 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         who_is_counter[key] += 1
 
-        # pass back to the default implementation
+        # continue with the default implementation
         BIPSimpleApplication.do_WhoIsRequest(self, apdu)
 
     def do_IAmRequest(self, apdu):
@@ -67,13 +64,14 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # count the times this has been received
         i_am_counter[key] += 1
 
-        # no default implementation
+        # continue with the default implementation
+        BIPSimpleApplication.do_IAmRequest(self, apdu)
 
 #
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -103,6 +101,8 @@ try:
 
     run()
 
+    _log.debug("fini")
+
     print("----- Who Is -----")
     for (src, lowlim, hilim), count in sorted(who_is_counter.items()):
         print("%-20s %8s %8s %4d" % (src, lowlim, hilim, count))
@@ -113,7 +113,5 @@ try:
         print("%-20s %8d %4d" % (src, devid, count))
     print("")
 
-except Exception as error:
-    _log.exception("an error has occurred: %s", error)
-finally:
-    _log.debug("finally")
+if __name__ == "__main__":
+    main()
