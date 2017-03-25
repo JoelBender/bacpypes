@@ -72,10 +72,15 @@ class UDPMultiplexer:
             else:
                 self.address = Address(addr)
 
-            # check for a special broadcast address
+            # promote the normal and broadcast tuples
             self.addrTuple = self.address.addrTuple
             self.addrBroadcastTuple = self.address.addrBroadcastTuple
-            if (self.addrTuple == self.addrBroadcastTuple):
+
+            # check for no broadcasting (loopback interface)
+            if not self.addrBroadcastTuple:
+                noBroadcast = True
+            elif (self.addrTuple == self.addrBroadcastTuple):
+                # old school broadcast address
                 self.addrBroadcastTuple = ('255.255.255.255', self.addrTuple[1])
             else:
                 specialBroadcast = True
@@ -117,9 +122,15 @@ class UDPMultiplexer:
         if pdu.pduDestination.addrType == Address.localBroadcastAddr:
             dest = self.addrBroadcastTuple
             if _debug: UDPMultiplexer._debug("    - requesting local broadcast: %r", dest)
+
+            # interface might not support broadcasts
+            if not dest:
+                return
+
         elif pdu.pduDestination.addrType == Address.localStationAddr:
             dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)
+
         else:
             raise RuntimeError("invalid destination address type")
 
