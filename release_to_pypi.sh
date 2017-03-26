@@ -18,6 +18,12 @@ for version in 2.7 3.4 3.5 3.6; do
     fi
 done
 
+echo
+echo	This is what was built...
+echo
+ls -1 dist/
+echo
+
 read -p "Upload to PyPI? [y/n/x] " yesno || exit 1
 
 if [ "$yesno" = "y" ] ;
