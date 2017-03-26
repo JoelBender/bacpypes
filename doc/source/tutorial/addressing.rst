@@ -10,7 +10,7 @@ local station
 
 local broadcast
     A message addressed to all devices or nodes on the same network as the originator.
-    
+
 remote station
     A message addressed to one device on a different network than the originator.
 
