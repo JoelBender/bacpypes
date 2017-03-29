@@ -12,7 +12,11 @@ except ImportError:
 
 # different source folders
 version_info = sys.version_info[:2]
-source_folder = "py" + str(version_info[0]) + str(version_info[1])
+main_version = str(version_info[0])
+sub_version =  str(version_info[1])
+if int(sub_version) > 4:
+    sub_version = '4'
+source_folder = "py" + main_version + sub_version
 if not os.path.exists(source_folder):
     raise EnvironmentError(
         "unsupported version of Python, looking for " +
