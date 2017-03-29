@@ -14,7 +14,7 @@ from .task import TaskManager
 from .debugging import bacpypes_debugging, ModuleLogger
 
 # some debugging
-_debug = 0
+_debug = 1
 _log = ModuleLogger(globals())
 
 # globals
@@ -88,7 +88,7 @@ def print_stack(sig, frame):
 SPIN = 1.0
 
 @bacpypes_debugging
-def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
+def run(spin=SPIN, sigterm=None, sigusr1=None):
     if _debug: run._debug("run spin=%r sigterm=%r, sigusr1=%r", spin, sigterm, sigusr1)
     global running, taskManager, deferredFns, sleeptime
 
