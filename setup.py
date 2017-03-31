@@ -14,7 +14,7 @@ except ImportError:
 version_info = sys.version_info[:2]
 main_version = str(version_info[0])
 sub_version =  str(version_info[1])
-if int(sub_version) > 4:
+if int(main_version) == 3 and int(sub_version) > 4:
     sub_version = '4'
 source_folder = "py" + main_version + sub_version
 if not os.path.exists(source_folder):
