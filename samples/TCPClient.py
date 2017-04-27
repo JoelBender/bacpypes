@@ -88,15 +88,15 @@ class MiddleManASE(ApplicationServiceElement):
         if del_actor:
             if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
 
+            # if there are no clients, quit
+            if not self.elementService.clients:
+                if _debug: MiddleManASE._debug("    - no clients, stopping")
+                stop()
+
         if actor_error:
             if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
             # tell the director to close
             self.elementService.disconnect(actor_error.peer)
-
-        # if there are no clients, quit
-        if not self.elementService.clients:
-            if _debug: MiddleManASE._debug("    - no clients, stopping")
-            stop()
 
 bacpypes_debugging(MiddleManASE)
 
