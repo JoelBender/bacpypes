@@ -241,13 +241,6 @@ class TCPClient(asyncore.dispatcher):
         # core does not take parameters
         asyncore.dispatcher.handle_error(self)
 
-    def handle_error(self, error=None):
-        """Trap for TCPClient errors, otherwise continue."""
-        if _debug: TCPClient._debug("handle_error %r", error)
-
-        # core does not take parameters
-        asyncore.dispatcher.handle_error(self)
-
     def indication(self, pdu):
         """Requests are queued for delivery."""
         if _debug: TCPClient._debug("indication %r", pdu)
