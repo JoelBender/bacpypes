@@ -25,6 +25,7 @@ _log = ModuleLogger(globals())
 
 # globals
 REBIND_SLEEP_INTERVAL = 2.0
+CONNECT_TIMEOUT = 30.0
 
 #
 #   PickleActorMixIn
@@ -93,7 +94,7 @@ class PickleActorMixIn:
 @bacpypes_debugging
 class TCPClient(asyncore.dispatcher):
 
-    _connect_timeout = None
+    _connect_timeout = CONNECT_TIMEOUT
 
     def __init__(self, peer):
         if _debug: TCPClient._debug("__init__ %r", peer)
@@ -103,9 +104,8 @@ class TCPClient(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # set the timeout
-        if self._connect_timeout is not None:
-            self.settimeout(self._connect_timeout)
-            if _debug: TCPClient._debug("    - timeout: %r", self._connect_timeout)
+        self.socket.settimeout(self._connect_timeout)
+        if _debug: TCPClient._debug("    - timeout: %r", self._connect_timeout)
 
         # save the peer
         self.peer = peer
@@ -116,11 +116,11 @@ class TCPClient(asyncore.dispatcher):
 
         # try to connect
         try:
-            rslt = self.connect_ex(peer)
+            rslt = self.socket.connect_ex(peer)
             if (rslt == 0):
                 if _debug: TCPClient._debug("    - connected")
                 self.connected = True
-            if (rslt == errno.EINPROGRESS):
+            elif (rslt == errno.EINPROGRESS):
                 if _debug: TCPClient._debug("    - in progress")
             elif (rslt in (errno.ECONNREFUSED, 111)):
                 if _debug: TCPClient._debug("    - connection refused")
@@ -216,10 +216,13 @@ class TCPClient(asyncore.dispatcher):
         if _debug: TCPClient._debug("    - err: %r", err)
 
         # check for connection refused
-        if (err in (errno.ECONNREFUSED, 111)):
+        if err == 0:
+            if not self.connected:
+                if _debug: TCPClient._debug("    - connected")
+                self.connected = True
+        elif (err in (errno.ECONNREFUSED, 111)):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             self.handle_error(socket.error(err, "connection refused"))
-            self.handle_close()
             return
 
         # pass along
@@ -229,7 +232,7 @@ class TCPClient(asyncore.dispatcher):
         if _debug: TCPClient._debug("handle_close")
 
         # close the socket
-        self.close()
+        self.socket.close()
 
         # make sure other routines know the socket is closed
         self.socket = None
@@ -237,6 +240,11 @@ class TCPClient(asyncore.dispatcher):
     def handle_error(self, error=None):
         """Trap for TCPClient errors, otherwise continue."""
         if _debug: TCPClient._debug("handle_error %r", error)
+
+        # if there is no socket, it was closed
+        if not self.socket:
+            if _debug: TCPClient._debug("    - error already handled")
+            return
 
         # core does not take parameters
         asyncore.dispatcher.handle_error(self)
@@ -276,7 +284,7 @@ class TCPClientActor(TCPClient):
 
         # add a timer
         self._idle_timeout = director.idle_timeout
-        if self._idle_timeout > 0:
+        if self._idle_timeout:
             self.idle_timeout_task = FunctionTask(self.idle_timeout)
             self.idle_timeout_task.install_task(_time() + self._idle_timeout)
         else:
@@ -309,6 +317,14 @@ class TCPClientActor(TCPClient):
 
     def handle_close(self):
         if _debug: TCPClientActor._debug("handle_close")
+
+#       if _debug:
+#           stack_information = list(traceback.extract_stack())
+#           stack_information.reverse()
+#           stack_information = '\n'.join("        %-15s%s:%s" % (
+#               fn, filename.split('/')[-1], lineno) for filename, lineno, fn, _ in stack_information
+#               )
+#           TCPClientActor._debug("    - stack_information: %s", stack_information)
 
         # if there's a flush task, cancel it
         if self.flush_task:
@@ -394,7 +410,7 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
 
     _debug_contents = ('connect_timeout', 'idle_timeout', 'actorClass', 'clients', 'reconnect')
 
-    def __init__(self, connect_timeout=None, idle_timeout=0, actorClass=TCPClientActor, sid=None, sapID=None):
+    def __init__(self, connect_timeout=None, idle_timeout=None, actorClass=TCPClientActor, sid=None, sapID=None):
         if _debug:
             TCPClientDirector._debug("__init__ connect_timeout=%r idle_timeout=%r actorClass=%r sid=%r sapID=%r",
             connect_timeout, idle_timeout, actorClass, sid, sapID,
@@ -603,7 +619,7 @@ class TCPServerActor(TCPServer):
 
         # add a timer
         self._idle_timeout = director.idle_timeout
-        if self._idle_timeout > 0:
+        if self._idle_timeout:
             self.idle_timeout_task = FunctionTask(self.idle_timeout)
             self.idle_timeout_task.install_task(_time() + self._idle_timeout)
         else:
