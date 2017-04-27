@@ -223,7 +223,6 @@ class TCPClient(asyncore.dispatcher):
         elif (err in (errno.ECONNREFUSED, 111)):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             self.handle_error(socket.error(err, "connection refused"))
-            self.handle_close()
             return
 
         # pass along
