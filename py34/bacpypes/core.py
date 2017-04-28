@@ -46,13 +46,23 @@ def stop(*args):
         taskManager.trigger.set()
 
 #
+#   dump_stack
+#
+
+@bacpypes_debugging
+def dump_stack():
+    if _debug: dump_stack._debug("dump_stack")
+    for filename, lineno, fn, _ in traceback.extract_stack()[:-1]:
+        sys.stderr.write("    %-20s  %s:%s\n" % (fn, filename.split('/')[-1], lineno))
+
+#
 #   print_stack
 #
 
 @bacpypes_debugging
 def print_stack(sig, frame):
     """Signal handler to print a stack trace and some interesting values."""
-    if _debug: print_stack._debug("print_stack, %r, %r", sig, frame)
+    if _debug: print_stack._debug("print_stack %r %r", sig, frame)
     global running, deferredFns, sleeptime
 
     sys.stderr.write("==== USR1 Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
@@ -210,10 +220,7 @@ def run_once():
 
 @bacpypes_debugging
 def deferred(fn, *args, **kwargs):
-#   if _debug:
-#       deferred._debug("deferred %r %r %r", fn, args, kwargs)
-#       for filename, lineno, _, _ in traceback.extract_stack()[-6:-1]:
-#           deferred._debug("    %s:%s" % (filename.split('/')[-1], lineno))
+    if _debug: deferred._debug("deferred %r %r %r", fn, args, kwargs)
     global deferredFns, taskManager
 
     # append it to the list
@@ -221,7 +228,7 @@ def deferred(fn, *args, **kwargs):
 
     # trigger the task manager event
     if taskManager and taskManager.trigger:
-#       if _debug: deferred._debug("    - trigger")
+        if _debug: deferred._debug("    - trigger")
         taskManager.trigger.set()
 
 #
