@@ -926,6 +926,7 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(destination_address, None)
         if not queue:
+            if _debug: SieveClientController._debug("    - new queue")
             queue = SieveQueue(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: SieveClientController._debug("    - queue: %r", queue)
@@ -949,13 +950,13 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(source_address, None)
         if not queue:
-            SieveClientController._debug("no queue for %r" % (source_address,))
+            if _debug: SieveClientController._debug("    - no queue: %r" % (source_address,))
             return
         if _debug: SieveClientController._debug("    - queue: %r", queue)
 
         # make sure it has an active iocb
         if not queue.active_iocb:
-            SieveClientController._debug("no active request for %r" % (source_address,))
+            if _debug: SieveClientController._debug("    - no active request")
             return
 
         # complete the request
