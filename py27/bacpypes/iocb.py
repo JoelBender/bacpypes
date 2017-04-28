@@ -474,6 +474,7 @@ class IOQueue:
 
         # if the queue is empty and we do not block return None
         if not block and not self.notempty.isSet():
+            if _debug: IOQueue._debug("    - not blocking and empty")
             return None
 
         # wait for something to be in the queue
@@ -673,7 +674,7 @@ class IOQController(IOController):
             return
 
         while True:
-            iocb = self.ioQueue.get()
+            iocb = self.ioQueue.get(block=0)
             if not iocb:
                 break
             if _debug: IOQController._debug("    - iocb: %r", iocb)
