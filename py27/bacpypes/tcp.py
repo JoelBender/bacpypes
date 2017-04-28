@@ -232,7 +232,10 @@ class TCPClient(asyncore.dispatcher):
         if _debug: TCPClient._debug("handle_close")
 
         # close the socket
-        self.socket.close()
+        self.close()
+
+        # no longer connected
+        self.connected = False
 
         # make sure other routines know the socket is closed
         self.socket = None
@@ -317,14 +320,6 @@ class TCPClientActor(TCPClient):
 
     def handle_close(self):
         if _debug: TCPClientActor._debug("handle_close")
-
-#       if _debug:
-#           stack_information = list(traceback.extract_stack())
-#           stack_information.reverse()
-#           stack_information = '\n'.join("        %-15s%s:%s" % (
-#               fn, filename.split('/')[-1], lineno) for filename, lineno, fn, _ in stack_information
-#               )
-#           TCPClientActor._debug("    - stack_information: %s", stack_information)
 
         # if there's a flush task, cancel it
         if self.flush_task:
@@ -447,6 +442,7 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
         """Remove an actor when the socket is closed."""
         if _debug: TCPClientDirector._debug("del_actor %r", actor)
 
+        # delete the client
         del self.clients[actor.peer]
 
         # tell the ASE the client has gone away
@@ -551,7 +547,7 @@ class TCPServer(asyncore.dispatcher):
             if (err.args[0] == 111):
                 if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
-                if _debug: TCPServer._debug("    - recv socket error: %s", err)
+                if _debug: TCPServer._debug("    - recv socket error: %r", err)
 
             # pass along to a handler
             self.handle_error(err)
