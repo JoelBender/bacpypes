@@ -37,10 +37,33 @@ Globals
 Functions
 ---------
 
-.. function:: run()
+.. function:: run(spin=SPIN, sigterm=stop, sigusr1=print_stack)
+
+    :param spin: the amount of time to wait if no tasks are scheduled
+    :param sigterm: a function to call when SIGTERM is signaled, defaults to stop
+    :param sigusr1: a function to call when SIGUSR1 is signaled, defaults to print_stack
 
     This function is called by a BACpypes application after all of its
     initialization is complete.
+
+    The spin parameter is the maximum amount of time to wait in the sockets
+    asyncore loop() function that waits for network activity.  Setting this to
+    a large value allows the application to consume very few system resources
+    while there is no network activity.  If the application uses threads,
+    setting this to a large value will starve the child threads for time.
+
+    The sigterm parameter is a function to be installed as a signal handler
+    for SIGTERM events.  For historical reasons this defaults to the stop()
+    function so that Ctrl-C in interactive applications will exit the application
+    rather than raise a KeyboardInterrupt exception.
+
+    The sigusr1 parameter is a function to be installed as a signal handler
+    for SIGUSR1 events.  For historical reasons this defaults to the print_stack()
+    function so if an application seems to be stuck on waiting for an event
+    or in a long running loop the developer can trigger a "stack dump".
+
+    The sigterm and sigusr1 parameters must be None when the run() function is
+    called from a non-main thread.
 
 .. function:: stop(*args)
 
