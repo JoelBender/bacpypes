@@ -7,8 +7,10 @@ Core
 import sys
 import asyncore
 import signal
+import threading
 import time
 import traceback
+import warnings
 
 from .task import TaskManager
 from .debugging import bacpypes_debugging, ModuleLogger
@@ -105,10 +107,13 @@ def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
     global running, taskManager, deferredFns, sleeptime
 
     # install the signal handlers if they have been provided (issue #112)
-    if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
-        signal.signal(signal.SIGTERM, sigterm)
-    if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
-        signal.signal(signal.SIGUSR1, sigusr1)
+    if isinstance(threading.current_thread(), threading._MainThread):
+        if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
+            signal.signal(signal.SIGTERM, sigterm)
+        if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
+            signal.signal(signal.SIGUSR1, sigusr1)
+    elif sigterm or sigusr1:
+        warnings.warn("no signal handlers for child threads")
 
     # reference the task manager (a singleton)
     taskManager = TaskManager()
