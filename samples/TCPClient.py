@@ -25,8 +25,11 @@ _log = ModuleLogger(globals())
 # settings
 SERVER_HOST = os.getenv('SERVER_HOST', '127.0.0.1')
 SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
+CONNECT_TIMEOUT = int(os.getenv('CONNECT_TIMEOUT', 0)) or None
+IDLE_TIMEOUT = int(os.getenv('IDLE_TIMEOUT', 0)) or None
 
 # globals
+args = None
 server_address = None
 
 #
@@ -47,7 +50,8 @@ class MiddleMan(Client, Server):
 
         # no data means EOF, stop
         if not pdu.pduData:
-            stop()
+            # ask the director (downstream peer) to close the connection
+            self.clientPeer.disconnect(server_address)
             return
 
         # pass it along
@@ -84,13 +88,15 @@ class MiddleManASE(ApplicationServiceElement):
         if del_actor:
             if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
 
+            # if there are no clients, quit
+            if not self.elementService.clients:
+                if _debug: MiddleManASE._debug("    - no clients, stopping")
+                stop()
+
         if actor_error:
             if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
-
-        # if there are no clients, quit
-        if not self.elementService.clients:
-            if _debug: MiddleManASE._debug("    - quitting")
-            stop()
+            # tell the director to close
+            self.elementService.disconnect(actor_error.peer)
 
 bacpypes_debugging(MiddleManASE)
 
@@ -102,7 +108,7 @@ def main():
     """
     Main function, called when run as an application.
     """
-    global server_address
+    global args, server_address
 
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
@@ -120,6 +126,16 @@ def main():
         "--hello", action="store_true",
         default=False,
         help="send a hello message",
+        )
+    parser.add_argument(
+        "--connect-timeout", nargs='?', type=int,
+        help="idle connection timeout",
+        default=CONNECT_TIMEOUT,
+        )
+    parser.add_argument(
+        "--idle-timeout", nargs='?', type=int,
+        help="idle connection timeout",
+        default=IDLE_TIMEOUT,
         )
     args = parser.parse_args()
 
@@ -139,7 +155,10 @@ def main():
     this_middle_man = MiddleMan()
     if _debug: _log.debug("    - this_middle_man: %r", this_middle_man)
 
-    this_director = TCPClientDirector()
+    this_director = TCPClientDirector(
+        connect_timeout=args.connect_timeout,
+        idle_timeout=args.idle_timeout,
+        )
     if _debug: _log.debug("    - this_director: %r", this_director)
 
     bind(this_console, this_middle_man, this_director)
@@ -154,7 +173,7 @@ def main():
 
     # send hello maybe
     if args.hello:
-        deferred(this_middle_man.indication, PDU(xtob('68656c6c6f0a')))
+        deferred(this_middle_man.indication, PDU(b'Hello, world!\n'))
 
     if _debug: _log.debug("running")
 

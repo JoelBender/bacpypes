@@ -474,6 +474,7 @@ class IOQueue:
 
         # if the queue is empty and we do not block return None
         if not block and not self.notempty.isSet():
+            if _debug: IOQueue._debug("    - not blocking and empty")
             return None
 
         # wait for something to be in the queue
@@ -673,7 +674,7 @@ class IOQController(IOController):
             return
 
         while True:
-            iocb = self.ioQueue.get()
+            iocb = self.ioQueue.get(block=0)
             if not iocb:
                 break
             if _debug: IOQController._debug("    - iocb: %r", iocb)
@@ -925,6 +926,7 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(destination_address, None)
         if not queue:
+            if _debug: SieveClientController._debug("    - new queue")
             queue = SieveQueue(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: SieveClientController._debug("    - queue: %r", queue)
@@ -948,13 +950,13 @@ class SieveClientController(Client, IOController):
         # look up the queue
         queue = self.queues.get(source_address, None)
         if not queue:
-            SieveClientController._debug("no queue for %r" % (source_address,))
+            if _debug: SieveClientController._debug("    - no queue: %r" % (source_address,))
             return
         if _debug: SieveClientController._debug("    - queue: %r", queue)
 
         # make sure it has an active iocb
         if not queue.active_iocb:
-            SieveClientController._debug("no active request for %r" % (source_address,))
+            if _debug: SieveClientController._debug("    - no active request")
             return
 
         # complete the request
