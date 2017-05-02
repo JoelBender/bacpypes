@@ -7,8 +7,10 @@ Core
 import sys
 import asyncore
 import signal
+import threading
 import time
 import traceback
+import warnings
 
 from .task import TaskManager
 from .debugging import bacpypes_debugging, ModuleLogger
@@ -46,13 +48,23 @@ def stop(*args):
         taskManager.trigger.set()
 
 #
+#   dump_stack
+#
+
+@bacpypes_debugging
+def dump_stack():
+    if _debug: dump_stack._debug("dump_stack")
+    for filename, lineno, fn, _ in traceback.extract_stack()[:-1]:
+        sys.stderr.write("    %-20s  %s:%s\n" % (fn, filename.split('/')[-1], lineno))
+
+#
 #   print_stack
 #
 
 @bacpypes_debugging
 def print_stack(sig, frame):
     """Signal handler to print a stack trace and some interesting values."""
-    if _debug: print_stack._debug("print_stack, %r, %r", sig, frame)
+    if _debug: print_stack._debug("print_stack %r %r", sig, frame)
     global running, deferredFns, sleeptime
 
     sys.stderr.write("==== USR1 Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
@@ -93,10 +105,13 @@ def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
     global running, taskManager, deferredFns, sleeptime
 
     # install the signal handlers if they have been provided (issue #112)
-    if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
-        signal.signal(signal.SIGTERM, sigterm)
-    if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
-        signal.signal(signal.SIGUSR1, sigusr1)
+    if isinstance(threading.current_thread(), threading._MainThread):
+        if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
+            signal.signal(signal.SIGTERM, sigterm)
+        if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
+            signal.signal(signal.SIGUSR1, sigusr1)
+    elif sigterm or sigusr1:
+        warnings.warn("no signal handlers for child threads")
 
     # reference the task manager (a singleton)
     taskManager = TaskManager()
@@ -210,10 +225,7 @@ def run_once():
 
 @bacpypes_debugging
 def deferred(fn, *args, **kwargs):
-#   if _debug:
-#       deferred._debug("deferred %r %r %r", fn, args, kwargs)
-#       for filename, lineno, _, _ in traceback.extract_stack()[-6:-1]:
-#           deferred._debug("    %s:%s" % (filename.split('/')[-1], lineno))
+    if _debug: deferred._debug("deferred %r %r %r", fn, args, kwargs)
     global deferredFns, taskManager
 
     # append it to the list
@@ -221,7 +233,7 @@ def deferred(fn, *args, **kwargs):
 
     # trigger the task manager event
     if taskManager and taskManager.trigger:
-#       if _debug: deferred._debug("    - trigger")
+        if _debug: deferred._debug("    - trigger")
         taskManager.trigger.set()
 
 #

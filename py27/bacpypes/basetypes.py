@@ -30,6 +30,7 @@ class DaysOfWeek(BitString):
         , 'saturday':5
         , 'sunday':6
         }
+    bitLen = 7
 
 class EventTransitionBits(BitString):
     bitNames = \
@@ -37,12 +38,14 @@ class EventTransitionBits(BitString):
         , 'toFault':1
         , 'toNormal':2
         }
+    bitLen = 3
 
 class LimitEnable(BitString):
     bitNames = \
         { 'lowLimitEnable':0
         , 'highLimitEnable':1
         }
+    bitLen = 2
 
 class LogStatus(BitString):
     bitNames = \

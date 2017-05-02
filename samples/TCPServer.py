@@ -23,6 +23,7 @@ _log = ModuleLogger(globals())
 # settings
 SERVER_HOST = os.getenv('SERVER_HOST', 'any')
 SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
+IDLE_TIMEOUT = int(os.getenv('IDLE_TIMEOUT', 0)) or None
 
 #
 #   EchoMaster
@@ -78,6 +79,11 @@ def main():
         help="server port (default %r)" % (SERVER_PORT,),
         default=SERVER_PORT,
         )
+    parser.add_argument(
+        "--idle-timeout", nargs='?', type=int,
+        help="idle connection timeout",
+        default=IDLE_TIMEOUT,
+        )
     args = parser.parse_args()
 
     if _debug: _log.debug("initialization")
@@ -91,7 +97,7 @@ def main():
     if _debug: _log.debug("    - server_address: %r", server_address)
 
     # create a director listening to the address
-    this_director = TCPServerDirector(server_address)
+    this_director = TCPServerDirector(server_address, idle_timeout=args.idle_timeout)
     if _debug: _log.debug("    - this_director: %r", this_director)
 
     # create an echo

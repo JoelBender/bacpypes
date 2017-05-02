@@ -12,10 +12,17 @@ except ImportError:
 
 # different source folders
 version_info = sys.version_info[:2]
-source_folder = "py" + str(version_info[0]) + str(version_info[1])
+source_folder = {
+    (2, 5): 'py25',
+    (2, 6): 'py25',
+    (2, 7): 'py27',
+    (3, 4): 'py34',
+    (3, 5): 'py34',
+    }.get(version_info, None)
+if not source_folder:
+    raise EnvironmentError("unsupported version of Python")
 if not os.path.exists(source_folder):
-    raise EnvironmentError(
-        "unsupported version of Python, looking for " +
+    raise EnvironmentError("broken distirbution, looking for " +
         repr(source_folder) + " in " +
         os.getcwd()
         )
@@ -63,9 +70,11 @@ setup(
         'Natural Language :: English',
         "Programming Language :: Python :: 2",
         'Programming Language :: Python :: 2.5',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 
     setup_requires=setup_requirements,
