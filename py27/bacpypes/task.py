@@ -165,22 +165,25 @@ def FunctionTask(fn, *args, **kwargs):
 @bacpypes_debugging
 class RecurringTask(_Task):
 
-    _debug_contents = ('taskInterval',)
+    _debug_contents = ('taskInterval', 'taskIntervalOffset')
 
-    def __init__(self, interval=None):
-        if _debug: RecurringTask._debug("__init__ interval=%r", interval)
+    def __init__(self, interval=None, offset=None):
+        if _debug: RecurringTask._debug("__init__ interval=%r offset=%r", interval, offset)
         _Task.__init__(self)
 
         # save the interval, but do not automatically install
         self.taskInterval = interval
+        self.taskIntervalOffset = offset
 
-    def install_task(self, interval=None):
-        if _debug: RecurringTask._debug("install_task interval=%r", interval)
+    def install_task(self, interval=None, offset=None):
+        if _debug: RecurringTask._debug("install_task interval=%r offset=%r", interval, offset)
         global _task_manager, _unscheduled_tasks
 
         # set the interval if it hasn't already been set
         if interval is not None:
             self.taskInterval = interval
+        if offset is not None:
+            self.taskIntervalOffset = interval
         if self.taskInterval is None:
             raise RuntimeError("interval unset, use ctor or install_task parameter")
         if self.taskInterval <= 0.0:
@@ -192,10 +195,16 @@ class RecurringTask(_Task):
             _unscheduled_tasks.append(self)
 
         else:
+            # offset is also in milliseconds to be consistent
+            if self.taskIntervalOffset:
+                offset = self.taskIntervalOffset / 1000.0
+            else:
+                offset = 0.0
+
             # get ready for the next interval (aligned)
             now = _task_manager.get_time()
             interval = self.taskInterval / 1000.0
-            self.taskTime = now + interval - (now % interval)
+            self.taskTime = (now - offset) + interval - ((now - offset) % interval) + offset
             if _debug: RecurringTask._debug("    - task time: %r", self.taskTime)
 
             # install it
@@ -227,7 +236,7 @@ def RecurringFunctionTask(interval, fn, *args, **kwargs):
 #
 
 @bacpypes_debugging
-def recurring_function(interval):
+def recurring_function(interval, offset=None):
     def recurring_function_decorator(fn):
         class _RecurringFunctionTask(RecurringTask):
             def process_task(self):
@@ -235,7 +244,7 @@ def recurring_function(interval):
                 fn()
             def __call__(self, *args, **kwargs):
                 fn(*args, **kwargs)
-        task = _RecurringFunctionTask(interval)
+        task = _RecurringFunctionTask(interval, offset)
         task.install_task()
 
         return task
