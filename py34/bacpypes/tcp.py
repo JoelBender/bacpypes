@@ -122,7 +122,7 @@ class TCPClient(asyncore.dispatcher):
                 self.connected = True
             elif (rslt == errno.EINPROGRESS):
                 if _debug: TCPClient._debug("    - in progress")
-            elif (rslt in (errno.ECONNREFUSED, 111)):
+            elif (rslt == errno.ECONNREFUSED):
                 if _debug: TCPClient._debug("    - connection refused")
                 self.handle_error(rslt)
             else:
@@ -150,7 +150,7 @@ class TCPClient(asyncore.dispatcher):
         if (err == 0):
             if _debug: TCPClient._debug("    - no error")
             self.connected = True
-        elif (err in (errno.ECONNREFUSED, 111)):
+        elif (err == errno.ECONNREFUSED):
             if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             self.handle_error(socket.error(errno.ECONNREFUSED, "connection refused"))
             return
@@ -176,7 +176,7 @@ class TCPClient(asyncore.dispatcher):
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
-            if (err.args[0] in (errno.ECONNREFUSED, 111)):
+            if (err.args[0] == errno.ECONNREFUSED):
                 if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPClient._debug("    - recv socket error: %r", err)
@@ -197,10 +197,10 @@ class TCPClient(asyncore.dispatcher):
             self.request = self.request[sent:]
 
         except socket.error as err:
-            if (err.args[0] == 32):
+            if (err.args[0] == errno.EPIPE):
                 if _debug: TCPClient._debug("    - broken pipe to %r", self.peer)
                 return
-            elif (err.args[0] in (errno.ECONNREFUSED, 111)):
+            elif (err.args[0] == errno.ECONNREFUSED):
                 if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPClient._debug("    - send socket error: %s", err)
@@ -220,9 +220,18 @@ class TCPClient(asyncore.dispatcher):
             if not self.connected:
                 if _debug: TCPClient._debug("    - connected")
                 self.connected = True
-        elif (err in (errno.ECONNREFUSED, 111)):
-            if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
-            self.handle_error(socket.error(err, "connection refused"))
+        else:
+            if _debug: TCPClient._debug("    - peer: %r", self.peer)
+
+            if (err == errno.ECONNREFUSED):
+                socket_error = socket.error(err, "connection refused")
+            elif (err == errno.ETIMEDOUT):
+                socket_error = socket.error(err, "timed out")
+            else:
+                socket_error = socket.error(err, "other unknown: %r" % (err,))
+            if _debug: TCPClient._debug("    - socket_error: %r", socket_error)
+
+            self.handle_error(socket_error)
             return
 
         # pass along
@@ -544,7 +553,7 @@ class TCPServer(asyncore.dispatcher):
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
-            if (err.args[0] == 111):
+            if (err.args[0] == errno.ECONNREFUSED):
                 if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPServer._debug("    - recv socket error: %r", err)
@@ -565,7 +574,7 @@ class TCPServer(asyncore.dispatcher):
             self.request = self.request[sent:]
 
         except socket.error as err:
-            if (err.args[0] == 111):
+            if (err.args[0] == errno.ECONNREFUSED):
                 if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
                 if _debug: TCPServer._debug("    - send socket error: %s", err)
