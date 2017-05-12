@@ -17,8 +17,8 @@ from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import ReadWritePropertyMultipleServices, \
-    LocalDeviceObject
+from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.object import ReadWritePropertyMultipleServices
 
 # some debugging
 _debug = 0
