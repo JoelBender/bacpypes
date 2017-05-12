@@ -103,9 +103,9 @@ class TCPClient(asyncore.dispatcher):
         # ask the dispatcher for a socket
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        # set the timeout
-        self.socket.settimeout(self._connect_timeout)
-        if _debug: TCPClient._debug("    - timeout: %r", self._connect_timeout)
+        # make sure the connection attempt is non-blocking
+        self.socket.setblocking(0)
+        if _debug: TCPClient._debug("    - non-blocking")
 
         # save the peer
         self.peer = peer
@@ -138,6 +138,7 @@ class TCPClient(asyncore.dispatcher):
 
     def handle_connect(self):
         if _debug: TCPClient._debug("handle_connect")
+        self.connected = True
 
     def handle_connect_event(self):
         if _debug: TCPClient._debug("handle_connect_event")
@@ -185,6 +186,9 @@ class TCPClient(asyncore.dispatcher):
             self.handle_error(err)
 
     def writable(self):
+        if not self.connected:
+            return True
+
         return (len(self.request) != 0)
 
     def handle_write(self):
@@ -219,7 +223,7 @@ class TCPClient(asyncore.dispatcher):
         if err == 0:
             if not self.connected:
                 if _debug: TCPClient._debug("    - connected")
-                self.connected = True
+                self.handle_connect()
         else:
             if _debug: TCPClient._debug("    - peer: %r", self.peer)
 
@@ -227,6 +231,8 @@ class TCPClient(asyncore.dispatcher):
                 socket_error = socket.error(err, "connection refused")
             elif (err == errno.ETIMEDOUT):
                 socket_error = socket.error(err, "timed out")
+            elif (err == errno.EHOSTUNREACH):
+                socket_error = socket.error(err, "host unreachable")
             else:
                 socket_error = socket.error(err, "other unknown: %r" % (err,))
             if _debug: TCPClient._debug("    - socket_error: %r", socket_error)
@@ -284,9 +290,13 @@ class TCPClientActor(TCPClient):
         self.director = None
         self._connection_error = None
 
-        # pass along the connect timeout from the director
-        if director.connect_timeout is not None:
-            self._connect_timeout = director.connect_timeout
+        # add a timer
+        self._connect_timeout = director.connect_timeout
+        if self._connect_timeout:
+            self.connect_timeout_task = FunctionTask(self.connect_timeout)
+            self.connect_timeout_task.install_task(_time() + self._connect_timeout)
+        else:
+            self.connect_timeout_task = None
 
         # continue with initialization
         TCPClient.__init__(self, peer)
@@ -313,6 +323,23 @@ class TCPClientActor(TCPClient):
             if _debug: TCPClientActor._debug("    - had connection error")
             self.director.actor_error(self, self._connection_error)
 
+    def handle_connect(self):
+        if _debug: TCPClientActor._debug("handle_connect")
+
+        # see if we are already connected
+        if self.connected:
+            if _debug: TCPClientActor._debug("    - already connected")
+            return
+
+        # if the connection timeout is scheduled, suspend it
+        if self.connect_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling connection timeout")
+            self.connect_timeout_task.suspend_task()
+            self.connect_timeout_task = None
+
+        # contine as expected
+        TCPClient.handle_connect(self)
+
     def handle_error(self, error=None):
         """Trap for TCPClient errors, otherwise continue."""
         if _debug: TCPClientActor._debug("handle_error %r", error)
@@ -334,15 +361,27 @@ class TCPClientActor(TCPClient):
         if self.flush_task:
             self.flush_task.suspend_task()
 
-        # cancel the timer
+        # cancel the timers
+        if self.connect_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling connection timeout")
+            self.connect_timeout_task.suspend_task()
+            self.connect_timeout_task = None
         if self.idle_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling idle timeout")
             self.idle_timeout_task.suspend_task()
+            self.idle_timeout_task = None
 
         # tell the director this is gone
         self.director.del_actor(self)
 
         # pass the function along
         TCPClient.handle_close(self)
+
+    def connect_timeout(self):
+        if _debug: TCPClientActor._debug("connect_timeout")
+
+        # shut it down
+        self.handle_close()
 
     def idle_timeout(self):
         if _debug: TCPClientActor._debug("idle_timeout")
