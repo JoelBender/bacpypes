@@ -692,6 +692,12 @@ class TCPServerActor(TCPServer):
         if self.flush_task:
             self.flush_task.suspend_task()
 
+        # if there is an idle timeout, cancel it
+        if self.idle_timeout_task:
+            if _debug: TCPServerActor._debug("    - canceling idle timeout")
+            self.idle_timeout_task.suspend_task()
+            self.idle_timeout_task = None
+
         # tell the director this is gone
         self.director.del_actor(self)
 
