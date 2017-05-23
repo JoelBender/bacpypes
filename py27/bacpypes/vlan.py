@@ -57,7 +57,7 @@ class Network:
                 return
 
         if not pdu.pduDestination or not isinstance(pdu.pduDestination, Address):
-            raise RuntimeError("invalid destination address")
+            raise RuntimeError("invalid destination address: %r" % (pdu.pduDestination,))
 
         elif pdu.pduDestination.addrType == Address.localBroadcastAddr:
             for n in self.nodes:
@@ -70,7 +70,7 @@ class Network:
                     n.response(deepcopy(pdu))
 
         else:
-            raise RuntimeError("invalid destination address type")
+            raise RuntimeError("invalid destination address type: %r" % (pdu.pduDestination,))
 
     def __len__(self):
         """ Simple way to determine the number of nodes in the network. """
