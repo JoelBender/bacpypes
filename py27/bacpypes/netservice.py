@@ -27,32 +27,134 @@ ROUTER_DISCONNECTED = 2         # could make a connection, but hasn't
 ROUTER_UNREACHABLE = 3          # cannot route
 
 #
-#   NetworkReference
+#   RouterInfo
 #
 
-class NetworkReference:
-    """These objects map a network to a router."""
+class RouterInfo(DebugContents):
+    """These objects are routing information records that map router
+    addresses with destination networks."""
 
-    def __init__(self, net, router, status):
-        self.network = net
-        self.router = router
-        self.status = status
+    _debug_contents = ('snet', 'address', 'dnets', 'status')
+
+    def __init__(self, snet, address, dnets, status=ROUTER_AVAILABLE):
+        self.snet = snet        # source network
+        self.address = address  # address of the router
+        self.dnets = dnets      # list of reachable networks through this router
+        self.status = status    # router status
 
 #
-#   RouterReference
+#   RouterInfoCache
 #
 
-class RouterReference(DebugContents):
-    """These objects map a router; the adapter to talk to it,
-    its address, and a list of networks that it routes to."""
+@bacpypes_debugging
+class RouterInfoCache:
 
-    _debug_contents = ('adapter-', 'address', 'networks', 'status')
+    def __init__(self):
+        if _debug: RouterInfoCache._debug("__init__")
 
-    def __init__(self, adapter, addr, nets, status):
-        self.adapter = adapter
-        self.address = addr     # local station relative to the adapter
-        self.networks = nets    # list of remote networks
-        self.status = status    # status as presented by the router
+        self.routers = {}           # (snet, address) -> RouterInfo
+        self.networks = {}          # network -> RouterInfo
+
+    def get_router_info(self, dnet):
+        if _debug: RouterInfoCache._debug("get_router_info %r", dnet)
+
+        # check to see if we know about it
+        if dnet not in self.networks:
+            if _debug: RouterInfoCache._debug("   - no route")
+            return None
+
+        # return the network and address
+        router_info = self.networks[dnet]
+        if _debug: RouterInfoCache._debug("   - router_info: %r", router_info)
+
+        # return the network, address, and status
+        return (router_info.snet, router_info.address, router_info.status)
+
+    def update_router_info(self, snet, address, dnets):
+        if _debug: RouterInfoCache._debug("update_router_info %r %r %r", snet, address, dnets)
+
+        # look up the router reference, make a new record if necessary
+        key = (snet, address)
+        if key not in self.routers:
+            if _debug: RouterInfoCache._debug("   - new router")
+            router_info = self.routers[key] = RouterInfo(snet, address, list())
+        else:
+            router_info = self.routers[key]
+
+        # add (or move) the destination networks
+        for dnet in dnets:
+            if dnet in self.networks:
+                other_router = self.networks[dnet]
+                if other_router is router_info:
+                    if _debug: RouterInfoCache._debug("   - existing router, match")
+                    continue
+                elif dnet not in other_router.dnets:
+                    if _debug: RouterInfoCache._debug("   - where did it go?")
+                else:
+                    other_router.dnets.remove(dnet)
+                    if not other_router.dnets:
+                        if _debug: RouterInfoCache._debug("    - no longer care about this router")
+                        del self.routers[(snet, other_router.address)]
+
+            # add a reference to the router
+            self.networks[dnet] = router_info
+            if _debug: RouterInfoCache._debug("   - reference added")
+
+            # maybe update the list of networks for this router
+            if dnet not in router_info.dnets:
+                router_info.dnets.append(dnet)
+                if _debug: RouterInfoCache._debug("   - dnet added, now: %r", router_info.dnets)
+
+    def update_router_status(self, snet, address, status):
+        if _debug: RouterInfoCache._debug("update_router_status %r %r %r", snet, address, status)
+
+        key = (snet, address)
+        if key not in self.routers:
+            if _debug: RouterInfoCache._debug("   - not a router we care about")
+            return
+
+        router_info = self.routers[key]
+        router_info.status = status
+        if _debug: RouterInfoCache._debug("   - status updated")
+
+    def delete_router_info(self, snet, address=None, dnets=None):
+        if _debug: RouterInfoCache._debug("delete_router_info %r %r %r", dnets)
+
+        # if address is None, remove all the routers for the network
+        if address is None:
+            for rnet, raddress in self.routers.keys():
+                if snet == rnet:
+                    if _debug: RouterInfoCache._debug("   - going down")
+                    self.delete_router_info(snet, raddress)
+            if _debug: RouterInfoCache._debug("   - back topside")
+            return
+
+        # look up the router reference
+        key = (snet, address)
+        if key not in self.routers:
+            if _debug: RouterInfoCache._debug("   - unknown router")
+            return
+
+        router_info = self.routers[key]
+        if _debug: RouterInfoCache._debug("   - router_info: %r", router_info)
+
+        # if dnets is None, remove all the networks for the router
+        if dnets is None:
+            dnets = router_info.dnets
+
+        # loop through the list of networks to be deleted
+        for dnet in dnets:
+            if dnet in self.networks:
+                del self.networks[dnet]
+                if _debug: RouterInfoCache._debug("   - removed from networks: %r", dnet)
+            if dnet in router_info.dnets:
+                router_info.dnets.remove(dnet)
+                if _debug: RouterInfoCache._debug("   - removed from router_info: %r", dnet)
+
+        # see if we still care
+        if not router_info.dnets:
+            if _debug: RouterInfoCache._debug("    - no longer care about this router")
+            del self.routers[key]
 
 #
 #   NetworkAdapter
@@ -64,13 +166,10 @@ class NetworkAdapter(Client, DebugContents):
     _debug_contents = ('adapterSAP-', 'adapterNet')
 
     def __init__(self, sap, net, cid=None):
-        if _debug: NetworkAdapter._debug("__init__ %r (net=%r) cid=%r", sap, net, cid)
+        if _debug: NetworkAdapter._debug("__init__ %s %r cid=%r", sap, net, cid)
         Client.__init__(self, cid)
         self.adapterSAP = sap
         self.adapterNet = net
-
-        # add this to the list of adapters for the network
-        sap.adapters.append(self)
 
     def confirmation(self, pdu):
         """Decode upstream PDUs and pass them up to the service access point."""
@@ -105,117 +204,73 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         , 'localAdapter-', 'localAddress'
         )
 
-    def __init__(self, sap=None, sid=None):
+    def __init__(self, routerInfoCache=None, sap=None, sid=None):
         if _debug: NetworkServiceAccessPoint._debug("__init__ sap=%r sid=%r", sap, sid)
         ServiceAccessPoint.__init__(self, sap)
         Server.__init__(self, sid)
 
-        self.adapters = []          # list of adapters
-        self.routers = {}           # (adapter, address) -> RouterReference
-        self.networks = {}          # network -> RouterReference
+        # map of directly connected networks
+        self.adapters = {}          # net -> NetworkAdapter
 
-        self.localAdapter = None    # which one is local
-        self.localAddress = None    # what is the local address
+        # use the provided cache or make a default one
+        self.router_info_cache = routerInfoCache or RouterInfoCache()
+
+        # map to a list of application layer packets waiting for a path
+        self.pending_nets = {}
+
+        # these are set when bind() is called
+        self.local_adapter = None
+        self.local_address = None
 
     def bind(self, server, net=None, address=None):
         """Create a network adapter object and bind."""
         if _debug: NetworkServiceAccessPoint._debug("bind %r net=%r address=%r", server, net, address)
 
-        if (net is None) and self.adapters:
+        # make sure this hasn't already been called with this network
+        if net in self.adapters:
             raise RuntimeError("already bound")
 
-        # create an adapter object
+        # when binding to an adapter and there is more than one, then they
+        # must all have network numbers and one of them will be the default
+        if (net is not None) and (None in self.adapters):
+            raise RuntimeError("default adapter bound")
+
+        # create an adapter object, add it to our map
         adapter = NetworkAdapter(self, net)
+        self.adapters[net] = adapter
+        if _debug: NetworkServiceAccessPoint._debug("    - adapters[%r]: %r", net, adapter)
 
         # if the address was given, make it the "local" one
         if address:
-            self.localAdapter = adapter
-            self.localAddress = address
+            self.local_adapter = adapter
+            self.local_address = address
 
         # bind to the server
         bind(adapter, server)
 
     #-----
 
-    def add_router_references(self, adapter, address, netlist):
+    def add_router_references(self, snet, address, dnets):
         """Add/update references to routers."""
-        if _debug: NetworkServiceAccessPoint._debug("add_router_references %r %r %r", adapter, address, netlist)
+        if _debug: NetworkServiceAccessPoint._debug("add_router_references %r %r %r", snet, address, dnets)
 
-        # make a key for the router reference
-        rkey = (adapter, address)
+        # see if we have an adapter for the snet
+        if snet not in self.adapters:
+            raise RuntimeError("no adapter for network: %d" % (snet,))
 
-        for snet in netlist:
-            # see if this is spoofing an existing routing table entry
-            if snet in self.networks:
-                rref = self.networks[snet]
+        # pass this along to the cache
+        self.router_info_cache.update_router_info(snet, address, dnets)
 
-                if rref.adapter == adapter and rref.address == address:
-                    pass        # matches current entry
-                else:
-                    ### check to see if this source could be a router to the new network
+    def delete_router_references(self, snet, address=None, dnets=None):
+        """Delete references to routers/networks."""
+        if _debug: NetworkServiceAccessPoint._debug("delete_router_references %r %r %r", snet, address, dnets)
 
-                    # remove the network from the rref
-                    i = rref.networks.index(snet)
-                    del rref.networks[i]
+        # see if we have an adapter for the snet
+        if snet not in self.adapters:
+            raise RuntimeError("no adapter for network: %d" % (snet,))
 
-                    # remove the network
-                    del self.networks[snet]
-
-            ### check to see if it is OK to add the new entry
-
-            # get the router reference for this router
-            rref = self.routers.get(rkey, None)
-            if rref:
-                if snet not in rref.networks:
-                    # add the network
-                    rref.networks.append(snet)
-
-                    # reference the snet
-                    self.networks[snet] = rref
-            else:
-                # new reference
-                rref = RouterReference( adapter, address, [snet], 0)
-                self.routers[rkey] = rref
-
-                # reference the snet
-                self.networks[snet] = rref
-
-    def remove_router_references(self, adapter, address=None):
-        """Add/update references to routers."""
-        if _debug: NetworkServiceAccessPoint._debug("remove_router_references %r %r", adapter, address)
-
-        delrlist = []
-        delnlist = []
-        # scan through the dictionary of router references
-        for rkey in self.routers.keys():
-            # rip apart the key
-            radapter, raddress = rkey
-
-            # pick all references on the adapter, optionally limited to a specific address
-            match = radapter is adapter
-            if match and address is not None:
-                match = (raddress == address)
-            if not match:
-                continue
-
-            # save it for deletion
-            delrlist.append(rkey)
-            delnlist.extend(self.routers[rkey].networks)
-        if _debug:
-            NetworkServiceAccessPoint._debug("    - delrlist: %r", delrlist)
-            NetworkServiceAccessPoint._debug("    - delnlist: %r", delnlist)
-
-        # delete the entries
-        for rkey in delrlist:
-            try:
-                del self.routers[rkey]
-            except KeyError:
-                if _debug: NetworkServiceAccessPoint._debug("    - rkey not in self.routers: %r", rkey)
-        for nkey in delnlist:
-            try:
-                del self.networks[nkey]
-            except KeyError:
-                if _debug: NetworkServiceAccessPoint._debug("    - nkey not in self.networks: %r", rkey)
+        # pass this along to the cache
+        self.router_info_cache.delete_router_info(snet, address, dnets)
 
     #-----
 
@@ -227,11 +282,12 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
             raise ConfigurationError("no adapters")
 
         # might be able to relax this restriction
-        if (len(self.adapters) > 1) and (not self.localAdapter):
+        if (len(self.adapters) > 1) and (not self.local_adapter):
             raise ConfigurationError("local adapter must be set")
 
         # get the local adapter
-        adapter = self.localAdapter or self.adapters[0]
+        adapter = self.local_adapter or self.adapters[None]
+        if _debug: NetworkServiceAccessPoint._debug("    - adapter: %r", adapter)
 
         # build a generic APDU
         apdu = _APDU(user_data=pdu.pduUserData)
@@ -263,7 +319,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
             npdu.npduDADR = apdu.pduDestination
 
             # send it to all of connected adapters
-            for xadapter in self.adapters:
+            for xadapter in self.adapters.values():
                 xadapter.process_npdu(npdu)
             return
 
@@ -279,32 +335,53 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
             ### when it's a directly connected network
             raise RuntimeError("addressing problem")
 
-        # check for an available path
-        if dnet in self.networks:
-            rref = self.networks[dnet]
-            adapter = rref.adapter
+        # get it ready to send when the path is found
+        npdu.pduDestination = None
+        npdu.npduDADR = apdu.pduDestination
 
-            ### make sure the direct connect is OK, may need to connect
+        # we might already be waiting for a path for this network
+        if dnet in self.pending_nets:
+            if _debug: NetworkServiceAccessPoint._debug("    - already waiting for path")
+            self.pending_nets[dnet].append(npdu)
+            return
 
-            ### make sure the peer router is OK, may need to connect
+        # check cache for an available path
+        path_info = self.router_info_cache.get_router_info(dnet)
+
+        # if there is info, we have a path
+        if path_info:
+            snet, address, status = path_info
+            if _debug: NetworkServiceAccessPoint._debug("    - path found: %r, %r, %r", snet, address, status)
+
+            # check for an adapter
+            if snet not in self.adapters:
+                raise RuntimeError("network found but not connected: %r", snet)
+            adapter = self.adapters[snet]
+            if _debug: NetworkServiceAccessPoint._debug("    - adapter: %r", adapter)
 
             # fix the destination
-            npdu.pduDestination = rref.address
-            npdu.npduDADR = apdu.pduDestination
+            npdu.pduDestination = address
 
             # send it along
             adapter.process_npdu(npdu)
             return
 
-        if _debug: NetworkServiceAccessPoint._debug("    - no known path to network, broadcast to discover it")
+        if _debug: NetworkServiceAccessPoint._debug("    - no known path to network")
 
-        # set the destination
-        npdu.pduDestination = LocalBroadcast()
-        npdu.npduDADR = apdu.pduDestination
+        # add it to the list of packets waiting for the network
+        net_list = self.pending_nets.get(dnet, None)
+        if net_list is None:
+            net_list = self.pending_nets[dnet] = []
+        net_list.append(npdu)
+
+        # build a request for the network and send it to all of the adapters
+        xnpdu = WhoIsRouterToNetwork(dnet)
+        xnpdu.pduDestination = LocalBroadcast()
 
         # send it to all of the connected adapters
-        for xadapter in self.adapters:
-            xadapter.process_npdu(npdu)
+        for adapter in self.adapters.values():
+            ### make sure the adapter is OK
+            self.sap_indication(adapter, xnpdu)
 
     def process_npdu(self, adapter, npdu):
         if _debug: NetworkServiceAccessPoint._debug("process_npdu %r %r", adapter, npdu)
@@ -312,83 +389,68 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         # make sure our configuration is OK
         if (not self.adapters):
             raise ConfigurationError("no adapters")
-        if (len(self.adapters) > 1) and (not self.localAdapter):
-            raise ConfigurationError("local adapter must be set")
 
         # check for source routing
         if npdu.npduSADR and (npdu.npduSADR.addrType != Address.nullAddr):
+            if _debug: NetworkServiceAccessPoint._debug("    - check source path")
+
             # see if this is attempting to spoof a directly connected network
             snet = npdu.npduSADR.addrNet
-            for xadapter in self.adapters:
-                if (xadapter is not adapter) and (snet == xadapter.adapterNet):
-                    NetworkServiceAccessPoint._warning("spoof?")
-                    ### log this
-                    return
+            if snet in self.adapters:
+                NetworkServiceAccessPoint._warning("    - path error (1)")
+                return
 
-            # make a key for the router reference
-            rkey = (adapter, npdu.pduSource)
+            # see if there is routing information for this source network
+            router_info = self.router_info_cache.get_router_info(snet)
+            if router_info:
+                router_snet, router_address, router_status = router_info
+                if _debug: NetworkServiceAccessPoint._debug("    - router_address, router_status: %r, %r", router_address, router_status)
 
-            # see if this is spoofing an existing routing table entry
-            if snet in self.networks:
-                rref = self.networks[snet]
-                if rref.adapter == adapter and rref.address == npdu.pduSource:
-                    pass        # matches current entry
-                else:
-                    if _debug: NetworkServiceAccessPoint._debug("    - replaces entry")
+                # see if the router has changed
+                if not (router_address == npdu.pduSource):
+                    if _debug: NetworkServiceAccessPoint._debug("    - replacing path")
 
-                    ### check to see if this source could be a router to the new network
-
-                    # remove the network from the rref
-                    i = rref.networks.index(snet)
-                    del rref.networks[i]
-
-                    # remove the network
-                    del self.networks[snet]
-
-            # get the router reference for this router
-            rref = self.routers.get(rkey)
-            if rref:
-                if snet not in rref.networks:
-                    # add the network
-                    rref.networks.append(snet)
-
-                    # reference the snet
-                    self.networks[snet] = rref
+                    # pass this new path along to the cache
+                    self.router_info_cache.update_router_info(adapter.adapterNet, npdu.pduSource, [snet])
             else:
-                # new reference
-                rref = RouterReference( adapter, npdu.pduSource, [snet], 0)
-                self.routers[rkey] = rref
+                if _debug: NetworkServiceAccessPoint._debug("    - new path")
 
-                # reference the snet
-                self.networks[snet] = rref
+                # pass this new path along to the cache
+                self.router_info_cache.update_router_info(adapter.adapterNet, npdu.pduSource, [snet])
 
         # check for destination routing
         if (not npdu.npduDADR) or (npdu.npduDADR.addrType == Address.nullAddr):
-            processLocally = (not self.localAdapter) or (adapter is self.localAdapter) or (npdu.npduNetMessage is not None)
+            if _debug: NetworkServiceAccessPoint._debug("    - no DADR")
+
+            processLocally = (not self.local_adapter) or (adapter is self.local_adapter) or (npdu.npduNetMessage is not None)
             forwardMessage = False
 
         elif npdu.npduDADR.addrType == Address.remoteBroadcastAddr:
-            if not self.localAdapter:
-                return
+            if _debug: NetworkServiceAccessPoint._debug("    - DADR is remote broadcast")
+
             if (npdu.npduDADR.addrNet == adapter.adapterNet):
-                ### log this, attempt to route to a network the device is already on
+                NetworkServiceAccessPoint._warning("    - path error (2)")
                 return
 
-            processLocally = (npdu.npduDADR.addrNet == self.localAdapter.adapterNet)
+            processLocally = self.local_adapter \
+                and (npdu.npduDADR.addrNet == self.local_adapter.adapterNet)
             forwardMessage = True
 
         elif npdu.npduDADR.addrType == Address.remoteStationAddr:
-            if not self.localAdapter:
-                return
+            if _debug: NetworkServiceAccessPoint._debug("    - DADR is remote station")
+
             if (npdu.npduDADR.addrNet == adapter.adapterNet):
-                ### log this, attempt to route to a network the device is already on
+                NetworkServiceAccessPoint._warning("    - path error (3)")
                 return
 
-            processLocally = (npdu.npduDADR.addrNet == self.localAdapter.adapterNet) \
-                and (npdu.npduDADR.addrAddr == self.localAddress.addrAddr)
+            processLocally = self.local_adapter \
+                and (npdu.npduDADR.addrNet == self.local_adapter.adapterNet) \
+                and (npdu.npduDADR.addrAddr == self.local_address.addrAddr)
             forwardMessage = not processLocally
 
         elif npdu.npduDADR.addrType == Address.globalBroadcastAddr:
+            if _debug: NetworkServiceAccessPoint._debug("    - DADR is global broadcast")
+
             processLocally = True
             forwardMessage = True
 
@@ -402,6 +464,8 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
         # application or network layer message
         if npdu.npduNetMessage is None:
+            if _debug: NetworkServiceAccessPoint._debug("    - application layer message")
+
             if processLocally and self.serverPeer:
                 # decode as a generic APDU
                 apdu = _APDU(user_data=npdu.pduUserData)
@@ -409,7 +473,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 if _debug: NetworkServiceAccessPoint._debug("    - apdu: %r", apdu)
 
                 # see if it needs to look routed
-                if (len(self.adapters) > 1) and (adapter != self.localAdapter):
+                if (len(self.adapters) > 1) and (adapter != self.local_adapter):
                     # combine the source address
                     if not npdu.npduSADR:
                         apdu.pduSource = RemoteStation( adapter.adapterNet, npdu.pduSource.addrAddr )
@@ -418,7 +482,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
                     # map the destination
                     if not npdu.npduDADR:
-                        apdu.pduDestination = self.localAddress
+                        apdu.pduDestination = self.local_address
                     elif npdu.npduDADR.addrType == Address.globalBroadcastAddr:
                         apdu.pduDestination = npdu.npduDADR
                     elif npdu.npduDADR.addrType == Address.remoteBroadcastAddr:
@@ -443,10 +507,9 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
                 # pass upstream to the application layer
                 self.response(apdu)
-
-            if not forwardMessage:
-                return
         else:
+            if _debug: NetworkServiceAccessPoint._debug("    - network layer message")
+
             if processLocally:
                 if npdu.npduNetMessage not in npdu_types:
                     if _debug: NetworkServiceAccessPoint._debug("    - unknown npdu type: %r", npdu.npduNetMessage)
@@ -459,15 +522,19 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 # pass to the service element
                 self.sap_request(adapter, xpdu)
 
-            if not forwardMessage:
-                return
+        # might not need to forward this to other devices
+        if not forwardMessage:
+            if _debug: NetworkServiceAccessPoint._debug("    - no forwarding")
+            return
 
         # make sure we're really a router
         if (len(self.adapters) == 1):
+            if _debug: NetworkServiceAccessPoint._debug("    - not a router")
             return
 
         # make sure it hasn't looped
         if (npdu.npduHopCount == 0):
+            if _debug: NetworkServiceAccessPoint._debug("    - no more hops")
             return
 
         # build a new NPDU to send to other adapters
@@ -488,47 +555,65 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
         # if this is a broadcast it goes everywhere
         if npdu.npduDADR.addrType == Address.globalBroadcastAddr:
+            if _debug: NetworkServiceAccessPoint._debug("    - global broadcasting")
             newpdu.pduDestination = LocalBroadcast()
 
-            for xadapter in self.adapters:
+            for xadapter in self.adapters.values():
                 if (xadapter is not adapter):
+                    if _debug: NetworkServiceAccessPoint._debug("    - global broadcasting to: %r", xadapter)
                     xadapter.process_npdu(newpdu)
             return
 
         if (npdu.npduDADR.addrType == Address.remoteBroadcastAddr) \
                 or (npdu.npduDADR.addrType == Address.remoteStationAddr):
             dnet = npdu.npduDADR.addrNet
+            if _debug: NetworkServiceAccessPoint._debug("    - remote station/broadcast")
 
-            # see if this should go to one of our directly connected adapters
-            for xadapter in self.adapters:
-                if dnet == xadapter.adapterNet:
-                    if _debug: NetworkServiceAccessPoint._debug("    - found direct connect via %r", xadapter)
-                    if (npdu.npduDADR.addrType == Address.remoteBroadcastAddr):
-                        newpdu.pduDestination = LocalBroadcast()
-                    else:
-                        newpdu.pduDestination = LocalStation(npdu.npduDADR.addrAddr)
-
-                    # last leg in routing
-                    newpdu.npduDADR = None
-
-                    # send the packet downstream
-                    xadapter.process_npdu(newpdu)
+            # see if this a locally connected network
+            if dnet in self.adapters:
+                xadapter = self.adapters[dnet]
+                if xadapter is adapter:
+                    if _debug: NetworkServiceAccessPoint._debug("    - path error (4)")
                     return
+                if _debug: NetworkServiceAccessPoint._debug("    - found path via %r", xadapter)
 
-            # see if we know how to get there
-            if dnet in self.networks:
-                rref = self.networks[dnet]
-                newpdu.pduDestination = rref.address
+                # if this was a remote broadcast, it's now a local one
+                if (npdu.npduDADR.addrType == Address.remoteBroadcastAddr):
+                    newpdu.pduDestination = LocalBroadcast()
+                else:
+                    newpdu.pduDestination = LocalStation(npdu.npduDADR.addrAddr)
 
-                ### check to make sure the router is OK
-
-                ### check to make sure the network is OK, may need to connect
-
-                if _debug: NetworkServiceAccessPoint._debug("    - newpdu: %r", newpdu)
+                # last leg in routing
+                newpdu.npduDADR = None
 
                 # send the packet downstream
-                rref.adapter.process_npdu(newpdu)
+                xadapter.process_npdu(newpdu)
                 return
+
+            # see if there is routing information for this source network
+            router_info = self.router_info_cache.get_router_info(dnet)
+            if router_info:
+                router_net, router_address, router_status = router_info
+                if _debug: NetworkServiceAccessPoint._debug(
+                    "    - router_net, router_address, router_status: %r, %r, %r",
+                    router_net, router_address, router_status,
+                    )
+
+                if router_net not in self.adapters:
+                    if _debug: NetworkServiceAccessPoint._debug("    - path error (5)")
+                    return
+
+                xadapter = self.adapters[router_net]
+                if _debug: NetworkServiceAccessPoint._debug("    - found path via %r", xadapter)
+
+                # the destination is the address of the router
+                newpdu.pduDestination = router_address
+
+                # send the packet downstream
+                xadapter.process_npdu(newpdu)
+                return
+
+            if _debug: NetworkServiceAccessPoint._debug("    - no router info found")
 
             ### queue this message for reprocessing when the response comes back
 
@@ -537,16 +622,16 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
             xnpdu.pduDestination = LocalBroadcast()
 
             # send it to all of the connected adapters
-            for xadapter in self.adapters:
+            for xadapter in self.adapters.values():
                 # skip the horse it rode in on
                 if (xadapter is adapter):
                     continue
 
-                ### make sure the adapter is OK
+                # pass this along as if it came from the NSE
                 self.sap_indication(xadapter, xnpdu)
+            return
 
-        ### log this, what to do?
-        return
+        if _debug: NetworkServiceAccessPoint._debug("    - bad DADR: %r", npdu.npduDADR)
 
     def sap_indication(self, adapter, npdu):
         if _debug: NetworkServiceAccessPoint._debug("sap_indication %r %r", adapter, npdu)
@@ -618,17 +703,15 @@ class NetworkServiceElement(ApplicationServiceElement):
             # build a list of reachable networks
             netlist = []
 
-            # start with directly connected networks
-            for xadapter in sap.adapters:
-                if (xadapter is not adapter):
-                    netlist.append(xadapter.adapterNet)
+            # loop through the adapters
+            for xadapter in sap.adapters.values():
+                if (xadapter is adapter):
+                    continue
 
-            # build a list of other available networks
-            for net, rref in sap.networks.items():
-                if rref.adapter is not adapter:
-                    ### skip those marked unreachable
-                    ### skip those that are not available
-                    netlist.append(net)
+                # add the direct network
+                netlist.append(xadapter.adapterNet)
+
+                ### add the other reachable
 
             if netlist:
                 if _debug: NetworkServiceElement._debug("    - found these: %r", netlist)
@@ -643,42 +726,46 @@ class NetworkServiceElement(ApplicationServiceElement):
         else:
             # requesting a specific network
             if _debug: NetworkServiceElement._debug("    - requesting specific network: %r", npdu.wirtnNetwork)
+            dnet = npdu.wirtnNetwork
 
-            # start with directly connected networks
-            for xadapter in sap.adapters:
-                if (xadapter is not adapter) and (npdu.wirtnNetwork == xadapter.adapterNet):
-                    if _debug: NetworkServiceElement._debug("    - found it directly connected")
+            # check the directly connected networks
+            if dnet in sap.adapters:
+                if _debug: NetworkServiceElement._debug("    - directly connected")
+
+                # build a response
+                iamrtn = IAmRouterToNetwork([dnet], user_data=npdu.pduUserData)
+                iamrtn.pduDestination = npdu.pduSource
+
+                # send it back
+                self.response(adapter, iamrtn)
+
+            else:
+                # see if there is routing information for this source network
+                router_info = sap.router_info_cache.get_router_info(dnet)
+                if router_info:
+                    if _debug: NetworkServiceElement._debug("    - router found")
+
+                    router_net, router_address, router_status = router_info
+                    if _debug: NetworkServiceElement._debug(
+                        "    - router_net, router_address, router_status: %r, %r, %r",
+                        router_net, router_address, router_status,
+                        )
+                    if router_net not in sap.adapters:
+                        if _debug: NetworkServiceElement._debug("    - path error (6)")
+                        return
 
                     # build a response
-                    iamrtn = IAmRouterToNetwork([npdu.wirtnNetwork], user_data=npdu.pduUserData)
+                    iamrtn = IAmRouterToNetwork([dnet], user_data=npdu.pduUserData)
                     iamrtn.pduDestination = npdu.pduSource
 
                     # send it back
                     self.response(adapter, iamrtn)
 
-                    break
-            else:
-                # check for networks I know about
-                if npdu.wirtnNetwork in sap.networks:
-                    rref = sap.networks[npdu.wirtnNetwork]
-                    if rref.adapter is adapter:
-                        if _debug: NetworkServiceElement._debug("    - same net as request")
-
-                    else:
-                        if _debug: NetworkServiceElement._debug("    - found on adapter: %r", rref.adapter)
-
-                        # build a response
-                        iamrtn = IAmRouterToNetwork([npdu.wirtnNetwork], user_data=npdu.pduUserData)
-                        iamrtn.pduDestination = npdu.pduSource
-
-                        # send it back
-                        self.response(adapter, iamrtn)
-
                 else:
                     if _debug: NetworkServiceElement._debug("    - forwarding request to other adapters")
 
                     # build a request
-                    whoisrtn = WhoIsRouterToNetwork(npdu.wirtnNetwork, user_data=npdu.pduUserData)
+                    whoisrtn = WhoIsRouterToNetwork(dnet, user_data=npdu.pduUserData)
                     whoisrtn.pduDestination = LocalBroadcast()
 
                     # if the request had a source, forward it along
@@ -689,7 +776,7 @@ class NetworkServiceElement(ApplicationServiceElement):
                     if _debug: NetworkServiceElement._debug("    - whoisrtn: %r", whoisrtn)
 
                     # send it to all of the (other) adapters
-                    for xadapter in sap.adapters:
+                    for xadapter in sap.adapters.values():
                         if xadapter is not adapter:
                             if _debug: NetworkServiceElement._debug("    - sending on adapter: %r", xadapter)
                             self.request(xadapter, whoisrtn)
@@ -697,8 +784,46 @@ class NetworkServiceElement(ApplicationServiceElement):
     def IAmRouterToNetwork(self, adapter, npdu):
         if _debug: NetworkServiceElement._debug("IAmRouterToNetwork %r %r", adapter, npdu)
 
+        # reference the service access point
+        sap = self.elementService
+        if _debug: NetworkServiceElement._debug("    - sap: %r", sap)
+
         # pass along to the service access point
-        self.elementService.add_router_references(adapter, npdu.pduSource, npdu.iartnNetworkList)
+        sap.add_router_references(adapter.adapterNet, npdu.pduSource, npdu.iartnNetworkList)
+
+        # skip if this is not a router
+        if len(sap.adapters) > 1:
+            # build a broadcast annoucement
+            iamrtn = IAmRouterToNetwork(npdu.iartnNetworkList, user_data=npdu.pduUserData)
+            iamrtn.pduDestination = LocalBroadcast()
+
+            # send it to all of the connected adapters
+            for xadapter in sap.adapters.values():
+                # skip the horse it rode in on
+                if (xadapter is adapter):
+                    continue
+
+                # request this
+                self.request(xadapter, iamrtn)
+
+        # look for pending NPDUs for the networks
+        for dnet in npdu.iartnNetworkList:
+            pending_npdus = sap.pending_nets.get(dnet, None)
+            if pending_npdus is not None:
+                if _debug: NetworkServiceElement._debug("    - %d pending to %r", len(pending_npdus), dnet)
+
+                # delete the references
+                del sap.pending_nets[dnet]
+
+                # now reprocess them
+                for pending_npdu in pending_npdus:
+                    if _debug: NetworkServiceElement._debug("    - sending %s", repr(pending_npdu))
+
+                    # the destination is the address of the router
+                    pending_npdu.pduDestination = npdu.pduSource
+
+                    # send the packet downstream
+                    adapter.process_npdu(pending_npdu)
 
     def ICouldBeRouterToNetwork(self, adapter, npdu):
         if _debug: NetworkServiceElement._debug("ICouldBeRouterToNetwork %r %r", adapter, npdu)
