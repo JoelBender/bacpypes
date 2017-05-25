@@ -25,9 +25,10 @@ _log = ModuleLogger(globals())
 @bacpypes_debugging
 class Network:
 
-    def __init__(self, dropPercent=0.0):
-        if _debug: Network._debug("__init__ dropPercent=%r", dropPercent)
+    def __init__(self, name='', dropPercent=0.0):
+        if _debug: Network._debug("__init__ name=%r dropPercent=%r", name, dropPercent)
 
+        self.name = name
         self.nodes = []
         self.dropPercent = dropPercent
 
@@ -37,6 +38,10 @@ class Network:
 
         self.nodes.append(node)
         node.lan = self
+
+        # update the node name
+        if not node.name:
+            node.name = '[%s:%s]' % (self.name, node.address)
 
     def remove_node(self, node):
         """ Remove a node from this network. """
@@ -60,14 +65,14 @@ class Network:
             raise RuntimeError("invalid destination address: %r" % (pdu.pduDestination,))
 
         elif pdu.pduDestination.addrType == Address.localBroadcastAddr:
-            for n in self.nodes:
-                if (pdu.pduSource != n.address):
-                    n.response(deepcopy(pdu))
+            for node in self.nodes:
+                if (pdu.pduSource != node.address):
+                    node.response(deepcopy(pdu))
 
         elif pdu.pduDestination.addrType == Address.localStationAddr:
-            for n in self.nodes:
-                if n.promiscuous or (pdu.pduDestination == n.address):
-                    n.response(deepcopy(pdu))
+            for node in self.nodes:
+                if node.promiscuous or (pdu.pduDestination == node.address):
+                    node.response(deepcopy(pdu))
 
         else:
             raise RuntimeError("invalid destination address type: %r" % (pdu.pduDestination,))
@@ -94,6 +99,10 @@ class Node(Server):
         if not isinstance(addr, Address):
             raise TypeError("addr must be an address")
 
+        # start out with no name
+        self.name = ''
+
+        # unbound
         self.lan = None
         self.address = addr
 
@@ -113,7 +122,7 @@ class Node(Server):
 
     def indication(self, pdu):
         """Send a message."""
-        if _debug: Node._debug("indication %r", pdu)
+        if _debug: Node._debug("%sindication %r", self.name, pdu)
 
         # make sure we're connected
         if not self.lan:
