@@ -3,6 +3,8 @@
 """
 """
 
+import sys
+
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
@@ -27,9 +29,6 @@ from bacpypes.errors import ExecutionError
 _debug = 0
 _log = ModuleLogger(globals())
 
-# more than one test
-which_test = 4
-
 #
 #   VLANApplication
 #
@@ -37,8 +36,24 @@ which_test = 4
 @bacpypes_debugging
 class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
-    def __init__(self, vlan_device, vlan_address, aseID=None):
-        if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
+    def __init__(self, objectName, deviceInstance, address, aseID=None):
+        if _debug: VLANApplication._debug("__init__ %r %r %r aseID=%r", objectName, deviceInstance, address, aseID)
+
+        # make an address
+        vlan_address = Address(address)
+        _log.debug("    - vlan_address: %r", vlan_address)
+
+        # make a device object
+        vlan_device = LocalDeviceObject(
+            objectName=objectName,
+            objectIdentifier=('device', deviceInstance),
+            maxApduLengthAccepted=1024,
+            segmentationSupported='noSegmentation',
+            vendorIdentifier=15,
+            )
+        _log.debug("    - vlan_device: %r", vlan_device)
+
+        # continue with the initialization
         Application.__init__(self, vlan_device, vlan_address, aseID)
 
         # include a application decoder
@@ -102,6 +117,19 @@ class VLANRouter:
         self.nse = NetworkServiceElement()
         bind(self.nse, self.nsap)
 
+    def bind(self, vlan, address, net):
+        if _debug: VLANRouter._debug("bind %r %r %r", vlan, address, net)
+
+        # create a VLAN node for the router with the given address
+        vlan_node = Node(Address(address))
+
+        # add it to the VLAN
+        vlan.add_node(vlan_node)
+
+        # bind the router stack to the vlan network through this node
+        self.nsap.bind(vlan_node, net)
+        if _debug: _log.debug("    - bound to vlan")
+
 #
 #   __main__
 #
@@ -109,6 +137,11 @@ class VLANRouter:
 def main():
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
+
+    # add an argument for which test to run
+    parser.add_argument('test_id', type=int,
+          help='test number',
+          )
 
     # now parse the arguments
     args = parser.parse_args()
@@ -132,27 +165,16 @@ def main():
     vlan1 = Network()
     if _debug: _log.debug("    - vlan1: %r", vlan1)
 
-    # create a node for the router, address 1 on the VLAN
-    vlan1_router1_node = Node(Address(1))
-    vlan1.add_node(vlan1_router1_node)
-
-    # bind the router stack to the vlan network through this node
-    router1.nsap.bind(vlan1_router1_node, 1)
+    # bind the router to the vlan
+    router1.bind(vlan1, 1, 1)
     if _debug: _log.debug("    - router1 bound to VLAN-1")
 
-    # make a vlan device object
-    vlan1_device = \
-        LocalDeviceObject(
-            objectName="VLAN Node 102",
-            objectIdentifier=('device', 102),
-            maxApduLengthAccepted=1024,
-            segmentationSupported='noSegmentation',
-            vendorIdentifier=15,
-            )
-    _log.debug("    - vlan1_device: %r", vlan1_device)
-
     # make the application, add it to the network
-    vlan1_app = VLANApplication(vlan1_device, Address(2))
+    vlan1_app = VLANApplication(
+        objectName="VLAN Node 102",
+        deviceInstance=102,
+        address=2,
+        )
     vlan1.add_node(vlan1_app.vlan_node)
     _log.debug("    - vlan1_app: %r", vlan1_app)
 
@@ -164,27 +186,16 @@ def main():
     vlan2 = Network()
     if _debug: _log.debug("    - vlan2: %r", vlan2)
 
-    # create a node for the router, address 1 on the VLAN
-    vlan2_router1_node = Node(Address(1))
-    vlan2.add_node(vlan2_router1_node)
-
     # bind the router stack to the vlan network through this node
-    router1.nsap.bind(vlan2_router1_node, 2)
+    router1.bind(vlan2, 1, 2)
     if _debug: _log.debug("    - router1 bound to VLAN-2")
 
-    # make a vlan device object
-    vlan2_device = \
-        LocalDeviceObject(
-            objectName="VLAN Node 202",
-            objectIdentifier=('device', 202),
-            maxApduLengthAccepted=1024,
-            segmentationSupported='noSegmentation',
-            vendorIdentifier=15,
-            )
-    _log.debug("    - vlan2_device: %r", vlan2_device)
-
     # make the application, add it to the network
-    vlan2_app = VLANApplication(vlan2_device, Address(2))
+    vlan2_app = VLANApplication(
+        objectName="VLAN Node 202",
+        deviceInstance=202,
+        address=2,
+        )
     vlan2.add_node(vlan2_app.vlan_node)
     _log.debug("    - vlan2_app: %r", vlan2_app)
 
@@ -196,12 +207,8 @@ def main():
     vlan3 = Network()
     if _debug: _log.debug("    - vlan3: %r", vlan3)
 
-    # create a node for the router, address 1 on the VLAN
-    vlan3_router1_node = Node(Address(1))
-    vlan3.add_node(vlan3_router1_node)
-
     # bind the router stack to the vlan network through this node
-    router1.nsap.bind(vlan3_router1_node, 3)
+    router1.bind(vlan3, 1, 3)
     if _debug: _log.debug("    - router1 bound to VLAN-3")
 
     # make a vlan device object
@@ -216,7 +223,11 @@ def main():
     _log.debug("    - vlan3_device: %r", vlan3_device)
 
     # make the application, add it to the network
-    vlan3_app = VLANApplication(vlan3_device, Address(2))
+    vlan3_app = VLANApplication(
+        objectName="VLAN Node 302",
+        deviceInstance=302,
+        address=2,
+        )
     vlan3.add_node(vlan3_app.vlan_node)
     _log.debug("    - vlan3_app: %r", vlan3_app)
 
@@ -229,12 +240,8 @@ def main():
     router2 = VLANRouter()
     if _debug: _log.debug("    - router2: %r", router2)
 
-    # create a node for the router, address 255 on the VLAN-3
-    vlan3_router2_node = Node(Address(255))
-    vlan3.add_node(vlan3_router2_node)
-
     # bind the router stack to the vlan network through this node
-    router2.nsap.bind(vlan3_router2_node, 3)
+    router2.bind(vlan3, 255, 3)
     if _debug: _log.debug("    - router2 bound to VLAN-3")
 
     #
@@ -245,27 +252,16 @@ def main():
     vlan4 = Network()
     if _debug: _log.debug("    - vlan4: %r", vlan4)
 
-    # create a node for the router, address 1 on the VLAN
-    vlan4_router2_node = Node(Address(1))
-    vlan4.add_node(vlan4_router2_node)
-
     # bind the router stack to the vlan network through this node
-    router2.nsap.bind(vlan4_router2_node, 4)
+    router2.bind(vlan4, 1, 4)
     if _debug: _log.debug("    - router2 bound to VLAN-4")
 
-    # make a vlan device object
-    vlan4_device = \
-        LocalDeviceObject(
-            objectName="VLAN Node 402",
-            objectIdentifier=('device', 402),
-            maxApduLengthAccepted=1024,
-            segmentationSupported='noSegmentation',
-            vendorIdentifier=15,
-            )
-    _log.debug("    - vlan4_device: %r", vlan4_device)
-
     # make the application, add it to the network
-    vlan4_app = VLANApplication(vlan4_device, Address(2))
+    vlan4_app = VLANApplication(
+        objectName="VLAN Node 402",
+        deviceInstance=402,
+        address=2,
+        )
     vlan4.add_node(vlan4_app.vlan_node)
     _log.debug("    - vlan4_app: %r", vlan4_app)
 
@@ -274,7 +270,7 @@ def main():
     #   Test 1
     #
 
-    if which_test == 1:
+    if args.test_id == 1:
         # ask the first device to Who-Is everybody
         deferred(vlan1_app.who_is)
 
@@ -283,7 +279,7 @@ def main():
     #   Test 2
     #
 
-    if which_test == 2:
+    if args.test_id == 2:
         # make a read request
         read_property_request = ReadPropertyRequest(
             destination=Address("2:2"),
@@ -299,7 +295,7 @@ def main():
     #   Test 3
     #
 
-    if which_test == 3:
+    if args.test_id == 3:
         # make a read request
         read_property_request = ReadPropertyRequest(
             destination=Address("3:2"),
@@ -315,7 +311,7 @@ def main():
     #   Test 4
     #
 
-    if which_test == 4:
+    if args.test_id == 4:
         # make a read request
         read_property_request = ReadPropertyRequest(
             destination=Address("4:2"),
