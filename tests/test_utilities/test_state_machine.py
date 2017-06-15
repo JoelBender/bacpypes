@@ -9,10 +9,9 @@ Test Utilities State Machine
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from ..state_machine import State, StateMachine
+from ..state_machine import State, StateMachine, StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine
-
-from .trapped_classes import TrappedState, TrappedStateMachine
+from ..trapped_classes import TrappedState, TrappedStateMachine
 
 # some debugging
 _debug = 0
@@ -61,6 +60,7 @@ class TestState(unittest.TestCase):
 
     def test_something_else(self):
         if _debug: TestState._debug("test_something_else")
+
 
 @bacpypes_debugging
 class TestStateMachine(unittest.TestCase):
@@ -292,7 +292,7 @@ class TestStateMachine(unittest.TestCase):
 @bacpypes_debugging
 class TestStateMachineTimeout1(unittest.TestCase):
 
-    def test_state_machine_timeout(self):
+    def test_state_machine_timeout_1(self):
         if _debug: TestStateMachineTimeout1._debug("test_state_machine_timeout_1")
 
         # create a trapped state machine
@@ -317,7 +317,7 @@ class TestStateMachineTimeout1(unittest.TestCase):
 @bacpypes_debugging
 class TestStateMachineTimeout2(unittest.TestCase):
 
-    def test_state_machine_timeout(self):
+    def test_state_machine_timeout_2(self):
         if _debug: TestStateMachineTimeout2._debug("test_state_machine_timeout_2")
 
         # make some pdu's
@@ -350,3 +350,61 @@ class TestStateMachineTimeout2(unittest.TestCase):
         assert len(tsm.transaction_log) == 2
         assert tsm.transaction_log[0][1] is first_pdu
         assert tsm.transaction_log[1][1] is second_pdu
+
+
+@bacpypes_debugging
+class TestStateMachineGroup(unittest.TestCase):
+
+    def test_state_machine_group_success(self):
+        if _debug: TestStateMachineGroup._debug("test_state_machine_group_success")
+
+        # create a state machine group
+        smg = StateMachineGroup()
+
+        # create a trapped state machine, start state is success
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm.start_state.success()
+
+        # add it to the group
+        smg.append(tsm)
+
+        reset_time_machine()
+        if _debug: TestStateMachineGroup._debug("    - time machine reset")
+
+        # tell the group to run
+        smg.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineGroup._debug("    - time machine finished")
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+        assert smg.is_success_state
+
+    def test_state_machine_group_fail(self):
+        if _debug: TestStateMachineGroup._debug("test_state_machine_group_fail")
+
+        # create a state machine group
+        smg = StateMachineGroup()
+
+        # create a trapped state machine, start state is fail
+        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm.start_state.fail()
+
+        # add it to the group
+        smg.append(tsm)
+
+        reset_time_machine()
+        if _debug: TestStateMachineGroup._debug("    - time machine reset")
+
+        # tell the group to run
+        smg.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineGroup._debug("    - time machine finished")
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_fail_state
+        assert smg.is_fail_state

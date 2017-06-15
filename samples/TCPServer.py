@@ -1,14 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This simple TCP server application listens for one or more client connections
-and echos the incoming lines back to the client.  There is no conversion from 
+and echos the incoming lines back to the client.  There is no conversion from
 incoming streams of content into a line or any other higher-layer concept
 of a packet.
 """
 
-import sys
-import logging
+import os
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
@@ -21,12 +20,13 @@ from bacpypes.tcp import TCPServerDirector
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-server_address = None
+# settings
+SERVER_HOST = os.getenv('SERVER_HOST', 'any')
+SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
+IDLE_TIMEOUT = int(os.getenv('IDLE_TIMEOUT', 0)) or None
 
-# defaults
-default_server_host = '127.0.0.1'
-default_server_port = 9000
+# globals
+args = None
 
 #
 #   EchoMaster
@@ -36,7 +36,8 @@ class EchoMaster(Client):
 
     def confirmation(self, pdu):
         if _debug: EchoMaster._debug('confirmation %r', pdu)
-        
+
+        # send it back down the stack
         self.request(PDU(pdu.pduData, destination=pdu.pduSource))
 
 bacpypes_debugging(EchoMaster)
@@ -46,20 +47,27 @@ bacpypes_debugging(EchoMaster)
 #
 
 class MiddleManASE(ApplicationServiceElement):
+    """
+    An instance of this class is bound to the director, which is a
+    ServiceAccessPoint.  It receives notifications of new actors connected
+    from a client, actors that are going away when the connections are closed,
+    and socket errors.
+    """
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        global args
 
-    def indication(self, addPeer=None, delPeer=None):
-        """
-        This function is called by the TCPDirector when the client connects to
-        or disconnects from a server.  It is called with addPeer or delPeer
-        keyword parameters, but not both.
-        """
-        if _debug: MiddleManASE._debug('indication addPeer=%r delPeer=%r', addPeer, delPeer)
+        if add_actor:
+            if _debug: MiddleManASE._debug("indication add_actor=%r", add_actor)
 
-        if addPeer:
-            if _debug: MiddleManASE._debug("    - add peer %s", addPeer)
+            # it's connected, maybe say hello
+            if args.hello:
+                self.elementService.indication(PDU(b'Hello, world!\n', destination=add_actor.peer))
 
-        if delPeer:
-            if _debug: MiddleManASE._debug("    - delete peer %s", delPeer)
+        if del_actor:
+            if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
+
+        if actor_error:
+            if _debug: MiddleManASE._debug("indication actor_error=%r error=%r", actor_error, error)
 
 bacpypes_debugging(MiddleManASE)
 
@@ -68,17 +76,29 @@ bacpypes_debugging(MiddleManASE)
 #
 
 def main():
+    global args
+
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--host", nargs='?',
-        help="listening address of server",
-        default=default_server_host,
+        "host", nargs='?',
+        help="listening address of server or 'any' (default %r)" % (SERVER_HOST,),
+        default=SERVER_HOST,
         )
     parser.add_argument(
-        "--port", nargs='?', type=int,
-        help="server port",
-        default=default_server_port,
+        "port", nargs='?', type=int,
+        help="server port (default %r)" % (SERVER_PORT,),
+        default=SERVER_PORT,
+        )
+    parser.add_argument(
+        "--idle-timeout", nargs='?', type=int,
+        help="idle connection timeout",
+        default=IDLE_TIMEOUT,
+        )
+    parser.add_argument(
+        "--hello", action="store_true",
+        default=False,
+        help="send a hello message to a client when it connects",
         )
     args = parser.parse_args()
 
@@ -89,12 +109,11 @@ def main():
     host = args.host
     if host == "any":
         host = ''
-    port = args.port
-    server_address = (host, port)
+    server_address = (host, args.port)
     if _debug: _log.debug("    - server_address: %r", server_address)
 
     # create a director listening to the address
-    this_director = TCPServerDirector(server_address)
+    this_director = TCPServerDirector(server_address, idle_timeout=args.idle_timeout)
     if _debug: _log.debug("    - this_director: %r", this_director)
 
     # create an echo
@@ -109,7 +128,8 @@ def main():
 
     run()
 
+    _log.debug("fini")
+
 
 if __name__ == "__main__":
     main()
-

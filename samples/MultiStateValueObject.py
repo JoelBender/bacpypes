@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application provides a single MultiState Value Object to test
@@ -10,22 +10,22 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
+from bacpypes.primitivedata import CharacterString
+from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import MultiStateValueObject
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
-# globals
-this_device = None
-this_application = None
-
 #
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -53,11 +53,11 @@ try:
 
     # make a multistate value object
     msvo = MultiStateValueObject(
-        objectIdentifier=('multiStateValue', 1), 
+        objectIdentifier=('multiStateValue', 1),
         objectName='My Special Object',
         presentValue=1,
         numberOfStates=3,
-        stateText=['red', 'green', 'blue'],
+        stateText=ArrayOf(CharacterString)(['red', 'green', 'blue']),
         )
     _log.debug("    - msvo: %r", msvo)
 
@@ -69,8 +69,8 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

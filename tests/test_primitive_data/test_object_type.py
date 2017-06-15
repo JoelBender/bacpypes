@@ -39,6 +39,7 @@ def object_type_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def object_type_encode(obj):
     """Encode an ObjectType object into a tag."""

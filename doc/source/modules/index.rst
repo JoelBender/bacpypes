@@ -65,6 +65,14 @@ Application Layer
     app.rst
     appservice.rst
 
+Services
+--------
+
+.. toctree::
+    :maxdepth: 2
+
+    service/index.rst
+
 Analysis
 --------
 
@@ -79,5 +87,6 @@ Other
 .. toctree::
     :maxdepth: 2
 
+    capability.rst
     commandlogging.rst
-
+    iocb.rst

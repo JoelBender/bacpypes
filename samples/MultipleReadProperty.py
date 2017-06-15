@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 Mutliple Read Property
 
-This application has a static list of points that it would like to read.  It reads the 
+This application has a static list of points that it would like to read.  It reads the
 values of each of them in turn and then quits.
 """
 
@@ -13,29 +13,29 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run, stop, deferred
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
-from bacpypes.basetypes import ServicesSupported
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
-this_console = None
 
-# point list
+# point list, set according to your device
 point_list = [
-    ('1.2.3.4', 'analogValue', 1, 'presentValue'),
-    ('1.2.3.4', 'analogValue', 2, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 1, 'presentValue'),
+    ('10.0.1.14', 'analogValue', 2, 'presentValue'),
     ]
 
 #
@@ -49,14 +49,11 @@ class ReadPointListApplication(BIPSimpleApplication):
         if _debug: ReadPointListApplication._debug("__init__ %r, %r", point_list, args)
         BIPSimpleApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
+        # turn the point list into a queue
+        self.point_queue = deque(point_list)
 
         # make a list of the response values
         self.response_values = []
-
-        # turn the point list into a queue
-        self.point_queue = deque(point_list)
 
     def next_request(self):
         if _debug: ReadPointListApplication._debug("next_request")
@@ -71,33 +68,34 @@ class ReadPointListApplication(BIPSimpleApplication):
         addr, obj_type, obj_inst, prop_id = self.point_queue.popleft()
 
         # build a request
-        self._request = ReadPropertyRequest(
+        request = ReadPropertyRequest(
             objectIdentifier=(obj_type, obj_inst),
             propertyIdentifier=prop_id,
             )
-        self._request.pduDestination = Address(addr)
-        if _debug: ReadPointListApplication._debug("    - request: %r", self._request)
+        request.pduDestination = Address(addr)
+        if _debug: ReadPointListApplication._debug("    - request: %r", request)
 
-        # forward it along
-        BIPSimpleApplication.request(self, self._request)
+        # make an IOCB
+        iocb = IOCB(request)
 
-    def confirmation(self, apdu):
-        if _debug: ReadPointListApplication._debug("confirmation %r", apdu)
+        # set a callback for the response
+        iocb.add_callback(self.complete_request)
+        if _debug: ReadPointListApplication._debug("    - iocb: %r", iocb)
 
-        if isinstance(apdu, Error):
-            if _debug: ReadPointListApplication._debug("    - error: %r", apdu)
-            self.response_values.append(apdu)
+        # send the request
+        this_application.request_io(iocb)
 
-        elif isinstance(apdu, AbortPDU):
-            if _debug: ReadPointListApplication._debug("    - abort: %r", apdu)
-            self.response_values.append(apdu)
+    def complete_request(self, iocb):
+        if _debug: ReadPointListApplication._debug("complete_request %r", iocb)
 
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
+        if iocb.ioResponse:
+            apdu = iocb.ioResponse
+
             # find the datatype
             datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
             if _debug: ReadPointListApplication._debug("    - datatype: %r", datatype)
             if not datatype:
-                raise TypeError, "unknown datatype"
+                raise TypeError("unknown datatype")
 
             # special case for array parts, others are managed by cast_out
             if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
@@ -112,6 +110,10 @@ class ReadPointListApplication(BIPSimpleApplication):
             # save the value
             self.response_values.append(value)
 
+        if iocb.ioError:
+            if _debug: ReadPointListApplication._debug("    - error: %r", iocb.ioError)
+            self.response_values.append(iocb.ioError)
+
         # fire off another request
         deferred(self.next_request)
 
@@ -119,7 +121,9 @@ class ReadPointListApplication(BIPSimpleApplication):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -154,9 +158,10 @@ try:
 
     # dump out the results
     for request, response in zip(point_list, this_application.response_values):
-        print request, response
+        print(request, response)
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+
+if __name__ == "__main__":
+    main()

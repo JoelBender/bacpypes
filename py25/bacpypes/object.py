@@ -5,8 +5,11 @@ Object
 """
 
 import sys
+from copy import copy as _copy
+from collections import defaultdict
 
-from .errors import ConfigurationError, ExecutionError
+from .errors import ConfigurationError, ExecutionError, \
+    InvalidParameterDatatype
 from .debugging import function_debugging, ModuleLogger, Logging
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
@@ -171,8 +174,11 @@ class Property(Logging):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
             if value is not None:
-                # dive in, the water's fine
-                value = value[arrayIndex]
+                try:
+                    # dive in, the water's fine
+                    value = value[arrayIndex]
+                except IndexError:
+                    raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
         # all set
         return value
@@ -194,12 +200,24 @@ class Property(Logging):
             if not self.mutable:
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
-        # if it's atomic assume correct datatype
-        if issubclass(self.datatype, Atomic):
-            if _debug: Property._debug("    - property is atomic, assumed correct type")
-        elif isinstance(value, self.datatype):
-            if _debug: Property._debug("    - correct type")
-        elif arrayIndex is not None:
+            # if it's atomic, make sure it's valid
+            if issubclass(self.datatype, Atomic):
+                if _debug: Property._debug("    - property is atomic, checking value")
+                if not self.datatype.is_valid(value):
+                    raise InvalidParameterDatatype("%s must be of type %s" % (
+                            self.identifier, self.datatype.__name__,
+                            ))
+
+            elif not isinstance(value, self.datatype):
+                if _debug: Property._debug("    - property is not atomic and wrong type")
+                raise InvalidParameterDatatype("%s must be of type %s" % (
+                        self.identifier, self.datatype.__name__,
+                        ))
+
+        # local check if the property is monitored
+        is_monitored = self.identifier in obj._property_monitors
+
+        if arrayIndex is not None:
             if not issubclass(self.datatype, Array):
                 raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
 
@@ -208,18 +226,34 @@ class Property(Logging):
             if arry is None:
                 raise RuntimeError("%s uninitialized array" % (self.identifier,))
 
+            if is_monitored:
+                old_value = _copy(arry)
+
             # seems to be OK, let the array object take over
             if _debug: Property._debug("    - forwarding to array")
-            arry[arrayIndex] = value
+            try:
+                arry[arrayIndex] = value
+            except IndexError:
+                raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
 
-            return
-        elif value is not None:
-            # coerce the value
-            value = self.datatype(value)
-            if _debug: Property._debug("    - coerced the value: %r", value)
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, arry)
 
-        # seems to be OK
-        obj._values[self.identifier] = value
+        else:
+            if is_monitored:
+                old_value = obj._values.get(self.identifier, None)
+
+            # seems to be OK
+            obj._values[self.identifier] = value
+
+            # check for monitors, call each one with the old and new value
+            if is_monitored:
+                for fn in obj._property_monitors[self.identifier]:
+                    if _debug: Property._debug("    - monitor: %r", fn)
+                    fn(old_value, value)
 
 #
 #   StandardProperty
@@ -323,6 +357,8 @@ class ObjectIdentifierProperty(ReadableProperty, Logging):
 
 class Object(Logging):
 
+    _debug_contents = ('_app',)
+
     properties = \
         [ ObjectIdentifierProperty('objectIdentifier', ObjectIdentifier, optional=False)
         , ReadableProperty('objectName', CharacterString, optional=False)
@@ -349,6 +385,9 @@ class Object(Logging):
 
         # start with a clean dict of values
         self._values = {}
+
+        # empty list of property monitors
+        self._property_monitors = defaultdict(list)
 
         # start with a clean array of property identifiers
         if 'propertyList' in initargs:
@@ -393,8 +432,6 @@ class Object(Logging):
 
         # get the property
         prop = self._properties.get(attr)
-        if _debug: Object._debug("    - prop: %r", prop)
-
         if not prop:
             raise PropertyError(attr)
 
@@ -426,6 +463,49 @@ class Object(Logging):
         if _debug: Object._debug("    - deferring to %r", prop)
 
         return prop.WriteProperty(self, value, direct=True)
+
+    def add_property(self, prop):
+        """Add a property to an object.  The property is an instance of
+        a Property or one of its derived classes.  Adding a property
+        disconnects it from the collection of properties common to all of the
+        objects of its class."""
+        if _debug: Object._debug("add_property %r", prop)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # save the property reference and default value (usually None)
+        self._properties[prop.identifier] = prop
+        self._values[prop.identifier] = prop.default
+
+        # tell the object it has a new property
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier not in property_list:
+                if _debug: Object._debug("    - adding to property list")
+                property_list.append(prop.identifier)
+
+    def delete_property(self, prop):
+        """Delete a property from an object.  The property is an instance of
+        a Property or one of its derived classes, but only the property
+        is relavent.  Deleting a property disconnects it from the collection of
+        properties common to all of the objects of its class."""
+        if _debug: Object._debug("delete_property %r", value)
+
+        # make a copy of the properties dictionary
+        self._properties = _copy(self._properties)
+
+        # delete the property from the dictionary and values
+        del self._properties[prop.identifier]
+        if prop.identifier in self._values:
+            del self._values[prop.identifier]
+
+        # remove the property identifier from its list of know properties
+        if 'propertyList' in self._values:
+            property_list = self.propertyList
+            if prop.identifier in property_list:
+                if _debug: Object._debug("    - removing from property list")
+                property_list.remove(prop.identifier)
 
     def ReadProperty(self, propid, arrayIndex=None):
         if _debug: Object._debug("ReadProperty %r arrayIndex=%r", propid, arrayIndex)
@@ -472,6 +552,37 @@ class Object(Logging):
         klasses = list(self.__class__.__mro__)
         klasses.reverse()
 
+        # build a list of property identifiers "bottom up"
+        property_names = []
+        properties_seen = set()
+        for c in klasses:
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
+
+        # extract the values
+        for property_name in property_names:
+            # get the value
+            property_value = self._properties.get(property_name).ReadProperty(self)
+            if property_value is None:
+                continue
+
+            # if the value has a way to convert it to a dict, use it
+            if hasattr(property_value, "dict_contents"):
+                property_value = property_value.dict_contents(as_class=as_class)
+
+            # save the value
+            use_dict.__setitem__(property_name, property_value)
+
+        # return what we built/updated
+        return use_dict
+
+    def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
+        """Print out interesting things about the object."""
+        klasses = list(self.__class__.__mro__)
+        klasses.reverse()
+
         # print special attributes "bottom up"
         previous_attrs = ()
         for c in klasses:
@@ -485,49 +596,28 @@ class Object(Logging):
                 file.write("%s%s = %s\n" % ("    " * indent, attr, getattr(self, attr)))
             previous_attrs = attrs
 
-        # build a list of properties "bottom up"
-        properties = []
+        # build a list of property identifiers "bottom up"
+        property_names = []
+        properties_seen = set()
         for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
+            for prop in getattr(c, 'properties', []):
+                if prop.identifier not in properties_seen:
+                    property_names.append(prop.identifier)
+                    properties_seen.add(prop.identifier)
 
         # print out the values
-        for prop in properties:
-            value = prop.ReadProperty(self)
-            if value is None:
-                continue
-
-            if hasattr(value, "dict_contents"):
-                value = value.dict_contents(as_class=as_class)
-
-            # save the value
-            use_dict.__setitem__(prop.identifier, value)
-
-        # return what we built/updated
-        return use_dict
-
-    def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
-        """Print out interesting things about the object."""
-        klasses = list(self.__class__.__mro__)
-        klasses.reverse()
-
-        # build a list of properties "bottom up"
-        properties = []
-        for c in klasses:
-            properties.extend(getattr(c, 'properties', []))
-
-        # print out the values
-        for prop in properties:
-            value = prop.ReadProperty(self)
+        for property_name in property_names:
+            property_value = self._values.get(property_name, None)
 
             # printing out property values that are None is tedious
-            if value is None:
+            if property_value is None:
                 continue
 
-            if hasattr(value, "debug_contents"):
-                file.write("%s%s\n" % ("    " * indent, prop.identifier))
-                value.debug_contents(indent+1, file, _ids)
+            if hasattr(property_value, "debug_contents"):
+                file.write("%s%s\n" % ("    " * indent, property_name))
+                property_value.debug_contents(indent+1, file, _ids)
             else:
-                file.write("%s%s = %r\n" % ("    " * indent, prop.identifier, value))
+                file.write("%s%s = %r\n" % ("    " * indent, property_name, property_value))
 
 #
 #   Standard Object Types
@@ -1267,6 +1357,7 @@ class DeviceObject(Object):
         , OptionalProperty('timeSynchronizationInterval', Unsigned)
         , OptionalProperty('alignIntervals', Boolean)
         , OptionalProperty('intervalOffset', Unsigned)
+        , OptionalProperty('serialNumber', CharacterString)
         ]
 
 register_object_type(DeviceObject)

@@ -1,12 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
-ReadWriteFileServer.py
-
-This sample application is a BACnet device that has one record access file at
-('file', 1) and one stream access file at ('file', 2).
+This sample application is a BACnet device that has one record access file
+('file', 1) and one stream access file ('file', 2).
 """
 
+import os
 import random
 import string
 
@@ -15,37 +14,40 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import FileObject, register_object_type
-
-from bacpypes.basetypes import ServicesSupported
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.file import FileServices, \
+    LocalRecordAccessFileObject, LocalStreamAccessFileObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+# configuration
+RECORD_LEN = int(os.getenv('RECORD_LEN', 128))
+RECORD_COUNT = int(os.getenv('RECORD_COUNT', 100))
+OCTET_COUNT = int(os.getenv('OCTET_COUNT', 4096))
 
 #
 #   Local Record Access File Object Type
 #
 
 @bacpypes_debugging
-class LocalRecordAccessFileObject(FileObject):
+class TestRecordFile(LocalRecordAccessFileObject):
 
     def __init__(self, **kwargs):
         """ Initialize a record accessed file object. """
         if _debug:
-            LocalRecordAccessFileObject._debug("__init__ %r",
+            TestRecordFile._debug("__init__ %r",
                 kwargs,
                 )
-        FileObject.__init__(self,
-            fileAccessMethod='recordAccess',
-             **kwargs
-             )
+        LocalRecordAccessFileObject.__init__(self, **kwargs)
 
+        # create some test data
         self._record_data = [
             ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(10, 20)))
-            for j in range(random.randint(10, 20))
+            for i in range(RECORD_LEN)).encode('utf-8')
+            for j in range(RECORD_COUNT)
             ]
         if _debug: LocalRecordAccessFileObject._debug("    - %d records",
                 len(self._record_data),
@@ -53,13 +55,13 @@ class LocalRecordAccessFileObject(FileObject):
 
     def __len__(self):
         """ Return the number of records. """
-        if _debug: LocalRecordAccessFileObject._debug("__len__")
+        if _debug: TestRecordFile._debug("__len__")
 
         return len(self._record_data)
 
-    def ReadFile(self, start_record, record_count):
+    def read_record(self, start_record, record_count):
         """ Read a number of records starting at a specific record. """
-        if _debug: LocalRecordAccessFileObject._debug("ReadFile %r %r",
+        if _debug: TestRecordFile._debug("read_record %r %r",
                 start_record, record_count,
                 )
 
@@ -69,8 +71,12 @@ class LocalRecordAccessFileObject(FileObject):
         return end_of_file, \
             self._record_data[start_record:start_record + record_count]
 
-    def WriteFile(self, start_record, record_count, record_data):
+    def write_record(self, start_record, record_count, record_data):
         """ Write a number of records, starting at a specific record. """
+        if _debug: TestRecordFile._debug("write_record %r %r %r",
+                start_record, record_count, record_data,
+                )
+
         # check for append
         if (start_record < 0):
             start_record = len(self._record_data)
@@ -89,41 +95,37 @@ class LocalRecordAccessFileObject(FileObject):
         # return where the 'writing' actually started
         return start_record
 
-register_object_type(LocalRecordAccessFileObject)
-
 #
 #   Local Stream Access File Object Type
 #
 
 @bacpypes_debugging
-class LocalStreamAccessFileObject(FileObject):
+class TestStreamFile(LocalStreamAccessFileObject):
 
     def __init__(self, **kwargs):
         """ Initialize a stream accessed file object. """
         if _debug:
-            LocalStreamAccessFileObject._debug("__init__ %r",
+            TestStreamFile._debug("__init__ %r",
                 kwargs,
                 )
-        FileObject.__init__(self,
-            fileAccessMethod='streamAccess',
-             **kwargs
-             )
+        LocalStreamAccessFileObject.__init__(self, **kwargs)
 
+        # create some test data
         self._file_data = ''.join(random.choice(string.ascii_letters)
-            for i in range(random.randint(100, 200)))
-        if _debug: LocalRecordAccessFileObject._debug("    - %d octets",
+            for i in range(OCTET_COUNT)).encode('utf-8')
+        if _debug: TestStreamFile._debug("    - %d octets",
                 len(self._file_data),
                 )
 
     def __len__(self):
         """ Return the number of octets in the file. """
-        if _debug: LocalStreamAccessFileObject._debug("__len__")
+        if _debug: TestStreamFile._debug("__len__")
 
         return len(self._file_data)
 
-    def ReadFile(self, start_position, octet_count):
+    def read_stream(self, start_position, octet_count):
         """ Read a chunk of data out of the file. """
-        if _debug: LocalStreamAccessFileObject._debug("ReadFile %r %r",
+        if _debug: TestStreamFile._debug("read_stream %r %r",
                 start_position, octet_count,
                 )
 
@@ -133,8 +135,12 @@ class LocalStreamAccessFileObject(FileObject):
         return end_of_file, \
             self._file_data[start_position:start_position + octet_count]
 
-    def WriteFile(self, start_position, data):
+    def write_stream(self, start_position, data):
         """ Write a number of octets, starting at a specific offset. """
+        if _debug: TestStreamFile._debug("write_stream %r %r",
+                start_position, data,
+                )
+
         # check for append
         if (start_position < 0):
             start_position = len(self._file_data)
@@ -146,7 +152,7 @@ class LocalStreamAccessFileObject(FileObject):
             start_position = len(self._file_data)
             self._file_data += data
 
-        # no slice assignment, strings are immutable 
+        # no slice assignment, strings are immutable
         else:
             data_len = len(data)
             prechunk = self._file_data[:start_position]
@@ -156,13 +162,11 @@ class LocalStreamAccessFileObject(FileObject):
         # return where the 'writing' actually started
         return start_position
 
-register_object_type(LocalStreamAccessFileObject)
-
 #
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -181,6 +185,9 @@ try:
     # make a sample application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
 
+    # add the capability to server file content
+    this_application.add_capability(FileServices)
+
     # get the services supported
     services_supported = this_application.get_services_supported()
     if _debug: _log.debug("    - services_supported: %r", services_supported)
@@ -189,7 +196,7 @@ try:
     this_device.protocolServicesSupported = services_supported.value
 
     # make a record access file, add to the device
-    f1 = LocalRecordAccessFileObject(
+    f1 = TestRecordFile(
         objectIdentifier=('file', 1),
         objectName='RecordAccessFile1'
         )
@@ -197,7 +204,7 @@ try:
     this_application.add_object(f1)
 
     # make a stream access file, add to the device
-    f2 = LocalStreamAccessFileObject(
+    f2 = TestStreamFile(
         objectIdentifier=('file', 2),
         objectName='StreamAccessFile2'
         )
@@ -208,7 +215,7 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

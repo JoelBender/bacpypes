@@ -7,8 +7,10 @@ Core
 import sys
 import asyncore
 import signal
+import threading
 import time
 import traceback
+import warnings
 
 from .task import TaskManager
 from .debugging import bacpypes_debugging, ModuleLogger
@@ -24,15 +26,92 @@ deferredFns = []
 sleeptime = 0.0
 
 #
+#   stop
+#
+
+@bacpypes_debugging
+def stop(*args):
+    """Call to stop running, may be called with a signum and frame
+    parameter if called as a signal handler."""
+    if _debug: stop._debug("stop")
+    global running, taskManager
+
+    if args:
+        sys.stderr.write("===== TERM Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
+        sys.stderr.flush()
+
+    running = False
+
+    # trigger the task manager event
+    if taskManager and taskManager.trigger:
+        if _debug: stop._debug("    - trigger")
+        taskManager.trigger.set()
+
+#
+#   dump_stack
+#
+
+@bacpypes_debugging
+def dump_stack():
+    if _debug: dump_stack._debug("dump_stack")
+    for filename, lineno, fn, _ in traceback.extract_stack()[:-1]:
+        sys.stderr.write("    %-20s  %s:%s\n" % (fn, filename.split('/')[-1], lineno))
+
+#
+#   print_stack
+#
+
+@bacpypes_debugging
+def print_stack(sig, frame):
+    """Signal handler to print a stack trace and some interesting values."""
+    if _debug: print_stack._debug("print_stack %r %r", sig, frame)
+    global running, deferredFns, sleeptime
+
+    sys.stderr.write("==== USR1 Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
+
+    sys.stderr.write("---------- globals\n")
+    sys.stderr.write("    running: %r\n" % (running,))
+    sys.stderr.write("    deferredFns: %r\n" % (deferredFns,))
+    sys.stderr.write("    sleeptime: %r\n" % (sleeptime,))
+
+    sys.stderr.write("---------- stack\n")
+    traceback.print_stack(frame)
+
+    # make a list of interesting frames
+    flist = []
+    f = frame
+    while f.f_back:
+        flist.append(f)
+        f = f.f_back
+
+    # reverse the list so it is in the same order as print_stack
+    flist.reverse()
+    for f in flist:
+        sys.stderr.write("---------- frame: %s\n" % (f,))
+        for k, v in f.f_locals.items():
+            sys.stderr.write("    %s: %r\n" % (k, v))
+
+    sys.stderr.flush()
+
+#
 #   run
 #
 
 SPIN = 1.0
 
 @bacpypes_debugging
-def run(spin=SPIN):
-    if _debug: run._debug("run spin=%r", spin)
+def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
+    if _debug: run._debug("run spin=%r sigterm=%r, sigusr1=%r", spin, sigterm, sigusr1)
     global running, taskManager, deferredFns, sleeptime
+
+    # install the signal handlers if they have been provided (issue #112)
+    if isinstance(threading.current_thread(), threading._MainThread):
+        if (sigterm is not None) and hasattr(signal, 'SIGTERM'):
+            signal.signal(signal.SIGTERM, sigterm)
+        if (sigusr1 is not None) and hasattr(signal, 'SIGUSR1'):
+            signal.signal(signal.SIGUSR1, sigusr1)
+    elif sigterm or sigusr1:
+        warnings.warn("no signal handlers for child threads")
 
     # reference the task manager (a singleton)
     taskManager = TaskManager()
@@ -79,7 +158,7 @@ def run(spin=SPIN):
 
                 # call the functions
                 for fn, args, kwargs in fnlist:
-                    # if _debug: run._debug("    - call: %r %r %r", fn, args, kwargs)
+#                   if _debug: run._debug("    - call: %r %r %r", fn, args, kwargs)
                     fn( *args, **kwargs)
 
                 # done with this list
@@ -141,81 +220,21 @@ def run_once():
         if _debug: run_once._exception("an error has occurred: %s", err)
 
 #
-#   stop
-#
-
-@bacpypes_debugging
-def stop(*args):
-    """Call to stop running, may be called with a signum and frame
-    parameter if called as a signal handler."""
-    if _debug: stop._debug("stop")
-    global running, taskManager
-
-    if args:
-        sys.stderr.write("===== TERM Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
-        sys.stderr.flush()
-
-    running = False
-
-    # trigger the task manager event
-    if taskManager and taskManager.trigger:
-        if _debug: stop._debug("    - trigger")
-        taskManager.trigger.set()
-
-# set a TERM signal handler
-if hasattr(signal, 'SIGTERM'):
-    signal.signal(signal.SIGTERM, stop)
-
-#
-#   print_stack
-#
-
-@bacpypes_debugging
-def print_stack(sig, frame):
-    """Signal handler to print a stack trace and some interesting values."""
-    if _debug: print_stack._debug("print_stack, %r, %r", sig, frame)
-    global running, deferredFns, sleeptime
-
-    sys.stderr.write("==== USR1 Signal, %s\n" % time.strftime("%d-%b-%Y %H:%M:%S"))
-
-    sys.stderr.write("---------- globals\n")
-    sys.stderr.write("    running: %r\n" % (running,))
-    sys.stderr.write("    deferredFns: %r\n" % (deferredFns,))
-    sys.stderr.write("    sleeptime: %r\n" % (sleeptime,))
-
-    sys.stderr.write("---------- stack\n")
-    traceback.print_stack(frame)
-
-    # make a list of interesting frames
-    flist = []
-    f = frame
-    while f.f_back:
-        flist.append(f)
-        f = f.f_back
-
-    # reverse the list so it is in the same order as print_stack
-    flist.reverse()
-    for f in flist:
-        sys.stderr.write("---------- frame: %s\n" % (f,))
-        for k, v in f.f_locals.items():
-            sys.stderr.write("    %s: %r\n" % (k, v))
-
-    sys.stderr.flush()
-
-# set a USR1 signal handler to print a stack trace
-if hasattr(signal, 'SIGUSR1'):
-    signal.signal(signal.SIGUSR1, print_stack)
-
-#
 #   deferred
 #
 
+@bacpypes_debugging
 def deferred(fn, *args, **kwargs):
-    # _log.debug("deferred %r %r %r", fn, args, kwargs)
-    global deferredFns
+    if _debug: deferred._debug("deferred %r %r %r", fn, args, kwargs)
+    global deferredFns, taskManager
 
     # append it to the list
     deferredFns.append((fn, args, kwargs))
+
+    # trigger the task manager event
+    if taskManager and taskManager.trigger:
+        if _debug: deferred._debug("    - trigger")
+        taskManager.trigger.set()
 
 #
 #   enable_sleeping
@@ -228,3 +247,4 @@ def enable_sleeping(stime=0.001):
 
     # set the sleep time
     sleeptime = stime
+

@@ -27,6 +27,7 @@ def null_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def null_encode(obj):
     """Encode an Integer object into a tag."""

@@ -29,6 +29,7 @@ def date_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def date_encode(obj):
     """Encode an Date object into a tag."""
@@ -72,7 +73,7 @@ def date_endec(v, x):
 class TestDate(unittest.TestCase):
 
     def test_date(self):
-        if _debug: TestInteger._debug("test_date")
+        if _debug: TestDate._debug("test_date")
 
         # default values is all dont care
         obj = Date()
@@ -84,14 +85,14 @@ class TestDate(unittest.TestCase):
             Date(1.0)
 
     def test_date_tuple(self):
-        if _debug: TestInteger._debug("test_date_tuple")
+        if _debug: TestDate._debug("test_date_tuple")
 
         obj = Date((1,2,3,4))
         assert obj.value == (1,2,3,4)
         assert str(obj) == "Date(1901-2-3 thu)"
 
     def test_date_tag(self):
-        if _debug: TestInteger._debug("test_date_tag")
+        if _debug: TestDate._debug("test_date_tag")
 
         tag = Tag(Tag.applicationTagClass, Tag.dateAppTag, 4, xtob('01020304'))
         obj = Date(tag)
@@ -110,7 +111,7 @@ class TestDate(unittest.TestCase):
             Date(tag)
 
     def test_date_copy(self):
-        if _debug: TestInteger._debug("test_date_copy")
+        if _debug: TestDate._debug("test_date_copy")
 
         value = (1, 2, 3, 4)
         obj1 = Date(value)
@@ -118,7 +119,7 @@ class TestDate(unittest.TestCase):
         assert obj2.value == value
 
     def test_date_endec(self):
-        if _debug: TestInteger._debug("test_date_endec")
+        if _debug: TestDate._debug("test_date_endec")
 
         with self.assertRaises(InvalidTag):
             obj = Date(date_tag(''))

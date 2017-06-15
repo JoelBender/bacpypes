@@ -8,7 +8,6 @@ Testing Time Machine
 from heapq import heappop
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from bacpypes.consolelogging import ArgumentParser
 
 from bacpypes.core import run_once
 from bacpypes.task import TaskManager as _TaskManager
@@ -20,9 +19,6 @@ _log = ModuleLogger(globals())
 # time machine
 time_machine = None
 
-#
-#   TimeMachine
-#
 
 # @bacpypes_debugging - implicit via metaclass
 class TimeMachine(_TaskManager):
@@ -113,13 +109,10 @@ class TimeMachine(_TaskManager):
 
         _TaskManager.process_task(self, task)
 
-#
-#   reset_time_machine
-#
 
 @bacpypes_debugging
 def reset_time_machine():
-    """This function is called to reset the clock before running a set 
+    """This function is called to reset the clock before running a set
     of tests.
     """
     if _debug: reset_time_machine._debug("reset_time_machine")
@@ -133,9 +126,6 @@ def reset_time_machine():
     time_machine.current_time = 0.0
     time_machine.time_limit = None
 
-#
-#   run_time_machine
-#
 
 @bacpypes_debugging
 def run_time_machine(time_limit):

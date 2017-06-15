@@ -258,7 +258,7 @@ class ConsoleCmd(cmd.Cmd, Thread, Logging):
         'help' or '?' with no arguments prints a list of commands for which help is available
         'help <command>' or '? <command>' gives help on <command>
         """
-        if _debug: ConsoleCmd._debug("do_exit %r", args)
+        if _debug: ConsoleCmd._debug("do_help %r", args)
 
         # the only reason to define this method is for the help text in the doc string
         cmd.Cmd.do_help(self, args)

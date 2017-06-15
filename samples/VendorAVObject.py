@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application shows how to extend one of the basic objects, an Analog
@@ -16,9 +16,11 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 
 from bacpypes.primitivedata import Real
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -84,59 +86,54 @@ register_object_type(VendorAVObject, vendor_id=vendor_id)
 
 @bacpypes_debugging
 def main():
-    if _debug: main._debug("initialization")
+    global vendor_id
 
-    try:
-        # parse the command line arguments
-        args = ConfigArgumentParser(description=__doc__).parse_args()
+    # parse the command line arguments
+    args = ConfigArgumentParser(description=__doc__).parse_args()
 
-        if _debug: main._debug("initialization")
-        if _debug: main._debug("    - args: %r", args)
+    if _debug: _log.debug("initialization")
+    if _debug: _log.debug("    - args: %r", args)
 
-        # make a device object
-        this_device = LocalDeviceObject(
-            objectName=args.ini.objectname,
-            objectIdentifier=int(args.ini.objectidentifier),
-            maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-            segmentationSupported=args.ini.segmentationsupported,
-            vendorIdentifier=vendor_id,
-            )
+    # make a device object
+    this_device = LocalDeviceObject(
+        objectName=args.ini.objectname,
+        objectIdentifier=int(args.ini.objectidentifier),
+        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
+        segmentationSupported=args.ini.segmentationsupported,
+        vendorIdentifier=vendor_id,
+        )
 
-        # make a sample application
-        this_application = BIPSimpleApplication(this_device, args.ini.address)
+    # make a sample application
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
-        # get the services supported
-        services_supported = this_application.get_services_supported()
-        if _debug: _log.debug("    - services_supported: %r", services_supported)
+    # get the services supported
+    services_supported = this_application.get_services_supported()
+    if _debug: _log.debug("    - services_supported: %r", services_supported)
 
-        # let the device object know
-        this_device.protocolServicesSupported = services_supported.value
+    # let the device object know
+    this_device.protocolServicesSupported = services_supported.value
 
-        # make some objects
-        ravo1 = VendorAVObject(
-            objectIdentifier=(513, 1), objectName='Random1'
-            )
-        if _debug: main._debug("    - ravo1: %r", ravo1)
+    # make some objects
+    ravo1 = VendorAVObject(
+        objectIdentifier=(513, 1), objectName='Random1'
+        )
+    if _debug: _log.debug("    - ravo1: %r", ravo1)
 
-        ravo2 = VendorAVObject(
-            objectIdentifier=(513, 2), objectName='Random2'
-            )
-        if _debug: main._debug("    - ravo2: %r", ravo2)
+    ravo2 = VendorAVObject(
+        objectIdentifier=(513, 2), objectName='Random2'
+        )
+    if _debug: _log.debug("    - ravo2: %r", ravo2)
 
-        # add it to the device
-        this_application.add_object(ravo1)
-        this_application.add_object(ravo2)
-        if _debug: main._debug("    - object list: %r", this_device.objectList)
+    # add it to the device
+    this_application.add_object(ravo1)
+    this_application.add_object(ravo2)
+    if _debug: _log.debug("    - object list: %r", this_device.objectList)
 
-        if _debug: main._debug("running")
+    if _debug: _log.debug("running")
 
-        run()
+    run()
 
-    except Exception, e:
-        main._exception("an error has occurred: %s", e)
-    finally:
-        if _debug: main._debug("finally")
+    if _debug: _log.debug("fini")
 
 if __name__ == '__main__':
     main()
-

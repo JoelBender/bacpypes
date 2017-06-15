@@ -100,7 +100,7 @@ class InconsistentParameters(RejectException):
     conditional service argument that should not be present. This condition
     could also elicit a Reject PDU with a Reject Reason of INVALID_TAG.
     """
-    
+
     rejectReason = 'inconsistentParameters'
 
 
@@ -237,7 +237,7 @@ class SegmentationNotSupported(AbortException):
 
     """Generated in response to an APDU that has its segmentation bit set to
     TRUE when the receiving device does not support segmentation. It is also
-    generated when a BACnet-ComplexACK- PDU is large enough to require
+    generated when a BACnet-ComplexACK-PDU is large enough to require
     segmentation but it cannot be transmitted because either the transmitting
     device or the receiving device does not support segmentation.
     """

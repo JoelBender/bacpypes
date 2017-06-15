@@ -10,11 +10,19 @@ rm -Rfv build/
 # python2.5 setup.py bdist_egg
 # rm -Rfv build/
 
-for ver in 2.7 3.4; do
-    python$ver setup.py bdist_egg
-    python$ver setup.py bdist_wheel
-    rm -Rfv build/
+for version in 2.7 3.4 3.5 3.6; do
+    if [ -a "`which python$version`" ]; then
+        python$version setup.py bdist_egg
+        python$version setup.py bdist_wheel
+        rm -Rfv build/
+    fi
 done
+
+echo
+echo	This is what was built...
+echo
+ls -1 dist/
+echo
 
 read -p "Upload to PyPI? [y/n/x] " yesno || exit 1
 

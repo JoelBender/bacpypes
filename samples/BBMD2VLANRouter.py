@@ -1,22 +1,16 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application presents itself as a BBMD sitting on an IP network
 that is also a router to a VLAN.  The VLAN has a device on it with an analog
 value object that returns a random value for the present value.
 
-$ python BBMD2VLANRouter.py addr1 net1 addr2 net2
-
-    addr1       - local address like 192.168.1.2/24:47808
-    net1        - network number
-    addr2       - local address like 12
-    net2        - network number
-
 Note that the device instance number of the virtual device will be 100 times
 the network number plus the address (net2 * 100 + addr2).
 """
 
 import random
+import argparse
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
@@ -28,8 +22,10 @@ from bacpypes.pdu import Address
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
-from bacpypes.app import LocalDeviceObject, Application
+from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
+from bacpypes.service.device import LocalDeviceObject, WhoIsIAmServices
+from bacpypes.service.object import ReadWritePropertyServices
 
 from bacpypes.primitivedata import Real
 from bacpypes.object import AnalogValueObject, Property
@@ -89,11 +85,11 @@ class RandomAnalogValueObject(AnalogValueObject):
 #
 
 @bacpypes_debugging
-class VLANApplication(Application):
+class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
-        Application.__init__(self, vlan_device, local_address, aseID)
+        Application.__init__(self, vlan_device, vlan_address, aseID)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -101,6 +97,10 @@ class VLANApplication(Application):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(vlan_device)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -151,7 +151,7 @@ class VLANRouter:
         self.nse = NetworkServiceElement()
         bind(self.nse, self.nsap)
 
-        # create a BBMD, bound to the Annex J server 
+        # create a BBMD, bound to the Annex J server
         # on the UDP multiplexer
         self.bip = BIPBBMD(local_address)
         self.annexj = AnnexJCodec()
@@ -167,86 +167,93 @@ class VLANRouter:
 #   __main__
 #
 
-# parse the command line arguments
-parser = ArgumentParser(description=__doc__)
-
-# add an argument for interval
-parser.add_argument('addr1', type=str,
-      help='address of first network',
-      )
-
-# add an argument for interval
-parser.add_argument('net1', type=int,
-      help='network number of first network',
-      )
-
-# add an argument for interval
-parser.add_argument('addr2', type=str,
-      help='address of second network',
-      )
-
-# add an argument for interval
-parser.add_argument('net2', type=int,
-      help='network number of second network',
-      )
-
-# now parse the arguments
-args = parser.parse_args()
-
-if _debug: _log.debug("initialization")
-if _debug: _log.debug("    - args: %r", args)
-
-local_address = Address(args.addr1)
-local_network = args.net1
-vlan_address = Address(args.addr2)
-vlan_network = args.net2
-
-# create the VLAN router, bind it to the local network
-router = VLANRouter(local_address, local_network)
-
-# create a VLAN
-vlan = Network()
-
-# create a node for the router, address 1 on the VLAN
-router_node = Node(Address(1))
-vlan.add_node(router_node)
-
-# bind the router stack to the vlan network through this node
-router.nsap.bind(router_node, vlan_network)
-
-# device identifier is assigned from the address
-device_instance = vlan_network * 100 + int(args.addr2)
-_log.debug("    - device_instance: %r", device_instance)
-
-# make a vlan device object
-vlan_device = \
-    LocalDeviceObject(
-        objectName="VLAN Node %d" % (device_instance,),
-        objectIdentifier=('device', device_instance),
-        maxApduLengthAccepted=1024,
-        segmentationSupported='noSegmentation',
-        vendorIdentifier=15,
+def main():
+    # parse the command line arguments
+    parser = ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         )
-_log.debug("    - vlan_device: %r", vlan_device)
 
-# make the application, add it to the network
-vlan_app = VLANApplication(vlan_device, vlan_address)
-vlan.add_node(vlan_app.vlan_node)
-_log.debug("    - vlan_app: %r", vlan_app)
+    # add an argument for interval
+    parser.add_argument('addr1', type=str,
+          help='address of first network',
+          )
 
-# make a random value object
-ravo = RandomAnalogValueObject(
-    objectIdentifier=('analogValue', 1),
-    objectName='Device%d/Random1' % (device_instance,),
-    )
-_log.debug("    - ravo1: %r", ravo)
+    # add an argument for interval
+    parser.add_argument('net1', type=int,
+          help='network number of first network',
+          )
 
-# add it to the device
-vlan_app.add_object(ravo)
+    # add an argument for interval
+    parser.add_argument('addr2', type=str,
+          help='address of second network',
+          )
 
-_log.debug("running")
+    # add an argument for interval
+    parser.add_argument('net2', type=int,
+          help='network number of second network',
+          )
 
-run()
+    # now parse the arguments
+    args = parser.parse_args()
 
-_log.debug("fini")
+    if _debug: _log.debug("initialization")
+    if _debug: _log.debug("    - args: %r", args)
 
+    local_address = Address(args.addr1)
+    local_network = args.net1
+    vlan_address = Address(args.addr2)
+    vlan_network = args.net2
+
+    # create the VLAN router, bind it to the local network
+    router = VLANRouter(local_address, local_network)
+
+    # create a VLAN
+    vlan = Network()
+
+    # create a node for the router, address 1 on the VLAN
+    router_node = Node(Address(1))
+    vlan.add_node(router_node)
+
+    # bind the router stack to the vlan network through this node
+    router.nsap.bind(router_node, vlan_network)
+
+    # device identifier is assigned from the address
+    device_instance = vlan_network * 100 + int(args.addr2)
+    _log.debug("    - device_instance: %r", device_instance)
+
+    # make a vlan device object
+    vlan_device = \
+        LocalDeviceObject(
+            objectName="VLAN Node %d" % (device_instance,),
+            objectIdentifier=('device', device_instance),
+            maxApduLengthAccepted=1024,
+            segmentationSupported='noSegmentation',
+            vendorIdentifier=15,
+            )
+    _log.debug("    - vlan_device: %r", vlan_device)
+
+    # make the application, add it to the network
+    vlan_app = VLANApplication(vlan_device, vlan_address)
+    vlan.add_node(vlan_app.vlan_node)
+    _log.debug("    - vlan_app: %r", vlan_app)
+
+    # make a random value object
+    ravo = RandomAnalogValueObject(
+        objectIdentifier=('analogValue', 1),
+        objectName='Device%d/Random1' % (device_instance,),
+        )
+    _log.debug("    - ravo1: %r", ravo)
+
+    # add it to the device
+    vlan_app.add_object(ravo)
+
+    _log.debug("running")
+
+    run()
+
+    _log.debug("fini")
+
+
+if __name__ == "__main__":
+    main()

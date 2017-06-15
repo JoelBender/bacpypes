@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application demonstrates a mix-in class for commandable properties
@@ -12,18 +12,16 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 from bacpypes.errors import ExecutionError
 
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, DateValueObject
-from bacpypes.primitivedata import Null
+from bacpypes.primitivedata import Null, Date
 from bacpypes.basetypes import PriorityValue, PriorityArray
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-# globals
-this_device = None
-this_application = None
 
 #
 #   CommandableMixin
@@ -150,13 +148,13 @@ class CommandableDateValueObject(CommandableMixin, DateValueObject):
 
     def __init__(self, **kwargs):
         if _debug: CommandableDateValueObject._debug("__init__ %r", kwargs)
-        CommandableMixin.__init__(self, False, **kwargs)
+        CommandableMixin.__init__(self, None, **kwargs)
 
 #
 #   __main__
 #
 
-try:
+def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -177,14 +175,18 @@ try:
 
     # make a commandable analog value object, add to the device
     cavo1 = CommandableAnalogValueObject(
-        objectIdentifier=('analogValue', 1), objectName='Commandable AV 1'
+        objectIdentifier=('analogValue', 1), objectName='Commandable1',
         )
     if _debug: _log.debug("    - cavo1: %r", cavo1)
     this_application.add_object(cavo1)
 
-    # make a commandable binary value object, add to the device
+    # get the current date
+    today = Date().now()
+
+    # make a commandable date value object, add to the device
     cdvo2 = CommandableDateValueObject(
-        objectIdentifier=('dateValue', 1), objectName='Commandable2'
+        objectIdentifier=('dateValue', 1), objectName='Commandable2',
+        presentValue=today.value,
         )
     if _debug: _log.debug("    - cdvo2: %r", cdvo2)
     this_application.add_object(cdvo2)
@@ -193,8 +195,8 @@ try:
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    if _debug: _log.debug("finally")
+    _log.debug("fini")
 
+
+if __name__ == "__main__":
+    main()

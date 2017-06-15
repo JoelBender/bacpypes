@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for Who-Is and I-Am
@@ -12,14 +12,16 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.app import LocalDeviceObject, BIPForeignApplication
-
 from bacpypes.apdu import WhoIsRequest, IAmRequest
 from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
+
+from bacpypes.app import BIPForeignApplication
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -28,12 +30,12 @@ _log = ModuleLogger(globals())
 # globals
 this_device = None
 this_application = None
-this_console = None
 
 #
 #   WhoIsIAmApplication
 #
 
+@bacpypes_debugging
 class WhoIsIAmApplication(BIPForeignApplication):
 
     def __init__(self, *args):
@@ -84,12 +86,12 @@ class WhoIsIAmApplication(BIPForeignApplication):
         # forward it along
         BIPForeignApplication.indication(self, apdu)
 
-bacpypes_debugging(WhoIsIAmApplication)
 
 #
 #   WhoIsIAmConsoleCmd
 #
 
+@bacpypes_debugging
 class WhoIsIAmConsoleCmd(ConsoleCmd):
 
     def do_whois(self, args):
@@ -111,8 +113,12 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
                 request.deviceInstanceRangeHighLimit = int(args[1])
             if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
 
         except Exception as err:
             WhoIsIAmConsoleCmd._exception("exception: %r", err)
@@ -134,8 +140,12 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
             request.vendorID = this_device.vendorIdentifier
             if _debug: WhoIsIAmConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
 
         except Exception as err:
             WhoIsIAmConsoleCmd._exception("exception: %r", err)
@@ -156,14 +166,13 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         # pass along to the service access point
         this_application.nsap.add_router_references(adapter, router_address, network_list)
 
-bacpypes_debugging(WhoIsIAmConsoleCmd)
 
 #
 #   main
 #
 
 def main():
-    global this_device, this_application, this_console
+    global this_device, this_application
 
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
@@ -210,11 +219,15 @@ def main():
     this_console = WhoIsIAmConsoleCmd()
     if _debug: _log.debug("    - this_console: %r", this_console)
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
     run()
 
-    _log.debug("finally")
+    _log.debug("fini")
+
 
 if __name__ == "__main__":
     main()

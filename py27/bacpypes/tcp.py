@@ -6,6 +6,8 @@ TCP Communications Module
 
 import asyncore
 import socket
+import errno
+
 import cPickle as pickle
 from time import time as _time, sleep as _sleep
 from StringIO import StringIO
@@ -23,6 +25,7 @@ _log = ModuleLogger(globals())
 
 # globals
 REBIND_SLEEP_INTERVAL = 2.0
+CONNECT_TIMEOUT = 30.0
 
 #
 #   PickleActorMixIn
@@ -91,6 +94,8 @@ class PickleActorMixIn:
 @bacpypes_debugging
 class TCPClient(asyncore.dispatcher):
 
+    _connect_timeout = CONNECT_TIMEOUT
+
     def __init__(self, peer):
         if _debug: TCPClient._debug("__init__ %r", peer)
         asyncore.dispatcher.__init__(self)
@@ -98,78 +103,169 @@ class TCPClient(asyncore.dispatcher):
         # ask the dispatcher for a socket
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        # make sure the connection attempt is non-blocking
+        self.socket.setblocking(0)
+        if _debug: TCPClient._debug("    - non-blocking")
+
         # save the peer
         self.peer = peer
+        self.connected = False
 
         # create a request buffer
-        self.request = ''
+        self.request = b''
 
-        # hold the socket error if there was one
-        self.socketError = None
+        # try to connect
+        try:
+            rslt = self.socket.connect_ex(peer)
+            if (rslt == 0):
+                if _debug: TCPClient._debug("    - connected")
+                self.connected = True
+            elif (rslt == errno.EINPROGRESS):
+                if _debug: TCPClient._debug("    - in progress")
+            elif (rslt == errno.ECONNREFUSED):
+                if _debug: TCPClient._debug("    - connection refused")
+                self.handle_error(rslt)
+            else:
+                if _debug: TCPClient._debug("    - connect_ex: %r", rslt)
+        except socket.error as err:
+            if _debug: TCPClient._debug("    - connect socket error: %r", err)
 
-        # try to connect the socket
-        if _debug: TCPClient._debug("    - try to connect")
-        self.connect(peer)
-        if _debug: TCPClient._debug("    - connected (maybe)")
+            # pass along to a handler
+            self.handle_error(err)
+
+    def handle_accept(self):
+        if _debug: TCPClient._debug("handle_accept")
 
     def handle_connect(self):
-        if _debug: deferred(TCPClient._debug, "handle_connect")
+        if _debug: TCPClient._debug("handle_connect")
+        self.connected = True
 
-    def handle_expt(self):
-        pass
+    def handle_connect_event(self):
+        if _debug: TCPClient._debug("handle_connect_event")
+
+        # there might be an error
+        err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if _debug: TCPClient._debug("    - err: %r", err)
+
+        # check for connection refused
+        if (err == 0):
+            if _debug: TCPClient._debug("    - no error")
+            self.connected = True
+        elif (err == errno.ECONNREFUSED):
+            if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
+            self.handle_error(socket.error(errno.ECONNREFUSED, "connection refused"))
+            return
+
+        # pass along
+        asyncore.dispatcher.handle_connect_event(self)
 
     def readable(self):
-        return 1
+        return self.connected
 
     def handle_read(self):
-        if _debug: deferred(TCPClient._debug, "handle_read")
+        if _debug: TCPClient._debug("handle_read")
 
         try:
             msg = self.recv(65536)
-            if _debug: deferred(TCPClient._debug, "    - received %d octets", len(msg))
-            self.socketError = None
+            if _debug: TCPClient._debug("    - received %d octets", len(msg))
 
             # no socket means it was closed
             if not self.socket:
-                if _debug: deferred(TCPClient._debug, "    - socket was closed")
+                if _debug: TCPClient._debug("    - socket was closed")
             else:
-                # sent the data upstream
+                # send the data upstream
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
-            if (err.args[0] == 111):
-                deferred(TCPClient._error, "connection to %r refused", self.peer)
+            if (err.args[0] == errno.ECONNREFUSED):
+                if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPClient._error, "TCPClient.handle_read socket error: %r", err)
-            self.socketError = err
+                if _debug: TCPClient._debug("    - recv socket error: %r", err)
+
+            # pass along to a handler
+            self.handle_error(err)
 
     def writable(self):
+        if not self.connected:
+            return True
+
         return (len(self.request) != 0)
 
     def handle_write(self):
-        if _debug: deferred(TCPClient._debug, "handle_write")
+        if _debug: TCPClient._debug("handle_write")
 
         try:
             sent = self.send(self.request)
-            if _debug: deferred(TCPClient._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
-            self.socketError = None
+            if _debug: TCPClient._debug("    - sent %d octets, %d remaining", sent, len(self.request) - sent)
 
             self.request = self.request[sent:]
+
         except socket.error as err:
-            if (err.args[0] == 111):
-                deferred(TCPClient._error, "connection to %r refused", self.peer)
+            if (err.args[0] == errno.EPIPE):
+                if _debug: TCPClient._debug("    - broken pipe to %r", self.peer)
+                return
+            elif (err.args[0] == errno.ECONNREFUSED):
+                if _debug: TCPClient._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPClient._error, "handle_write socket error: %s", err)
-            self.socketError = err
+                if _debug: TCPClient._debug("    - send socket error: %s", err)
+
+            # pass along to a handler
+            self.handle_error(err)
+
+    def handle_write_event(self):
+        if _debug: TCPClient._debug("handle_write_event")
+
+        # there might be an error
+        err = self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if _debug: TCPClient._debug("    - err: %r", err)
+
+        # check for connection refused
+        if err == 0:
+            if not self.connected:
+                if _debug: TCPClient._debug("    - connected")
+                self.handle_connect()
+        else:
+            if _debug: TCPClient._debug("    - peer: %r", self.peer)
+
+            if (err == errno.ECONNREFUSED):
+                socket_error = socket.error(err, "connection refused")
+            elif (err == errno.ETIMEDOUT):
+                socket_error = socket.error(err, "timed out")
+            elif (err == errno.EHOSTUNREACH):
+                socket_error = socket.error(err, "host unreachable")
+            else:
+                socket_error = socket.error(err, "other unknown: %r" % (err,))
+            if _debug: TCPClient._debug("    - socket_error: %r", socket_error)
+
+            self.handle_error(socket_error)
+            return
+
+        # pass along
+        asyncore.dispatcher.handle_write_event(self)
 
     def handle_close(self):
-        if _debug: deferred(TCPClient._debug, "handle_close")
+        if _debug: TCPClient._debug("handle_close")
 
         # close the socket
         self.close()
 
+        # no longer connected
+        self.connected = False
+
         # make sure other routines know the socket is closed
         self.socket = None
+
+    def handle_error(self, error=None):
+        """Trap for TCPClient errors, otherwise continue."""
+        if _debug: TCPClient._debug("handle_error %r", error)
+
+        # if there is no socket, it was closed
+        if not self.socket:
+            if _debug: TCPClient._debug("    - error already handled")
+            return
+
+        # core does not take parameters
+        asyncore.dispatcher.handle_error(self)
 
     def indication(self, pdu):
         """Requests are queued for delivery."""
@@ -189,41 +285,103 @@ class TCPClientActor(TCPClient):
 
     def __init__(self, director, peer):
         if _debug: TCPClientActor._debug("__init__ %r %r", director, peer)
+
+        # no director yet, no connection error
+        self.director = None
+        self._connection_error = None
+
+        # add a timer
+        self._connect_timeout = director.connect_timeout
+        if self._connect_timeout:
+            self.connect_timeout_task = FunctionTask(self.connect_timeout)
+            self.connect_timeout_task.install_task(_time() + self._connect_timeout)
+        else:
+            self.connect_timeout_task = None
+
+        # continue with initialization
         TCPClient.__init__(self, peer)
 
         # keep track of the director
         self.director = director
 
         # add a timer
-        self.timeout = director.timeout
-        if self.timeout > 0:
-            self.timer = FunctionTask(self.idle_timeout)
-            self.timer.install_task(_time() + self.timeout)
+        self._idle_timeout = director.idle_timeout
+        if self._idle_timeout:
+            self.idle_timeout_task = FunctionTask(self.idle_timeout)
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
         else:
-            self.timer = None
+            self.idle_timeout_task = None
 
         # this may have a flush state
-        self.flushTask = None
+        self.flush_task = None
 
         # tell the director this is a new actor
         self.director.add_actor(self)
+
+        # if there was a connection error, pass it to the director
+        if self._connection_error:
+            if _debug: TCPClientActor._debug("    - had connection error")
+            self.director.actor_error(self, self._connection_error)
+
+    def handle_connect(self):
+        if _debug: TCPClientActor._debug("handle_connect")
+
+        # see if we are already connected
+        if self.connected:
+            if _debug: TCPClientActor._debug("    - already connected")
+            return
+
+        # if the connection timeout is scheduled, suspend it
+        if self.connect_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling connection timeout")
+            self.connect_timeout_task.suspend_task()
+            self.connect_timeout_task = None
+
+        # contine as expected
+        TCPClient.handle_connect(self)
+
+    def handle_error(self, error=None):
+        """Trap for TCPClient errors, otherwise continue."""
+        if _debug: TCPClientActor._debug("handle_error %r", error)
+
+        # pass along to the director
+        if error is not None:
+            # this error may be during startup
+            if not self.director:
+                self._connection_error = error
+            else:
+                self.director.actor_error(self, error)
+        else:
+            TCPClient.handle_error(self)
 
     def handle_close(self):
         if _debug: TCPClientActor._debug("handle_close")
 
         # if there's a flush task, cancel it
-        if self.flushTask:
-            self.flushTask.suspend_task()
+        if self.flush_task:
+            self.flush_task.suspend_task()
 
-        # cancel the timer
-        if self.timer:
-            self.timer.suspend_task()
+        # cancel the timers
+        if self.connect_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling connection timeout")
+            self.connect_timeout_task.suspend_task()
+            self.connect_timeout_task = None
+        if self.idle_timeout_task:
+            if _debug: TCPClientActor._debug("    - canceling idle timeout")
+            self.idle_timeout_task.suspend_task()
+            self.idle_timeout_task = None
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass the function along
         TCPClient.handle_close(self)
+
+    def connect_timeout(self):
+        if _debug: TCPClientActor._debug("connect_timeout")
+
+        # shut it down
+        self.handle_close()
 
     def idle_timeout(self):
         if _debug: TCPClientActor._debug("idle_timeout")
@@ -235,13 +393,13 @@ class TCPClientActor(TCPClient):
         if _debug: TCPClientActor._debug("indication %r", pdu)
 
         # additional downstream data is tossed while flushing
-        if self.flushTask:
+        if self.flush_task:
             if _debug: TCPServerActor._debug("    - flushing")
             return
 
         # reschedule the timer
-        if self.timer:
-            self.timer.install_task(_time() + self.timeout)
+        if self.idle_timeout_task:
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
 
         # continue as usual
         TCPClient.indication(self, pdu)
@@ -253,8 +411,8 @@ class TCPClientActor(TCPClient):
         pdu.pduSource = self.peer
 
         # reschedule the timer
-        if self.timer:
-            self.timer.install_task(_time() + self.timeout)
+        if self.idle_timeout_task:
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
 
         # process this as a response from the director
         self.director.response(pdu)
@@ -263,11 +421,11 @@ class TCPClientActor(TCPClient):
         if _debug: TCPClientActor._debug("flush")
 
         # clear out the old task
-        self.flushTask = None
+        self.flush_task = None
 
         # if the outgoing buffer has data, re-schedule another attempt
         if self.request:
-            self.flushTask = OneShotFunction(self.flush)
+            self.flush_task = OneShotFunction(self.flush)
             return
 
         # close up shop, all done
@@ -293,10 +451,13 @@ class TCPPickleClientActor(PickleActorMixIn, TCPClientActor):
 @bacpypes_debugging
 class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
 
-    _debug_contents = ('timeout', 'actorClass', 'clients', 'reconnect')
+    _debug_contents = ('connect_timeout', 'idle_timeout', 'actorClass', 'clients', 'reconnect')
 
-    def __init__(self, timeout=0, actorClass=TCPClientActor, sid=None, sapID=None):
-        if _debug: TCPClientDirector._debug("__init__ timeout=%r actorClass=%r sid=%r sapID=%r", timeout, actorClass, sid, sapID)
+    def __init__(self, connect_timeout=None, idle_timeout=None, actorClass=TCPClientActor, sid=None, sapID=None):
+        if _debug:
+            TCPClientDirector._debug("__init__ connect_timeout=%r idle_timeout=%r actorClass=%r sid=%r sapID=%r",
+            connect_timeout, idle_timeout, actorClass, sid, sapID,
+            )
         Server.__init__(self, sid)
         ServiceAccessPoint.__init__(self, sapID)
 
@@ -306,7 +467,8 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
         self.actorClass = actorClass
 
         # save the timeout for actors
-        self.timeout = timeout
+        self.connect_timeout = connect_timeout
+        self.idle_timeout = idle_timeout
 
         # start with an empty client pool
         self.clients = {}
@@ -322,22 +484,30 @@ class TCPClientDirector(Server, ServiceAccessPoint, DebugContents):
 
         # tell the ASE there is a new client
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
+    def del_actor(self, actor):
         """Remove an actor when the socket is closed."""
-        if _debug: TCPClientDirector._debug("remove_actor %r", actor)
+        if _debug: TCPClientDirector._debug("del_actor %r", actor)
 
+        # delete the client
         del self.clients[actor.peer]
 
         # tell the ASE the client has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
 
         # see if it should be reconnected
         if actor.peer in self.reconnect:
             connect_task = FunctionTask(self.connect, actor.peer)
             connect_task.install_task(_time() + self.reconnect[actor.peer])
+
+    def actor_error(self, actor, error):
+        if _debug: TCPClientDirector._debug("actor_error %r %r", actor, error)
+
+        # tell the ASE the actor had an error
+        if self.serviceElement:
+            self.sap_request(actor_error=actor, error=error)
 
     def get_actor(self, address):
         """ Get the actor associated with an address or None. """
@@ -399,69 +569,77 @@ class TCPServer(asyncore.dispatcher):
         self.peer = peer
 
         # create a request buffer
-        self.request = ''
-
-        # hold the socket error if there was one
-        self.socketError = None
+        self.request = b''
 
     def handle_connect(self):
-        if _debug: deferred(TCPServer._debug, "handle_connect")
+        if _debug: TCPServer._debug("handle_connect")
 
     def readable(self):
-        return 1
+        return self.connected
 
     def handle_read(self):
-        if _debug: deferred(TCPServer._debug, "handle_read")
+        if _debug: TCPServer._debug("handle_read")
 
         try:
             msg = self.recv(65536)
-            if _debug: deferred(TCPServer._debug, "    - received %d octets", len(msg))
-            self.socketError = None
+            if _debug: TCPServer._debug("    - received %d octets", len(msg))
 
             # no socket means it was closed
             if not self.socket:
-                if _debug: deferred(TCPServer._debug, "    - socket was closed")
+                if _debug: TCPServer._debug("    - socket was closed")
             else:
+                # send the data upstream
                 deferred(self.response, PDU(msg))
 
         except socket.error as err:
-            if (err.args[0] == 111):
-                deferred(TCPServer._error, "connection to %r refused", self.peer)
+            if (err.args[0] == errno.ECONNREFUSED):
+                if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._error, "handle_read socket error: %s", err)
-            self.socketError = err
+                if _debug: TCPServer._debug("    - recv socket error: %r", err)
+
+            # pass along to a handler
+            self.handle_error(err)
 
     def writable(self):
         return (len(self.request) != 0)
 
     def handle_write(self):
-        if _debug: deferred(TCPServer._debug, "handle_write")
+        if _debug: TCPServer._debug("handle_write")
 
         try:
             sent = self.send(self.request)
-            if _debug: deferred(TCPServer._debug, "    - sent %d octets, %d remaining", sent, len(self.request) - sent)
-            self.socketError = None
+            if _debug: TCPServer._debug("    - sent %d octets, %d remaining", sent, len(self.request) - sent)
 
             self.request = self.request[sent:]
-        except socket.error as why:
-            if (why.args[0] == 111):
-                deferred(TCPServer._error, "connection to %r refused", self.peer)
+
+        except socket.error as err:
+            if (err.args[0] == errno.ECONNREFUSED):
+                if _debug: TCPServer._debug("    - connection to %r refused", self.peer)
             else:
-                deferred(TCPServer._error, "handle_write socket error: %s", why)
-            self.socketError = why
+                if _debug: TCPServer._debug("    - send socket error: %s", err)
+
+            # sent the exception upstream
+            self.handle_error(err)
 
     def handle_close(self):
-        if _debug: deferred(TCPServer._debug, "handle_close")
+        if _debug: TCPServer._debug("handle_close")
 
         if not self:
-            deferred(TCPServer._warning, "handle_close: self is None")
+            if _debug: TCPServer._debug("    - self is None")
             return
         if not self.socket:
-            deferred(TCPServer._warning, "handle_close: socket already closed")
+            if _debug: TCPServer._debug("    - socket already closed")
             return
 
         self.close()
         self.socket = None
+
+    def handle_error(self, error=None):
+        """Trap for TCPServer errors, otherwise continue."""
+        if _debug: TCPServer._debug("handle_error %r", error)
+
+        # core does not take parameters
+        asyncore.dispatcher.handle_error(self)
 
     def indication(self, pdu):
         """Requests are queued for delivery."""
@@ -484,28 +662,44 @@ class TCPServerActor(TCPServer):
         self.director = director
 
         # add a timer
-        self.timeout = director.timeout
-        if self.timeout > 0:
-            self.timer = FunctionTask(self.idle_timeout)
-            self.timer.install_task(_time() + self.timeout)
+        self._idle_timeout = director.idle_timeout
+        if self._idle_timeout:
+            self.idle_timeout_task = FunctionTask(self.idle_timeout)
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
         else:
-            self.timer = None
+            self.idle_timeout_task = None
 
         # this may have a flush state
-        self.flushTask = None
+        self.flush_task = None
 
         # tell the director this is a new actor
         self.director.add_actor(self)
+
+    def handle_error(self, error=None):
+        """Trap for TCPServer errors, otherwise continue."""
+        if _debug: TCPServerActor._debug("handle_error %r", error)
+
+        # pass along to the director
+        if error is not None:
+            self.director.actor_error(self, error)
+        else:
+            TCPServer.handle_error(self)
 
     def handle_close(self):
         if _debug: TCPServerActor._debug("handle_close")
 
         # if there's a flush task, cancel it
-        if self.flushTask:
-            self.flushTask.suspend_task()
+        if self.flush_task:
+            self.flush_task.suspend_task()
+
+        # if there is an idle timeout, cancel it
+        if self.idle_timeout_task:
+            if _debug: TCPServerActor._debug("    - canceling idle timeout")
+            self.idle_timeout_task.suspend_task()
+            self.idle_timeout_task = None
 
         # tell the director this is gone
-        self.director.remove_actor(self)
+        self.director.del_actor(self)
 
         # pass it down
         TCPServer.handle_close(self)
@@ -520,13 +714,13 @@ class TCPServerActor(TCPServer):
         if _debug: TCPServerActor._debug("indication %r", pdu)
 
         # additional downstream data is tossed while flushing
-        if self.flushTask:
+        if self.flush_task:
             if _debug: TCPServerActor._debug("    - flushing")
             return
 
         # reschedule the timer
-        if self.timer:
-            self.timer.install_task(_time() + self.timeout)
+        if self.idle_timeout_task:
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
 
         # continue as usual
         TCPServer.indication(self, pdu)
@@ -535,7 +729,7 @@ class TCPServerActor(TCPServer):
         if _debug: TCPServerActor._debug("response %r", pdu)
 
         # upstream data is tossed while flushing
-        if self.flushTask:
+        if self.flush_task:
             if _debug: TCPServerActor._debug("    - flushing")
             return
 
@@ -543,8 +737,8 @@ class TCPServerActor(TCPServer):
         pdu.pduSource = self.peer
 
         # reschedule the timer
-        if self.timer:
-            self.timer.install_task(_time() + self.timeout)
+        if self.idle_timeout_task:
+            self.idle_timeout_task.install_task(_time() + self._idle_timeout)
 
         # process this as a response from the director
         self.director.response(pdu)
@@ -553,11 +747,11 @@ class TCPServerActor(TCPServer):
         if _debug: TCPServerActor._debug("flush")
 
         # clear out the old task
-        self.flushTask = None
+        self.flush_task = None
 
         # if the outgoing buffer has data, re-schedule another attempt
         if self.request:
-            self.flushTask = OneShotFunction(self.flush)
+            self.flush_task = OneShotFunction(self.flush)
             return
 
         # close up shop, all done
@@ -577,19 +771,19 @@ class TCPPickleServerActor(PickleActorMixIn, TCPServerActor):
 @bacpypes_debugging
 class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugContents):
 
-    _debug_contents = ('port', 'timeout', 'actorClass', 'servers')
+    _debug_contents = ('port', 'idle_timeout', 'actorClass', 'servers')
 
-    def __init__(self, address, listeners=5, timeout=0, reuse=False, actorClass=TCPServerActor, cid=None, sapID=None):
+    def __init__(self, address, listeners=5, idle_timeout=0, reuse=False, actorClass=TCPServerActor, cid=None, sapID=None):
         if _debug:
-            TCPServerDirector._debug("__init__ %r listeners=%r timeout=%r reuse=%r actorClass=%r cid=%r sapID=%r"
-                , address, listeners, timeout, reuse, actorClass, cid, sapID
+            TCPServerDirector._debug("__init__ %r listeners=%r idle_timeout=%r reuse=%r actorClass=%r cid=%r sapID=%r"
+                , address, listeners, idle_timeout, reuse, actorClass, cid, sapID
                 )
         Server.__init__(self, cid)
         ServiceAccessPoint.__init__(self, sapID)
 
         # save the address and timeout
         self.port = address
-        self.timeout = timeout
+        self.idle_timeout = idle_timeout
 
         # check the actor class
         if not issubclass(actorClass, TCPServerActor):
@@ -662,19 +856,26 @@ class TCPServerDirector(asyncore.dispatcher, Server, ServiceAccessPoint, DebugCo
 
         # tell the ASE there is a new server
         if self.serviceElement:
-            self.sap_request(addPeer=actor.peer)
+            self.sap_request(add_actor=actor)
 
-    def remove_actor(self, actor):
-        if _debug: TCPServerDirector._debug("remove_actor %r", actor)
+    def del_actor(self, actor):
+        if _debug: TCPServerDirector._debug("del_actor %r", actor)
 
         try:
             del self.servers[actor.peer]
         except KeyError:
-            TCPServerDirector._warning("remove_actor: %r not an actor", actor)
+            TCPServerDirector._warning("del_actor: %r not an actor", actor)
 
         # tell the ASE the server has gone away
         if self.serviceElement:
-            self.sap_request(delPeer=actor.peer)
+            self.sap_request(del_actor=actor)
+
+    def actor_error(self, actor, error):
+        if _debug: TCPServerDirector._debug("actor_error %r %r", actor, error)
+
+        # tell the ASE the actor had an error
+        if self.serviceElement:
+            self.sap_request(actor_error=actor, error=error)
 
     def get_actor(self, address):
         """ Get the actor associated with an address or None. """
@@ -780,20 +981,23 @@ class StreamToPacketSAP(ApplicationServiceElement, ServiceAccessPoint):
         # save a reference to the StreamToPacket object
         self.stp = stp
 
-    def indication(self, addPeer=None, delPeer=None):
-        if _debug: StreamToPacketSAP._debug("indication addPeer=%r delPeer=%r", addPeer, delPeer)
+    def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        if _debug: StreamToPacketSAP._debug("indication add_actor=%r del_actor=%r", add_actor, del_actor)
 
-        if addPeer:
+        if add_actor:
             # create empty buffers associated with the peer
-            self.stp.upstreamBuffer[addPeer] = b''
-            self.stp.downstreamBuffer[addPeer] = b''
+            self.stp.upstreamBuffer[add_actor.peer] = b''
+            self.stp.downstreamBuffer[add_actor.peer] = b''
 
-        if delPeer:
+        if del_actor:
             # delete the buffer contents associated with the peer
-            del self.stp.upstreamBuffer[delPeer]
-            del self.stp.downstreamBuffer[delPeer]
+            del self.stp.upstreamBuffer[del_actor.peer]
+            del self.stp.downstreamBuffer[del_actor.peer]
 
         # chain this along
         if self.serviceElement:
-            self.sap_request(addPeer=addPeer, delPeer=delPeer)
-
+            self.sap_request(
+                add_actor=add_actor,
+                del_actor=del_actor,
+                actor_error=actor_error, error=error,
+                )

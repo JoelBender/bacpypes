@@ -15,12 +15,22 @@ if _sys.platform not in _supported_platforms:
     _warnings.warn("unsupported platform", RuntimeWarning)
 
 #
+#   Project Metadata
+#
+
+__version__ = '0.16.1'
+__author__ = 'Joel Bender'
+__email__ = 'joel@carrickbender.com'
+
+#
 #   Communications Core Modules
 #
 
 from . import comm
 from . import task
 from . import singleton
+from . import capability
+from . import iocb
 
 #
 #   Link Layer Modules
@@ -59,6 +69,7 @@ from . import apdu
 
 from . import app
 from . import appservice
+from . import service
 
 #
 #   Analysis

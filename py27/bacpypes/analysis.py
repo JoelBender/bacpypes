@@ -386,23 +386,20 @@ def decode_file(fname):
 @bacpypes_debugging
 class Tracer(DebugContents):
 
-    def __init__(self, initialState=None):
-        if _debug: Tracer._debug("__init__ initialState=%r", initialState)
+    def __init__(self, initial_state=None):
+        if _debug: Tracer._debug("__init__ initial_state=%r", initial_state)
 
         # set the current state to the initial state
-        self.Next(initialState or self.Start)
+        self.next(initial_state or self.start)
 
-    def Next(self, fn):
-        if _debug: Tracer._debug("Next %r", fn)
-
-        # a little error checking
-        if fn: assert fn.im_self is self
+    def next(self, fn):
+        if _debug: Tracer._debug("next %r", fn)
 
         # set the state
-        self.currentState = fn
+        self.current_state = fn
 
-    def Start(self, pkt):
-        if _debug: Tracer._debug("Start %r", pkt)
+    def start(self, pkt):
+        if _debug: Tracer._debug("start %r", pkt)
 
 #
 #   trace
@@ -413,17 +410,17 @@ def trace(fname, tracers):
     if _debug: trace._debug("trace %r %r", fname, tracers)
 
     # make a list of tracers
-    currentTracers = [traceClass() for traceClass in tracers]
+    current_tracers = [traceClass() for traceClass in tracers]
 
     # decode the file
     for pkt in decode_file(fname):
-        for i, tracer in enumerate(currentTracers):
+        for i, tracer in enumerate(current_tracers):
             # give the packet to the tracer
-            tracer.currentState(pkt)
+            tracer.current_state(pkt)
 
             # if there is no current state, make a new one
-            if not tracer.currentState:
-                currentTracers[i] = tracers[i]()
+            if not tracer.current_state:
+                current_tracers[i] = tracers[i]()
 
 #
 #   __main__
@@ -431,7 +428,7 @@ def trace(fname, tracers):
 
 if __name__ == "__main__":
     try:
-        from consolelogging import ConsoleLogHandler
+        from bacpypes.consolelogging import ConsoleLogHandler
 
         if ('--debug' in sys.argv):
             indx = sys.argv.index('--debug')
@@ -452,4 +449,3 @@ if __name__ == "__main__":
         _log.exception("an error has occurred: %s", err)
     finally:
         _log.debug("finally")
-

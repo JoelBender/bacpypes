@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This sample application has just a network stack, not a full application,
@@ -9,10 +9,11 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
 from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork
+
 from bacpypes.app import BIPNetworkApplication
 
 # some debugging
@@ -34,16 +35,8 @@ class WhoIsRouterApplication(BIPNetworkApplication):
         if _debug: WhoIsRouterApplication._debug("__init__ %r", args)
         BIPNetworkApplication.__init__(self, *args)
 
-        # keep track of requests to line up responses
-        self._request = None
-
     def request(self, adapter, npdu):
         if _debug: WhoIsRouterApplication._debug("request %r %r", adapter, npdu)
-
-        # save a copy of the request
-        self._request = npdu
-
-        # forward it along
         BIPNetworkApplication.request(self, adapter, npdu)
 
     def indication(self, adapter, npdu):
@@ -75,7 +68,7 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
             request = InitializeRoutingTable()
             request.pduDestination = Address(args[0])
         except:
-            print "invalid arguments"
+            print("invalid arguments")
             return
 
         # give it to the application
@@ -93,7 +86,7 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
             if (len(args) > 1):
                 request.wirtnNetwork = int(args[1])
         except:
-            print "invalid arguments"
+            print("invalid arguments")
             return
 
         # give it to the application
@@ -103,7 +96,9 @@ class WhoIsRouterConsoleCmd(ConsoleCmd):
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -118,11 +113,14 @@ try:
     this_console = WhoIsRouterConsoleCmd()
     if _debug: _log.debug("    - this_console: %r", this_console)
 
+    # enable sleeping will help with threads
+    enable_sleeping()
+
     _log.debug("running")
 
     run()
 
-except Exception, e:
-    _log.exception("an error has occurred: %s", e)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

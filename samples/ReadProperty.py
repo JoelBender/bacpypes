@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 This application presents a 'console' prompt to the user asking for read commands
@@ -12,85 +12,31 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run
+from bacpypes.core import run, enable_sleeping
+from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.app import LocalDeviceObject, BIPSimpleApplication
-from bacpypes.object import get_object_class, get_datatype
-
-from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
+from bacpypes.apdu import ReadPropertyRequest, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
+
+from bacpypes.app import BIPSimpleApplication
+from bacpypes.object import get_object_class, get_datatype
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
 # globals
-this_device = None
 this_application = None
-this_console = None
 
-#
-#   ReadPropertyApplication
-#
-
-class ReadPropertyApplication(BIPSimpleApplication):
-
-    def __init__(self, *args):
-        if _debug: ReadPropertyApplication._debug("__init__ %r", args)
-        BIPSimpleApplication.__init__(self, *args)
-
-        # keep track of requests to line up responses
-        self._request = None
-
-    def request(self, apdu):
-        if _debug: ReadPropertyApplication._debug("request %r", apdu)
-
-        # save a copy of the request
-        self._request = apdu
-
-        # forward it along
-        BIPSimpleApplication.request(self, apdu)
-
-    def confirmation(self, apdu):
-        if _debug: ReadPropertyApplication._debug("confirmation %r", apdu)
-
-        if isinstance(apdu, Error):
-            sys.stdout.write("error: %s\n" % (apdu.errorCode,))
-            sys.stdout.flush()
-
-        elif isinstance(apdu, AbortPDU):
-            apdu.debug_contents()
-
-        elif (isinstance(self._request, ReadPropertyRequest)) and (isinstance(apdu, ReadPropertyACK)):
-            # find the datatype
-            datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
-            if _debug: ReadPropertyApplication._debug("    - datatype: %r", datatype)
-            if not datatype:
-                raise TypeError("unknown datatype")
-
-            # special case for array parts, others are managed by cast_out
-            if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
-                if apdu.propertyArrayIndex == 0:
-                    value = apdu.propertyValue.cast_out(Unsigned)
-                else:
-                    value = apdu.propertyValue.cast_out(datatype.subtype)
-            else:
-                value = apdu.propertyValue.cast_out(datatype)
-            if _debug: ReadPropertyApplication._debug("    - value: %r", value)
-
-            sys.stdout.write(str(value) + '\n')
-            if hasattr(value, 'debug_contents'):
-                value.debug_contents(file=sys.stdout)
-            sys.stdout.flush()
-
-bacpypes_debugging(ReadPropertyApplication)
 
 #
 #   ReadPropertyConsoleCmd
 #
 
+@bacpypes_debugging
 class ReadPropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
@@ -123,59 +69,81 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
                 request.propertyArrayIndex = int(args[4])
             if _debug: ReadPropertyConsoleCmd._debug("    - request: %r", request)
 
+            # make an IOCB
+            iocb = IOCB(request)
+            if _debug: ReadPropertyConsoleCmd._debug("    - iocb: %r", iocb)
+
             # give it to the application
-            this_application.request(request)
+            this_application.request_io(iocb)
 
-        except Exception as err:
-            ReadPropertyConsoleCmd._exception("exception: %r", err)
+            # wait for it to complete
+            iocb.wait()
 
-    def do_rt(self, args):
-        """
-        rt [ address [ net [ net ... ]]]
+            # do something for error/reject/abort
+            if iocb.ioError:
+                sys.stdout.write(str(iocb.ioError) + '\n')
 
-        positional arguments:
-            address             router address
-            net                 reachable network(s)
+            # do something for success
+            elif iocb.ioResponse:
+                apdu = iocb.ioResponse
 
-        Print, add, or remove internal routing table references.
+                # should be an ack
+                if not isinstance(apdu, ReadPropertyACK):
+                    if _debug: ReadPropertyConsoleCmd._debug("    - not an ack")
+                    return
 
-        If the address and network(s) are not provided, the current contents
-        of the routing table is printed out.
-        """
-        args = args.split()
-        if _debug: ReadPropertyConsoleCmd._debug("do_rt %r", args)
+                # find the datatype
+                datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
+                if _debug: ReadPropertyConsoleCmd._debug("    - datatype: %r", datatype)
+                if not datatype:
+                    raise TypeError("unknown datatype")
 
-        # simplify the code a little
-        nsap = this_application.nsap
+                # special case for array parts, others are managed by cast_out
+                if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
+                    if apdu.propertyArrayIndex == 0:
+                        value = apdu.propertyValue.cast_out(Unsigned)
+                    else:
+                        value = apdu.propertyValue.cast_out(datatype.subtype)
+                else:
+                    value = apdu.propertyValue.cast_out(datatype)
+                if _debug: ReadPropertyConsoleCmd._debug("    - value: %r", value)
 
-        if not args:
-            if _debug: ReadPropertyConsoleCmd._debug("    - print the contents")
+                sys.stdout.write(str(value) + '\n')
+                if hasattr(value, 'debug_contents'):
+                    value.debug_contents(file=sys.stdout)
+                sys.stdout.flush()
 
-            # loop through the router references, ignore the adapter
-            for ref in nsap.routers.values():
-                print("%s %s" % (ref.address, ref.networks))
-        else:
-            addr = Address(args[0])
-            if _debug: ReadPropertyConsoleCmd._debug("    - addr: %r", addr)
-            nets = [int(arg) for arg in args[1:]]
-            if _debug: ReadPropertyConsoleCmd._debug("    - nets: %r", nets)
-
-            if not nets:
-                if _debug: ReadPropertyConsoleCmd._debug("    - delete the router")
-
-                nsap.remove_router_references(nsap.adapters[0], addr)
+            # do something with nothing?
             else:
-                if _debug: ReadPropertyConsoleCmd._debug("    - add the references")
+                if _debug: ReadPropertyConsoleCmd._debug("    - ioError or ioResponse expected")
 
-                nsap.add_router_references(nsap.adapters[0], addr, nets)
+        except Exception as error:
+            ReadPropertyConsoleCmd._exception("exception: %r", error)
 
-bacpypes_debugging(ReadPropertyConsoleCmd)
+    def do_rtn(self, args):
+        """rtn <addr> <net> ... """
+        args = args.split()
+        if _debug: ReadPropertyConsoleCmd._debug("do_rtn %r", args)
+
+        # safe to assume only one adapter
+        adapter = this_application.nsap.adapters[0]
+        if _debug: ReadPropertyConsoleCmd._debug("    - adapter: %r", adapter)
+
+        # provide the address and a list of network numbers
+        router_address = Address(args[0])
+        network_list = [int(arg) for arg in args[1:]]
+
+        # pass along to the service access point
+        this_application.nsap.add_router_references(adapter, router_address, network_list)
+
 
 #
 #   __main__
 #
 
-try:
+def main():
+    global this_application
+
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
@@ -192,7 +160,7 @@ try:
         )
 
     # make a simple application
-    this_application = ReadPropertyApplication(this_device, args.ini.address)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -203,12 +171,16 @@ try:
 
     # make a console
     this_console = ReadPropertyConsoleCmd()
+    if _debug: _log.debug("    - this_console: %r", this_console)
+
+    # enable sleeping will help with threads
+    enable_sleeping()
 
     _log.debug("running")
 
     run()
 
-except Exception as err:
-    _log.exception("an error has occurred: %s", err)
-finally:
-    _log.debug("finally")
+    _log.debug("fini")
+
+if __name__ == "__main__":
+    main()

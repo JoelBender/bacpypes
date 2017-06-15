@@ -37,7 +37,7 @@ except:
 class ConsoleClient(asyncore.file_dispatcher, Client):
 
     def __init__(self, cid=None):
-        ConsoleClient._debug("__init__ cid=%r", cid)
+        if _debug: ConsoleClient._debug("__init__ cid=%r", cid)
         asyncore.file_dispatcher.__init__(self, sys.stdin)
         Client.__init__(self, cid)
 
@@ -48,13 +48,17 @@ class ConsoleClient(asyncore.file_dispatcher, Client):
         return False    # we don't have anything to write
 
     def handle_read(self):
-        deferred(ConsoleClient._debug, "handle_read")
+        if _debug: deferred(ConsoleClient._debug, "handle_read")
+
+        # read from stdin (implicit encoding)
         data = sys.stdin.read()
-        deferred(ConsoleClient._debug, "    - data: %r", data)
-        deferred(self.request, PDU(data))
+        if _debug: deferred(ConsoleClient._debug, "    - data: %r", data)
+
+        # make a PDU and send it downstream
+        if _debug: deferred(self.request, PDU(data))
 
     def confirmation(self, pdu):
-        deferred(ConsoleClient._debug, "confirmation %r", pdu)
+        if _debug: deferred(ConsoleClient._debug, "confirmation %r", pdu)
         try:
             sys.stdout.write(pdu.pduData)
         except Exception, err:
@@ -69,7 +73,7 @@ bacpypes_debugging(ConsoleClient)
 class ConsoleServer(asyncore.file_dispatcher, Server):
 
     def __init__(self, sid=None):
-        ConsoleServer._debug("__init__ sid=%r", sid)
+        if _debug: ConsoleServer._debug("__init__ sid=%r", sid)
         asyncore.file_dispatcher.__init__(self, sys.stdin)
         Server.__init__(self, sid)
 
@@ -80,16 +84,20 @@ class ConsoleServer(asyncore.file_dispatcher, Server):
         return False    # we don't have anything to write
 
     def handle_read(self):
-        deferred(ConsoleServer._debug, "handle_read")
+        if _debug: deferred(ConsoleServer._debug, "handle_read")
+
+        # read from stdin (implicit encoding)
         data = sys.stdin.read()
-        deferred(ConsoleServer._debug, "    - data: %r", data)
-        deferred(self.response, PDU(data))
+        if _debug: deferred(ConsoleServer._debug, "    - data: %r", data)
+
+        # make a PDU and send it upstream
+        if _debug: deferred(self.response, PDU(data))
 
     def indication(self, pdu):
-        deferred(ConsoleServer._debug, "Indication %r", pdu)
+        if _debug: deferred(ConsoleServer._debug, "indication %r", pdu)
         try:
             sys.stdout.write(pdu.pduData)
         except Exception, err:
-            ConsoleServer._exception("Indication sys.stdout.write exception: %r", err)
+            ConsoleServer._exception("indication sys.stdout.write exception: %r", err)
 
 bacpypes_debugging(ConsoleServer)

@@ -29,6 +29,7 @@ def unsigned_tag(x):
 
     return tag
 
+
 @bacpypes_debugging
 def unsigned_encode(obj):
     """Encode an Unsigned object into a tag."""
