@@ -162,7 +162,7 @@ def main():
     #
 
     # create VLAN-1
-    vlan1 = Network()
+    vlan1 = Network(name='1')
     if _debug: _log.debug("    - vlan1: %r", vlan1)
 
     # bind the router to the vlan
@@ -183,7 +183,7 @@ def main():
     #
 
     # create VLAN-2
-    vlan2 = Network()
+    vlan2 = Network(name='2')
     if _debug: _log.debug("    - vlan2: %r", vlan2)
 
     # bind the router stack to the vlan network through this node
@@ -204,7 +204,7 @@ def main():
     #
 
     # create VLAN-3
-    vlan3 = Network()
+    vlan3 = Network(name='3')
     if _debug: _log.debug("    - vlan3: %r", vlan3)
 
     # bind the router stack to the vlan network through this node
@@ -249,7 +249,7 @@ def main():
     #
 
     # create VLAN-4
-    vlan4 = Network()
+    vlan4 = Network(name='4')
     if _debug: _log.debug("    - vlan4: %r", vlan4)
 
     # bind the router stack to the vlan network through this node
