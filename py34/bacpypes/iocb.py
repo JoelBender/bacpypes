@@ -155,7 +155,7 @@ class IOCB(DebugContents):
         # if it's queued, remove it from its queue
         if self.ioQueue:
             if _debug: IOCB._debug("    - dequeue")
-            self.ioQueue.Remove(self)
+            self.ioQueue.remove(self)
 
         # if there's a timer, cancel it
         if self.ioTimeout:
