@@ -713,7 +713,7 @@ class IOQController(IOController):
         except:
             # extract the error
             err = sys.exc_info()[1]
-            if _debug: IOQController._debug("    - process io exception: %r", err)
+            if _debug: IOQController._debug("    - process_io() exception: %r", err)
 
         # if there was an error, abort the request
         if err:

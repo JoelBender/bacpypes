@@ -698,7 +698,7 @@ class IOQController(IOController):
 
         # if we're busy, queue it
         if (self.state != CTRL_IDLE):
-            if _debug: IOQController._debug("    - busy, request queued")
+            if _debug: IOQController._debug("    - busy, request queued, active_iocb: %r", self.active_iocb)
 
             iocb.ioState = PENDING
             self.ioQueue.put(iocb)
@@ -713,6 +713,7 @@ class IOQController(IOController):
         except:
             # extract the error
             err = sys.exc_info()[1]
+            if _debug: IOQController._debug("    - process_io() exception: %r", err)
 
         # if there was an error, abort the request
         if err:
