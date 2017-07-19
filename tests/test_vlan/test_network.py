@@ -46,8 +46,12 @@ class TestCaseTemplate(unittest.TestCase):
     def teardown_class(cls):
         if _debug: TestCaseTemplate._debug("teardown_class")
 
+    def __init__(self, *args, **kwargs):
+        if _debug: TestCaseTemplate._debug("__init__ %r %r", args, kwargs)
+        super(TestCaseTemplate, self).__init__(*args, **kwargs)
+
     def setup_method(self, method):
-        if _debug: TestCaseTemplate._debug("setup_module %r", method)
+        if _debug: TestCaseTemplate._debug("setup_method %r", method)
 
     def teardown_method(self, method):
         if _debug: TestCaseTemplate._debug("teardown_method %r", method)
