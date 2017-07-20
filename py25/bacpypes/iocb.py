@@ -163,6 +163,7 @@ class IOCB(DebugContents):
 
         # set the completion event
         self.ioComplete.set()
+        if _debug: IOCB._debug("    - complete event set")
 
         # make the callback(s)
         for fn, args, kwargs in self.ioCallback:
