@@ -1118,6 +1118,13 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
     def confirmation(self, pdu):
         """Packets coming up the stack are APDU's."""
         if _debug: StateMachineAccessPoint._debug("confirmation %r", pdu)
+        if pdu.apduService != 17:
+            if _debug: StateMachineAccessPoint._debug("DeviceCommunicationRequest")
+            if getattr(self._localDevice, "_dcc_disable_all", None):
+                raise RuntimeError("All communications disabled")
+            if getattr(self._localDevice, "_dcc_disable", None):
+                if pdu.apduService != 8:
+                    raise RuntimeError("All communications disabled except indication for Who-IS.")
 
         # make a more focused interpretation
         atype = apdu_types.get(pdu.apduType)
@@ -1216,6 +1223,13 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         """This function is called when the application is requesting
         a new transaction as a client."""
         if _debug: StateMachineAccessPoint._debug("sap_indication %r", apdu)
+
+        if apdu.apduService != 17:
+            if getattr(self._localDevice, "_dcc_disable_all", None):
+                raise RuntimeError("All communications disabled.")
+            if getattr(self._localDevice, "_dcc_disable", None):
+                if apdu.apduService != 0:
+                    raise RuntimeError("All communications disabled except indication for Who-IS.")
 
         if isinstance(apdu, UnconfirmedRequestPDU):
             # deliver to the device
