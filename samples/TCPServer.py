@@ -25,6 +25,9 @@ SERVER_HOST = os.getenv('SERVER_HOST', 'any')
 SERVER_PORT = int(os.getenv('SERVER_PORT', 9000))
 IDLE_TIMEOUT = int(os.getenv('IDLE_TIMEOUT', 0)) or None
 
+# globals
+args = None
+
 #
 #   EchoMaster
 #
@@ -51,8 +54,14 @@ class MiddleManASE(ApplicationServiceElement):
     and socket errors.
     """
     def indication(self, add_actor=None, del_actor=None, actor_error=None, error=None):
+        global args
+
         if add_actor:
             if _debug: MiddleManASE._debug("indication add_actor=%r", add_actor)
+
+            # it's connected, maybe say hello
+            if args.hello:
+                self.elementService.indication(PDU(b'Hello, world!\n', destination=add_actor.peer))
 
         if del_actor:
             if _debug: MiddleManASE._debug("indication del_actor=%r", del_actor)
@@ -67,6 +76,8 @@ bacpypes_debugging(MiddleManASE)
 #
 
 def main():
+    global args
+
     # parse the command line arguments
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -83,6 +94,11 @@ def main():
         "--idle-timeout", nargs='?', type=int,
         help="idle connection timeout",
         default=IDLE_TIMEOUT,
+        )
+    parser.add_argument(
+        "--hello", action="store_true",
+        default=False,
+        help="send a hello message to a client when it connects",
         )
     args = parser.parse_args()
 
