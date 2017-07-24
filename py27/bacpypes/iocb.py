@@ -910,13 +910,18 @@ class SieveQueue(IOQController):
 @bacpypes_debugging
 class SieveClientController(Client, IOController):
 
-    def __init__(self):
+    def __init__(self, queue_class=SieveQueue):
         if _debug: SieveClientController._debug("__init__")
         Client.__init__(self)
         IOController.__init__(self)
 
+        # make sure it's the correct class
+        if not issubclass(queue_class, SieveQueue):
+            raise TypeError("queue class must be a subclass of SieveQueue")
+
         # queues for each address
         self.queues = {}
+        self.queue_class = queue_class
 
     def process_io(self, iocb):
         if _debug: SieveClientController._debug("process_io %r", iocb)
@@ -929,7 +934,7 @@ class SieveClientController(Client, IOController):
         queue = self.queues.get(destination_address, None)
         if not queue:
             if _debug: SieveClientController._debug("    - new queue")
-            queue = SieveQueue(self.request, destination_address)
+            queue = self.queue_class(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: SieveClientController._debug("    - queue: %r", queue)
 
