@@ -867,7 +867,7 @@ class ClientController(Client, IOQController):
         self.request(iocb.args[0])
 
     def confirmation(self, pdu):
-        if _debug: ClientController._debug("confirmation %r %r", args, kwargs)
+        if _debug: ClientController._debug("confirmation %r", pdu)
 
         # make sure it has an active iocb
         if not self.active_iocb:
