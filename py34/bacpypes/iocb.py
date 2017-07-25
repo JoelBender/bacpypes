@@ -73,7 +73,7 @@ _identLock = threading.Lock()
 @bacpypes_debugging
 class IOCB(DebugContents):
 
-    _debugContents = \
+    _debug_contents = \
         ( 'args', 'kwargs'
         , 'ioState', 'ioResponse-', 'ioError'
         , 'ioController', 'ioServerRef', 'ioControllerRef', 'ioClientID', 'ioClientAddr'
@@ -227,7 +227,7 @@ class IOCB(DebugContents):
 @bacpypes_debugging
 class IOChainMixIn(DebugContents):
 
-    _debugContents = ( 'ioChain++', )
+    _debug_contents = ( 'ioChain++', )
 
     def __init__(self, iocb):
         if _debug: IOChainMixIn._debug("__init__ %r", iocb)
@@ -364,7 +364,7 @@ class IOChain(IOCB, IOChainMixIn):
 @bacpypes_debugging
 class IOGroup(IOCB, DebugContents):
 
-    _debugContents = ('ioMembers',)
+    _debug_contents = ('ioMembers',)
 
     def __init__(self):
         """Initialize a group."""
