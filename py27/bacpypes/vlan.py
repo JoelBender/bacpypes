@@ -98,7 +98,7 @@ class Node(Server):
         self.address = addr
 
         # bind to a lan if it was provided
-        if lan:
+        if lan is not None:
             self.bind(lan)
 
         # might receive all packets and might spoof
