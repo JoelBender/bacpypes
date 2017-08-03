@@ -4,6 +4,7 @@ __pycache__/
 
 # Editor backups
 *.py~
+.idea/
 
 # C extensions
 *.so
