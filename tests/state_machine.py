@@ -650,7 +650,10 @@ class StateMachine(object):
     def match_pdu(self, pdu, transition_pdu):
         if _debug: StateMachine._debug("match_pdu %r %r", pdu, transition_pdu)
 
-        return pdu == transition_pdu
+        successful_match = (pdu == transition_pdu)
+        if _debug: StateMachine._debug("    - successful_match: %r", successful_match)
+
+        return successful_match
 
     def __repr__(self):
         if not self.running:
@@ -810,8 +813,8 @@ class StateMachineGroup(object):
             some_failed = some_failed or state_machine.current_state.is_fail_state
 
         if _debug:
-            StateMachineGroup._debug("    all_success: %r", all_success)
-            StateMachineGroup._debug("    some_failed: %r", some_failed)
+            StateMachineGroup._debug("    - all_success: %r", all_success)
+            StateMachineGroup._debug("    - some_failed: %r", some_failed)
 
         # return the results of the check
         return (all_success, some_failed)
