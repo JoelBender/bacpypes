@@ -386,7 +386,7 @@ class DeviceCommunicationControlServices(Capability):
 
         if getattr(self.localDevice, "_dcc_password", None):
             if not apdu.password or apdu.password != getattr(self.localDevice, "_dcc_password"):
-                raise Error(errorClass="security", errorCode="passwordFailure", context=apdu)
+                raise ExecutionError(errorClass="security", errorCode="passwordFailure")
 
         if apdu.enableDisable == "enable":
             if self._dcc_enable_task:
