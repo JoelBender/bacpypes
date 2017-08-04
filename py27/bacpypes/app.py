@@ -224,8 +224,6 @@ class Application(ApplicationServiceElement, Collector):
 
         # use the provided cache or make a default one
         self.deviceInfoCache = deviceInfoCache or DeviceInfoCache()
-        if not self.smap.deviceInfoCache:
-            self.smap.deviceInfoCache = self.deviceInfoCache
 
         # controllers for managing confirmed requests as a client
         self.controllers = {}
