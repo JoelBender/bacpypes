@@ -7,11 +7,16 @@ from ..pdu import GlobalBroadcast
 from ..primitivedata import Date, Time, ObjectIdentifier
 from ..constructeddata import ArrayOf
 
-from ..apdu import WhoIsRequest, IAmRequest, IHaveRequest
+from ..apdu import WhoIsRequest, IAmRequest, IHaveRequest, SimpleAckPDU, Error
 from ..errors import ExecutionError, InconsistentParameters, \
     MissingRequiredParameter, ParameterOutOfRange
 from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
+from ..task import FunctionTask
+
+from ..basetypes import ErrorClass, ErrorCode
+
+from time import time as _time
 
 # some debugging
 _debug = 0
@@ -90,6 +95,11 @@ class LocalDeviceObject(DeviceObject):
             if attr not in kwargs:
                 kwargs[attr] = value
 
+        for key, value in kwargs.items():
+            if key.startswith("_"):
+                setattr(self, key, value)
+                del kwargs[key]
+
         # check for registration
         if self.__class__ not in registered_object_types.values():
             if 'vendorIdentifier' not in kwargs:
@@ -124,6 +134,10 @@ class LocalDeviceObject(DeviceObject):
                 # make sure it's not already there
                 if 'objectList' not in self.propertyList:
                     self.propertyList.append('objectList')
+
+    def enable_communications(self):
+        self._dcc_disable_all = False
+        self._dcc_disable = False
 
 #
 #   Who-Is I-Am Services
@@ -361,3 +375,53 @@ class WhoHasIHaveServices(Capability):
             raise MissingRequiredParameter("objectName required")
 
         ### check to see if the application is looking for this object
+
+
+@bacpypes_debugging
+class DeviceCommunicationControlServices(Capability):
+
+    def __init__(self):
+        if _debug: DeviceCommunicationControlServices._debug("__init__")
+        Capability.__init__(self)
+        self._enable_task = None
+
+    def do_DeviceCommunicationControlRequest(self, apdu):
+        if _debug: DeviceCommunicationControlServices._debug("do_CommunicationControlRequest, %r", apdu)
+
+        _response = SimpleAckPDU(context=apdu)
+        security_error = False
+
+        if getattr(self.localDevice, "_dcc_password", None):
+            if not apdu.password or apdu.password != getattr(self.localDevice, "_dcc_password"):
+                _response = Error(errorClass=ErrorClass("security"), errorCode=ErrorCode("passwordFailure"), context=apdu)
+                security_error = True
+
+        self.localDevice._app.smap.sap_confirmation(_response)
+
+        if security_error:
+            return
+
+        time_duration = apdu.timeDuration
+        start_time = None
+
+        if apdu.enableDisable == "enable":
+            if self._enable_task:
+                self._enable_task.suspend_task()
+            self._enable_communications()
+
+        elif apdu.enableDisable == "disable":
+            self.localDevice._dcc_disable_all = True
+            self.localDevice._dcc_disable = True
+            start_time = _time()
+        else:
+            self.localDevice._dcc_disable_all = False
+            self.localDevice._dcc_disable = True
+            start_time = _time()
+
+        if time_duration:
+            self._enable_task = FunctionTask(self._enable_communications)
+            self._enable_task.install_task(start_time + time_duration)
+
+    def _enable_communications(self):
+        if _debug: DeviceCommunicationControlServices._debug("enable_communications")
+        self.localDevice.enable_communications()
