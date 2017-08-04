@@ -200,9 +200,7 @@ class Application(ApplicationServiceElement, Collector):
 
         # keep track of the local device
         if localDevice:
-            self.smap = StateMachineAccessPoint(localDevice)
             self.localDevice = localDevice
-            self.smap._localDevice = self.localDevice
 
             # bind the device object to this application
             localDevice._app = self
@@ -474,6 +472,14 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
 
+        # pass the device object to the state machine access point so it
+        # can know if it should support segmentation
+        self.smap = StateMachineAccessPoint(localDevice)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
+
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
 
@@ -521,6 +527,14 @@ class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWrite
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
+
+        # pass the device object to the state machine access point so it
+        # can know if it should support segmentation
+        self.smap = StateMachineAccessPoint(localDevice)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()

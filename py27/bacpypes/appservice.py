@@ -1081,6 +1081,9 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         self.segmentTimeout = 1500
         self.maxSegmentsAccepted = 8
 
+        # device communication control
+        self.dccEnableDisable = 'enable'
+
         # local device object provides these
         if localDevice:
             self.retryCount = localDevice.numberOfApduRetries
@@ -1118,13 +1121,22 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
     def confirmation(self, pdu):
         """Packets coming up the stack are APDU's."""
         if _debug: StateMachineAccessPoint._debug("confirmation %r", pdu)
-        if pdu.apduService != 17:
-            if _debug: StateMachineAccessPoint._debug("DeviceCommunicationRequest")
-            if getattr(self._localDevice, "_dcc_disable_all", None):
-                raise RuntimeError("All communications disabled")
-            if getattr(self._localDevice, "_dcc_disable", None):
-                if pdu.apduService != 8:
-                    raise RuntimeError("All communications disabled except indication for Who-IS.")
+
+        # check device communication control
+        if self.dccEnableDisable == 'enable':
+            if _debug: StateMachineAccessPoint._debug("    - communications enabled")
+        elif self.dccEnableDisable == 'disable':
+            if (pdu.apduType == 0) and (pdu.apduService == 17):
+                if _debug: StateMachineAccessPoint._debug("    - continue with DCC request")
+            elif (pdu.apduType == 0) and (pdu.apduService == 20):
+                if _debug: StateMachineAccessPoint._debug("    - continue with reinitialize device")
+            elif (pdu.apduType == 1) and (pdu.apduService == 8):
+                if _debug: StateMachineAccessPoint._debug("    - continue with Who-Is")
+            else:
+                if _debug: StateMachineAccessPoint._debug("    - not a Who-Is, dropped")
+                return
+        elif self.dccEnableDisable == 'disableInitiation':
+            if _debug: StateMachineAccessPoint._debug("    - initiation disabled")
 
         # make a more focused interpretation
         atype = apdu_types.get(pdu.apduType)
@@ -1224,12 +1236,22 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         a new transaction as a client."""
         if _debug: StateMachineAccessPoint._debug("sap_indication %r", apdu)
 
-        if apdu.apduService != 17:
-            if getattr(self._localDevice, "_dcc_disable_all", None):
-                raise RuntimeError("All communications disabled.")
-            if getattr(self._localDevice, "_dcc_disable", None):
-                if apdu.apduService != 0:
-                    raise RuntimeError("All communications disabled except indication for Who-IS.")
+        # check device communication control
+        if self.dccEnableDisable == 'enable':
+            if _debug: StateMachineAccessPoint._debug("    - communications enabled")
+
+        elif self.dccEnableDisable == 'disable':
+            if _debug: StateMachineAccessPoint._debug("    - communications disabled")
+            return
+
+        elif self.dccEnableDisable == 'disableInitiation':
+            if _debug: StateMachineAccessPoint._debug("    - initiation disabled")
+
+            if (pdu.apduType == 1) and (pdu.apduService == 0):
+                if _debug: StateMachineAccessPoint._debug("    - continue with I-Am")
+            else:
+                if _debug: StateMachineAccessPoint._debug("    - not an I-Am")
+                return
 
         if isinstance(apdu, UnconfirmedRequestPDU):
             # deliver to the device
