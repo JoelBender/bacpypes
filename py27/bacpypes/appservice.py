@@ -11,7 +11,7 @@ from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 from .comm import Client, ServiceAccessPoint, ApplicationServiceElement
 from .task import OneShotTask
 
-from .pdu import Address, LocalStation, RemoteStation
+from .pdu import Address
 from .apdu import AbortPDU, AbortReason, ComplexAckPDU, \
     ConfirmedRequestPDU, Error, ErrorPDU, RejectPDU, SegmentAckPDU, \
     SimpleAckPDU, UnconfirmedRequestPDU, apdu_types, \
@@ -1247,7 +1247,7 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         elif self.dccEnableDisable == 'disableInitiation':
             if _debug: StateMachineAccessPoint._debug("    - initiation disabled")
 
-            if (pdu.apduType == 1) and (pdu.apduService == 0):
+            if (apdu.apduType == 1) and (apdu.apduService == 0):
                 if _debug: StateMachineAccessPoint._debug("    - continue with I-Am")
             else:
                 if _debug: StateMachineAccessPoint._debug("    - not an I-Am")

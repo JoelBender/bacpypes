@@ -14,8 +14,6 @@ from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
 from ..task import FunctionTask
 
-from ..basetypes import ErrorClass, ErrorCode
-
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
