@@ -552,9 +552,18 @@ class StateMachine(object):
         # add a reference to the pdu in the transaction log
         self.transaction_log.append(("<<<", pdu),)
 
+    def send(self, pdu):
+        raise NotImplementedError("send not implemented")
+
     def after_send(self, pdu):
         """Called after each PDU sent."""
         pass
+
+    def before_receive(self, pdu):
+        """Called with each PDU received before matching."""
+
+        # add a reference to the pdu in the transaction log
+        self.transaction_log.append((">>>", pdu),)
 
     def receive(self, pdu):
         if _debug: StateMachine._debug("receive %r", pdu)
@@ -606,12 +615,6 @@ class StateMachine(object):
 
             self.goto_state(next_state)
 
-    def before_receive(self, pdu):
-        """Called with each PDU received before matching."""
-
-        # add a reference to the pdu in the transaction log
-        self.transaction_log.append((">>>", pdu),)
-
     def after_receive(self, pdu):
         """Called with PDU received after match."""
         pass
@@ -643,9 +646,6 @@ class StateMachine(object):
 
         # go to the state specified
         self.goto_state(self.timeout_state)
-
-    def send(self, pdu):
-        raise NotImplementedError("send not implemented")
 
     def match_pdu(self, pdu, transition_pdu):
         if _debug: StateMachine._debug("match_pdu %r %r", pdu, transition_pdu)
