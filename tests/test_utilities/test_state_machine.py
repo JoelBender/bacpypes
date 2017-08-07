@@ -19,6 +19,39 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
+class TSMachine(TrappedStateMachine, StateMachine):
+
+    """
+    This class supplements the trapped state machine with additional functions
+    to help with testing and creates trapped states by default.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize a trapped state machine."""
+
+        # provide a default state subclass
+        if 'state_subclass' not in kwargs:
+            kwargs['state_subclass'] = TrappedState
+
+        # pass them all along
+        super(TSMachine, self).__init__(**kwargs)
+
+    def send(self, pdu):
+        """Called to send a PDU."""
+        if _debug: TSMachine._debug("send %r", pdu)
+
+        # keep a copy
+        self.sent = pdu
+
+    def match_pdu(self, pdu, transition_pdu):
+        """Very strong match condition."""
+        if _debug: TSMachine._debug("match_pdu %r %r", pdu, transition_pdu)
+
+        # must be identical objects
+        return pdu is transition_pdu
+
+
+@bacpypes_debugging
 class TestState(unittest.TestCase):
 
     def test_state_doc(self):
@@ -82,7 +115,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_success")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
         assert isinstance(tsm.start_state, TrappedState)
 
         # make the start state a success
@@ -99,7 +132,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_fail")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
         assert isinstance(tsm.start_state, TrappedState)
 
         # make the start state a fail
@@ -116,7 +149,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_send")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make pdu object
         pdu = object()
@@ -146,7 +179,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_receive")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make pdu object
         pdu = object()
@@ -179,7 +212,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_unexpected")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make pdu object
         good_pdu = object()
@@ -211,7 +244,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_loop_01")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make pdu object
         first_pdu = object()
@@ -252,7 +285,7 @@ class TestStateMachine(unittest.TestCase):
         if _debug: TestStateMachine._debug("test_state_machine_loop_02")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make pdu object
         first_pdu = object()
@@ -296,7 +329,7 @@ class TestStateMachineTimeout1(unittest.TestCase):
         if _debug: TestStateMachineTimeout1._debug("test_state_machine_timeout_1")
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
 
         # make a timeout transition from start to success
         tsm.start_state.timeout(1.0).success()
@@ -325,7 +358,7 @@ class TestStateMachineTimeout2(unittest.TestCase):
         second_pdu = object()
 
         # create a trapped state machine
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
         s0 = tsm.start_state
 
         # send something, wait, send something, wait, success
@@ -362,7 +395,7 @@ class TestStateMachineGroup(unittest.TestCase):
         smg = StateMachineGroup()
 
         # create a trapped state machine, start state is success
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
         tsm.start_state.success()
 
         # add it to the group
@@ -389,7 +422,7 @@ class TestStateMachineGroup(unittest.TestCase):
         smg = StateMachineGroup()
 
         # create a trapped state machine, start state is fail
-        tsm = TrappedStateMachine(state_subclass=TrappedState)
+        tsm = TSMachine()
         tsm.start_state.fail()
 
         # add it to the group
