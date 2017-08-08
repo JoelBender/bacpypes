@@ -13,7 +13,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.pdu import Address, PDU
+from bacpypes.pdu import Address, LocalBroadcast, PDU
 from bacpypes.comm import bind
 from bacpypes.vlan import Network, Node
 
@@ -57,24 +57,46 @@ class ZPDU():
 
 
 @bacpypes_debugging
-class ZStateMachineGroup(StateMachineGroup):
+class TNetwork(StateMachineGroup):
+
+    def __init__(self, node_count):
+        if _debug: TNetwork._debug("__init__ %r", node_count)
+        StateMachineGroup.__init__(self)
+
+        self.vlan = Network()
+
+        for i in range(node_count):
+            node = Node(Address(i + 1), self.vlan)
+
+            # bind a client state machine to the node
+            csm = ClientStateMachine()
+            bind(csm, node)
+
+            # add it to this group
+            self.append(csm)
+
+    def __getitem__(self, n):
+        if _debug: TNetwork._debug("__getitem__ %r", n)
+
+        # return the state machine for node address <n>
+        return self.state_machines[n - 1]
 
     def run(self, time_limit=60.0):
-        if _debug: ZStateMachineGroup._debug("run %r", time_limit)
+        if _debug: TNetwork._debug("run %r", time_limit)
 
         # reset the time machine
         reset_time_machine()
-        if _debug: ZStateMachineGroup._debug("    - time machine reset")
+        if _debug: TNetwork._debug("    - time machine reset")
 
         # run the group
-        super(ZStateMachineGroup, self).run()
+        super(TNetwork, self).run()
 
         # run it for some time
         run_time_machine(time_limit)
-        if _debug: ZStateMachineGroup._debug("    - time machine finished")
+        if _debug: TNetwork._debug("    - time machine finished")
 
         # check for success
-        all_success, some_failed = super(ZStateMachineGroup, self).check_for_success()
+        all_success, some_failed = super(TNetwork, self).check_for_success()
         assert all_success
 
 
@@ -85,45 +107,132 @@ class TestVLAN(unittest.TestCase):
         if _debug: TestVLAN._debug("__init__ %r %r", args, kwargs)
         super(TestVLAN, self).__init__(*args, **kwargs)
 
-        # create a network and bound nodes
-        self.vlan = Network()
-        self.node_1 = Node(Address(1), self.vlan)
-        self.node_2 = Node(Address(2), self.vlan)
-
-        # create state machines and bind them to nodes
-        self.csm_1 = ClientStateMachine()
-        bind(self.csm_1, self.node_1)
-        self.csm_2 = ClientStateMachine()
-        bind(self.csm_2, self.node_2)
-
-        # create a state machine group so they both run together
-        self.csm_group = ZStateMachineGroup()
-        self.csm_group.append(self.csm_1)
-        self.csm_group.append(self.csm_2)
-
     def test_idle(self):
         if _debug: TestVLAN._debug("test_idle")
 
+        # two element network
+        tnet = TNetwork(2)
+
         # make a send transition from start to success, run the machine
-        self.csm_1.start_state.success()
-        self.csm_2.start_state.success()
+        tnet[1].start_state.success()
+        tnet[2].start_state.success()
 
         # run the group
-        self.csm_group.run()
+        tnet.run()
 
     def test_send_receive(self):
         if _debug: TestVLAN._debug("test_send_receive")
 
+        # two element network
+        tnet = TNetwork(2)
+
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data', source=self.node_1.address, destination=self.node_2.address)
+        pdu = PDU(b'data',
+            source=Address(1),
+            destination=Address(2),
+            )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # make a send transition from start to success, run the machine
-        self.csm_1.start_state.send(pdu).success()
-        self.csm_2.start_state.receive(ZPDU(
+        tnet[1].start_state.send(pdu).success()
+        tnet[2].start_state.receive(ZPDU(
             pduSource=Address(1),
             )).success()
 
         # run the group
-        self.csm_group.run()
+        tnet.run()
+
+    def test_broadcast(self):
+        if _debug: TestVLAN._debug("test_broadcast")
+
+        # three element network
+        tnet = TNetwork(3)
+
+        # make a broadcast PDU
+        pdu = PDU(b'data',
+            source=Address(1),
+            destination=LocalBroadcast(),
+            )
+        if _debug: TestVLAN._debug("    - pdu: %r", pdu)
+
+        # make a send transition from start to success, run the machine
+        tnet[1].start_state.send(pdu).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=Address(1),
+            )).success()
+        tnet[3].start_state.receive(ZPDU(
+            pduSource=Address(1),
+            )).success()
+
+        # run the group
+        tnet.run()
+
+    def test_spoof_fail(self):
+        if _debug: TestVLAN._debug("test_spoof_fail")
+
+        # two element network
+        tnet = TNetwork(1)
+
+        # make a unicast PDU with the wrong source
+        pdu = PDU(b'data',
+            source=Address(2),
+            destination=Address(3),
+            )
+
+        # make a send transition from start to success, run the machine
+        tnet[1].start_state.send(pdu).success()
+
+        # run the group
+        with self.assertRaises(RuntimeError):
+            tnet.run()
+
+    def test_spoof_pass(self):
+        if _debug: TestVLAN._debug("test_spoof_pass")
+
+        # one node network
+        tnet = TNetwork(1)
+
+        # reach into the network and enable spoofing for the node
+        tnet.vlan.nodes[0].spoofing = True
+
+        # make a unicast PDU from a fictitious node
+        pdu = PDU(b'data',
+            source=Address(3),
+            destination=Address(1),
+            )
+
+        # make a send transition from start to success, run the machine
+        tnet[1].start_state.send(pdu).receive(ZPDU(
+            pduSource=Address(3),
+            )).success()
+
+        # run the group
+        tnet.run()
+
+    def test_promiscuous(self):
+        if _debug: TestVLAN._debug("test_promiscuous")
+
+        # three element network
+        tnet = TNetwork(3)
+
+        # reach into the network and enable promiscuous mode
+        tnet.vlan.nodes[2].promiscuous = True
+
+        # make a PDU from node 1 to node 2
+        pdu = PDU(b'data',
+            source=Address(1),
+            destination=Address(2),
+            )
+
+        # make a send transition from start to success, run the machine
+        tnet[1].start_state.send(pdu).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=Address(1),
+            )).success()
+        tnet[3].start_state.receive(ZPDU(
+            pduDestination=Address(2),
+            )).success()
+
+        # run the group
+        tnet.run()
 
