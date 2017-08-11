@@ -116,7 +116,7 @@ class TestVLAN(unittest.TestCase):
         # two element network
         tnet = TNetwork(2)
 
-        # make a send transition from start to success, run the machine
+        # set the start states of both machines to success
         tnet[1].start_state.success()
         tnet[2].start_state.success()
 
@@ -138,7 +138,7 @@ class TestVLAN(unittest.TestCase):
             )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
-        # make a send transition from start to success, run the machine
+        # node 1 sends the pdu, mode 2 gets it
         tnet[1].start_state.send(pdu).success()
         tnet[2].start_state.receive(ZPDU(
             pduSource=Address(1),
@@ -163,7 +163,7 @@ class TestVLAN(unittest.TestCase):
             )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
-        # make a send transition from start to success, run the machine
+        # node 1 sends the pdu, node 2 and 3 each get it
         tnet[1].start_state.send(pdu).success()
         tnet[2].start_state.receive(ZPDU(
             pduSource=Address(1),
@@ -190,10 +190,10 @@ class TestVLAN(unittest.TestCase):
             destination=Address(3),
             )
 
-        # make a send transition from start to success, run the machine
+        # the node sends the pdu and would be a success but...
         tnet[1].start_state.send(pdu).success()
 
-        # run the group
+        # when the node attempts to send it raises an error
         with self.assertRaises(RuntimeError):
             tnet.run()
 
@@ -215,7 +215,7 @@ class TestVLAN(unittest.TestCase):
             destination=Address(1),
             )
 
-        # make a send transition from start to success, run the machine
+        # node 1 sends the pdu, but gets it back as if it was from node 3
         tnet[1].start_state.send(pdu).receive(ZPDU(
             pduSource=Address(3),
             )).success()
@@ -242,7 +242,7 @@ class TestVLAN(unittest.TestCase):
             destination=Address(2),
             )
 
-        # make a send transition from start to success, run the machine
+        # node 1 sends the pdu to node 2, node 3 also gets a copy
         tnet[1].start_state.send(pdu).success()
         tnet[2].start_state.receive(ZPDU(
             pduSource=Address(1),
@@ -266,7 +266,7 @@ class TestVLAN(unittest.TestCase):
             destination=Address(2),
             )
 
-        # make a send transition from start to success, run the machine
+        # node 1 sends the pdu to node 2, node 3 waits and gets nothing
         tnet[1].start_state.send(pdu).success()
         tnet[2].start_state.receive(ZPDU(
             pduSource=Address(1),
