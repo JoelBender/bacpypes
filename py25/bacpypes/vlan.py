@@ -24,11 +24,12 @@ _log = ModuleLogger(globals())
 
 class Network:
 
-    def __init__(self, dropPercent=0.0):
-        if _debug: Network._debug("__init__ dropPercent=%r", dropPercent)
+    def __init__(self, broadcast_address=None, drop_percent=0.0):
+        if _debug: Network._debug("__init__ broadcast_address=%r drop_percent=%r", broadcast_address, drop_percent)
 
         self.nodes = []
-        self.dropPercent = dropPercent
+        self.broadcast_address = broadcast_address
+        self.drop_percent = drop_percent
 
     def add_node(self, node):
         """ Add a node to this network, let the node know which network it's on. """
@@ -50,26 +51,20 @@ class Network:
         """
         if _debug: Network._debug("process_pdu %r", pdu)
 
-        if self.dropPercent != 0.0:
-            if (random.random() * 100.0) < self.dropPercent:
+        # randomly drop a packet
+        if self.drop_percent != 0.0:
+            if (random.random() * 100.0) < self.drop_percent:
                 if _debug: Network._debug("    - packet dropped")
                 return
 
-        if not pdu.pduDestination or not isinstance(pdu.pduDestination, Address):
-            raise RuntimeError("invalid destination address")
-
-        elif pdu.pduDestination.addrType == Address.localBroadcastAddr:
+        if pdu.pduDestination == self.broadcast_address:
             for n in self.nodes:
                 if (pdu.pduSource != n.address):
                     n.response(deepcopy(pdu))
-
-        elif pdu.pduDestination.addrType == Address.localStationAddr:
+        else:
             for n in self.nodes:
                 if n.promiscuous or (pdu.pduDestination == n.address):
                     n.response(deepcopy(pdu))
-
-        else:
-            raise RuntimeError("invalid destination address type")
 
     def __len__(self):
         """ Simple way to determine the number of nodes in the network. """
@@ -90,9 +85,6 @@ class Node(Server):
                 addr, lan, promiscuous, spoofing, sid
                 )
         Server.__init__(self, sid)
-
-        if not isinstance(addr, Address):
-            raise TypeError("addr must be an address")
 
         self.lan = None
         self.address = addr
@@ -130,3 +122,4 @@ class Node(Server):
         deferred(self.lan.process_pdu, pdu)
 
 bacpypes_debugging(Node)
+

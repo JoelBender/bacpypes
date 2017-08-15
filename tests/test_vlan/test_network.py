@@ -63,10 +63,10 @@ class TNetwork(StateMachineGroup):
         if _debug: TNetwork._debug("__init__ %r", node_count)
         StateMachineGroup.__init__(self)
 
-        self.vlan = Network()
+        self.vlan = Network(broadcast_address=0)
 
         for i in range(node_count):
-            node = Node(Address(i + 1), self.vlan)
+            node = Node(i + 1, self.vlan)
 
             # bind a client state machine to the node
             csm = ClientStateMachine()
@@ -132,17 +132,12 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(2)
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data',
-            source=Address(1),
-            destination=Address(2),
-            )
+        pdu = PDU(b'data', source=1, destination=2)
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, mode 2 gets it
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
-            pduSource=Address(1),
-            )).success()
+        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
 
         # run the group
         tnet.run()
@@ -157,20 +152,13 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(3)
 
         # make a broadcast PDU
-        pdu = PDU(b'data',
-            source=Address(1),
-            destination=LocalBroadcast(),
-            )
+        pdu = PDU(b'data', source=1, destination=0)
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, node 2 and 3 each get it
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
-            pduSource=Address(1),
-            )).success()
-        tnet[3].start_state.receive(ZPDU(
-            pduSource=Address(1),
-            )).success()
+        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
+        tnet[3].start_state.receive(ZPDU(pduSource=1)).success()
 
         # run the group
         tnet.run()
@@ -210,15 +198,10 @@ class TestVLAN(unittest.TestCase):
         tnet.vlan.nodes[0].spoofing = True
 
         # make a unicast PDU from a fictitious node
-        pdu = PDU(b'data',
-            source=Address(3),
-            destination=Address(1),
-            )
+        pdu = PDU(b'data', source=3, destination=1)
 
         # node 1 sends the pdu, but gets it back as if it was from node 3
-        tnet[1].start_state.send(pdu).receive(ZPDU(
-            pduSource=Address(3),
-            )).success()
+        tnet[1].start_state.send(pdu).receive(ZPDU(pduSource=3)).success()
 
         # run the group
         tnet.run()
@@ -237,19 +220,12 @@ class TestVLAN(unittest.TestCase):
         tnet.vlan.nodes[2].promiscuous = True
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data',
-            source=Address(1),
-            destination=Address(2),
-            )
+        pdu = PDU(b'data', source=1, destination=2)
 
         # node 1 sends the pdu to node 2, node 3 also gets a copy
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
-            pduSource=Address(1),
-            )).success()
-        tnet[3].start_state.receive(ZPDU(
-            pduDestination=Address(2),
-            )).success()
+        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
+        tnet[3].start_state.receive(ZPDU(pduDestination=2)).success()
 
         # run the group
         tnet.run()
@@ -261,16 +237,11 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(3)
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data',
-            source=Address(1),
-            destination=Address(2),
-            )
+        pdu = PDU(b'data', source=1, destination=2)
 
         # node 1 sends the pdu to node 2, node 3 waits and gets nothing
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
-            pduSource=Address(1),
-            )).success()
+        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
         tnet[3].start_state.timeout(0.5).success()
