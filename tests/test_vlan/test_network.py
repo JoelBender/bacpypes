@@ -29,7 +29,7 @@ _log = ModuleLogger(globals())
 class ZPDU():
 
     def __init__(self, cls=None, **kwargs):
-        if _debug: ZPDU._debug("__init__ %r", kwargs)
+        if _debug: ZPDU._debug("__init__ %r %r", cls, kwargs)
 
         self.cls = cls
         self.kwargs = kwargs
