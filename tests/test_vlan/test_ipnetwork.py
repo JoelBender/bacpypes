@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Test Network
+Test IPNetwork
 ------------
 
-This module tests the basic functionality of a VLAN network.  Each test "runs"
-on a VLAN with two nodes, node_1 and node_2, and each has a state machine.
+This module tests the basic functionality of a crudely simulated IPNetwork.
 """
 
 import unittest
@@ -15,7 +14,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.pdu import Address, LocalBroadcast, PDU
 from bacpypes.comm import bind
-from bacpypes.vlan import Network, Node
+from bacpypes.vlan import IPNetwork, IPNode
 
 from ..state_machine import ClientStateMachine, StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine
@@ -29,7 +28,7 @@ _log = ModuleLogger(globals())
 class ZPDU():
 
     def __init__(self, cls=None, **kwargs):
-        if _debug: ZPDU._debug("__init__ %r", kwargs)
+        if _debug: ZPDU._debug("__init__ %r %r", cls, kwargs)
 
         self.cls = cls
         self.kwargs = kwargs
@@ -63,10 +62,12 @@ class TNetwork(StateMachineGroup):
         if _debug: TNetwork._debug("__init__ %r", node_count)
         StateMachineGroup.__init__(self)
 
-        self.vlan = Network(broadcast_address=0)
+        self.vlan = IPNetwork()
 
         for i in range(node_count):
-            node = Node(i + 1, self.vlan)
+            node_address = Address("192.168.0.{}/24".format(i + 1))
+            node = IPNode(node_address, self.vlan)
+            if _debug: TNetwork._debug("    - node: %r", node)
 
             # bind a client state machine to the node
             csm = ClientStateMachine()
@@ -132,12 +133,17 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(2)
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data', source=1, destination=2)
+        pdu = PDU(b'data',
+            source=('192.168.0.1', 47808),
+            destination=('192.168.0.2', 47808),
+            )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, mode 2 gets it
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=('192.168.0.1', 47808),
+            )).success()
 
         # run the group
         tnet.run()
@@ -152,13 +158,20 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(3)
 
         # make a broadcast PDU
-        pdu = PDU(b'data', source=1, destination=0)
+        pdu = PDU(b'data',
+            source=('192.168.0.1', 47808),
+            destination=('192.168.0.255', 47808),
+            )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, node 2 and 3 each get it
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
-        tnet[3].start_state.receive(ZPDU(pduSource=1)).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=('192.168.0.1', 47808),
+            )).success()
+        tnet[3].start_state.receive(ZPDU(
+            pduSource=('192.168.0.1', 47808)
+            )).success()
 
         # run the group
         tnet.run()
@@ -173,7 +186,10 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(1)
 
         # make a unicast PDU with the wrong source
-        pdu = PDU(b'data', source=2, destination=3)
+        pdu = PDU(b'data',
+            source=('192.168.0.2', 47808),
+            destination=('192.168.0.3', 47808),
+            )
 
         # the node sends the pdu and would be a success but...
         tnet[1].start_state.send(pdu).success()
@@ -195,10 +211,15 @@ class TestVLAN(unittest.TestCase):
         tnet.vlan.nodes[0].spoofing = True
 
         # make a unicast PDU from a fictitious node
-        pdu = PDU(b'data', source=3, destination=1)
+        pdu = PDU(b'data',
+            source=('192.168.0.3', 47808),
+            destination=('192.168.0.1', 47808),
+            )
 
         # node 1 sends the pdu, but gets it back as if it was from node 3
-        tnet[1].start_state.send(pdu).receive(ZPDU(pduSource=3)).success()
+        tnet[1].start_state.send(pdu).receive(ZPDU(
+            pduSource=('192.168.0.3', 47808),
+            )).success()
 
         # run the group
         tnet.run()
@@ -217,12 +238,19 @@ class TestVLAN(unittest.TestCase):
         tnet.vlan.nodes[2].promiscuous = True
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data', source=1, destination=2)
+        pdu = PDU(b'data',
+            source=('192.168.0.1', 47808),
+            destination=('192.168.0.2', 47808),
+            )
 
         # node 1 sends the pdu to node 2, node 3 also gets a copy
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
-        tnet[3].start_state.receive(ZPDU(pduDestination=2)).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=('192.168.0.1', 47808),
+            )).success()
+        tnet[3].start_state.receive(ZPDU(
+            pduDestination=('192.168.0.2', 47808),
+            )).success()
 
         # run the group
         tnet.run()
@@ -234,11 +262,16 @@ class TestVLAN(unittest.TestCase):
         tnet = TNetwork(3)
 
         # make a PDU from node 1 to node 2
-        pdu = PDU(b'data', source=1, destination=2)
+        pdu = PDU(b'data',
+            source=('192.168.0.1', 47808),
+            destination=('192.168.0.2', 47808),
+            )
 
         # node 1 sends the pdu to node 2, node 3 waits and gets nothing
         tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(pduSource=1)).success()
+        tnet[2].start_state.receive(ZPDU(
+            pduSource=('192.168.0.1', 47808),
+            )).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
         tnet[3].start_state.timeout(0.5).success()

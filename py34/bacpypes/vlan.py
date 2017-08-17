@@ -120,3 +120,63 @@ class Node(Server):
 
         # actual network delivery is deferred
         deferred(self.lan.process_pdu, pdu)
+
+
+#
+#   IPNetwork
+#
+
+@bacpypes_debugging
+class IPNetwork(Network):
+
+    """
+    IPNetwork instances are Network objects where the addresses on the
+    network are tuples that would be used for sockets like ('1.2.3.4', 5).
+    The first node added to the network sets the broadcast address, like
+    ('1.2.3.255', 5) and the other nodes must have the same tuple.
+    """
+
+    def __init__(self):
+        if _debug: IPNetwork._debug("__init__")
+        Network.__init__(self)
+
+    def add_node(self, node):
+        if _debug: IPNetwork._debug("add_node %r", node)
+
+        # first node sets the broadcast tuple, other nodes much match
+        if not self.nodes:
+            self.broadcast_address = node.addrBroadcastTuple
+        elif node.addrBroadcastTuple != self.broadcast_address:
+            raise ValueError("nodes must all have the same broadcast tuple")
+
+        # continue along
+        Network.add_node(self, node)
+
+
+#
+#   IPNode
+#
+
+@bacpypes_debugging
+class IPNode(Node):
+
+    """
+    An IPNode is a Node where the address is an Address that has an address
+    tuple and a broadcast tuple that would be used for socket communications.
+    """
+
+    def __init__(self, addr, lan=None):
+        if _debug: IPNode._debug("__init__ %r lan=%r", addr, lan)
+
+        # make sure it's an Address that has appropriate pieces
+        if not isinstance(addr, Address) or (not hasattr(addr, 'addrTuple')) \
+            or (not hasattr(addr, 'addrBroadcastTuple')):
+            raise ValueError("malformed address")
+
+        # save the address information
+        self.addrTuple = addr.addrTuple
+        self.addrBroadcastTuple = addr.addrBroadcastTuple
+
+        # continue initializing
+        Node.__init__(self, addr.addrTuple, lan=lan)
+
