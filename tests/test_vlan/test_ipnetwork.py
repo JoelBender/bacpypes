@@ -274,7 +274,7 @@ class TestVLAN(unittest.TestCase):
             )).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
-        tnet[3].start_state.timeout(0.5).success()
+        tnet[3].start_state.timeout(1).success()
 
         # run the group
         tnet.run()
@@ -371,8 +371,8 @@ class TestRouter(unittest.TestCase):
             )).success()
 
         # other nodes get nothing
-        csm_10_3.start_state.success()
-        csm_20_2.start_state.success()
+        csm_10_3.start_state.timeout(1).success()
+        csm_20_2.start_state.timeout(1).success()
 
     def test_remote_broadcast(self):
         """Test that a node can send a message to all of the other nodes on
@@ -390,9 +390,9 @@ class TestRouter(unittest.TestCase):
             )
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
-        # node 10-2 sends the pdu, nodes 20-2 and 20-3 get it
+        # node 10-2 sends the pdu, node 10-3 gets nothing, nodes 20-2 and 20-3 get it
         csm_10_2.start_state.send(pdu).success()
-        csm_10_3.start_state.success()
+        csm_10_3.start_state.timeout(1).success()
         csm_20_2.start_state.receive(ZPDU(
             pduSource=('192.168.10.2', 47808),
             )).success()
