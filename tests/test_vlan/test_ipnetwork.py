@@ -5,7 +5,9 @@
 Test IPNetwork
 ------------
 
-This module tests the basic functionality of a crudely simulated IPNetwork.
+This module tests the basic functionality of a crudely simulated IPv4 network,
+source and destination addresses are tuples like those used for sockets and
+the UDPDirector.
 """
 
 import unittest
