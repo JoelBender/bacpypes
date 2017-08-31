@@ -14,10 +14,6 @@ from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
 from ..task import FunctionTask
 
-from ..basetypes import ErrorClass, ErrorCode
-
-from time import time as _time
-
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -135,9 +131,6 @@ class LocalDeviceObject(DeviceObject):
                 if 'objectList' not in self.propertyList:
                     self.propertyList.append('objectList')
 
-    def enable_communications(self):
-        self._dcc_disable_all = False
-        self._dcc_disable = False
 #
 #   Who-Is I-Am Services
 #
@@ -300,6 +293,28 @@ class WhoHasIHaveServices(Capability):
             if _debug: WhoIsIAmServices._debug("    - no local device")
             return
 
+        # if this has limits, check them like Who-Is
+        if apdu.limits is not None:
+            # extract the parameters
+            low_limit = apdu.limits.deviceInstanceRangeLowLimit
+            high_limit = apdu.limits.deviceInstanceRangeHighLimit
+
+            # check for consistent parameters
+            if (low_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeLowLimit required")
+            if (low_limit < 0) or (low_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeLowLimit out of range")
+            if (high_limit is None):
+                raise MissingRequiredParameter("deviceInstanceRangeHighLimit required")
+            if (high_limit < 0) or (high_limit > 4194303):
+                raise ParameterOutOfRange("deviceInstanceRangeHighLimit out of range")
+
+            # see we should respond
+            if (self.localDevice.objectIdentifier[1] < low_limit):
+                return
+            if (self.localDevice.objectIdentifier[1] > high_limit):
+                return
+
         # find the object
         if apdu.object.objectIdentifier is not None:
             obj = self.objectIdentifier.get(apdu.object.objectIdentifier, None)
@@ -307,8 +322,10 @@ class WhoHasIHaveServices(Capability):
             obj = self.objectName.get(apdu.object.objectName, None)
         else:
             raise InconsistentParameters("object identifier or object name required")
+
+        # maybe we don't have it
         if not obj:
-            raise ExecutionError(errorClass='object', errorCode='unknownObject')
+            return
 
         # send out the response
         self.i_have(obj, address=apdu.pduSource)
@@ -351,6 +368,9 @@ class WhoHasIHaveServices(Capability):
 
         ### check to see if the application is looking for this object
 
+#
+#   Device Communication Control
+#
 
 @bacpypes_debugging
 class DeviceCommunicationControlServices(Capability):
@@ -358,45 +378,43 @@ class DeviceCommunicationControlServices(Capability):
     def __init__(self):
         if _debug: DeviceCommunicationControlServices._debug("__init__")
         Capability.__init__(self)
-        self._enable_task = None
+
+        self._dcc_enable_task = None
 
     def do_DeviceCommunicationControlRequest(self, apdu):
         if _debug: DeviceCommunicationControlServices._debug("do_CommunicationControlRequest, %r", apdu)
 
-        _response = SimpleAckPDU(context=apdu)
-        security_error = False
-
         if getattr(self.localDevice, "_dcc_password", None):
             if not apdu.password or apdu.password != getattr(self.localDevice, "_dcc_password"):
-                _response = Error(errorClass=ErrorClass("security"), errorCode=ErrorCode("passwordFailure"), context=apdu)
-                security_error = True
-
-        self.localDevice_app.smap.sap_confirmation(_response)
-
-        if security_error:
-            return
-
-        time_duration = apdu.timeDuration
-        start_time = None
+                raise ExecutionError(errorClass="security", errorCode="passwordFailure")
 
         if apdu.enableDisable == "enable":
-            if self._enable_task:
-                self._enable_task.suspend_task()
-            self._enable_communications()
+            if self._dcc_enable_task:
+                self._dcc_enable_task.suspend_task()
+                self._dcc_enable_task = None
 
-        elif apdu.enableDisable == "disable":
-            self.localDevice._dcc_disable_all = True
-            self.localDevice._dcc_disable = True
-            start_time = _time()
+            self.enable_communications()
         else:
-            self.localDevice._dcc_disable_all = False
-            self.localDevice._dcc_disable = True
-            start_time = _time()
+            # disable or disableInitiation
+            self.disable_communications(apdu.enableDisable)
 
-        if time_duration:
-            self._enable_task = FunctionTask(self._enable_communications)
-            self._enable_task.install_task(start_time + time_duration)
+            # if there is a time duration, it's in minutes
+            if apdu.timeDuration:
+                self._dcc_enable_task = FunctionTask(self.enable_communications)
+                self._dcc_enable_task.install_task(delta=apdu.timeDuration * 60)
 
-    def _enable_communications(self):
+        # respond with a simple ack
+        self.response(SimpleAckPDU(context=apdu))
+
+    def enable_communications(self):
         if _debug: DeviceCommunicationControlServices._debug("enable_communications")
-        self.localDevice.enable_communications()
+
+        # tell the State Machine Access Point
+        self.smap.dccEnableDisable = 'enable'
+
+    def disable_communications(self, enable_disable):
+        if _debug: DeviceCommunicationControlServices._debug("disable_communications %r", enable_disable)
+
+        # tell the State Machine Access Point
+        self.smap.dccEnableDisable = enable_disable
+
