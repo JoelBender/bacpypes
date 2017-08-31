@@ -429,7 +429,7 @@ class ActiveCOVSubscriptions(Property):
         cov_subscriptions = SequenceOf(COVSubscription)()
 
         # loop through the object and detection list
-        for obj, cov_detection in self.cov_detections.items():
+        for obj, cov_detection in obj._app.cov_detections.items():
             for cov in cov_detection.cov_subscriptions:
                 # calculate time remaining
                 if not cov.lifetime:
@@ -441,15 +441,20 @@ class ActiveCOVSubscriptions(Property):
                     if not time_remaining:
                         time_remaining = 1
 
-                recipient_process = RecipientProcess(
-                    recipient=Recipient(
-                        address=DeviceAddress(
-                            networkNumber=cov.client_addr.addrNet or 0,
-                            macAddress=cov.client_addr.addrAddr,
-                            ),
+                recipient = Recipient(
+                    address=DeviceAddress(
+                        networkNumber=cov.client_addr.addrNet or 0,
+                        macAddress=cov.client_addr.addrAddr,
                         ),
+                    )
+                if _debug: ActiveCOVSubscriptions._debug("    - recipient: %r", recipient)
+                if _debug: ActiveCOVSubscriptions._debug("    - client MAC address: %r", cov.client_addr.addrAddr)
+
+                recipient_process = RecipientProcess(
+                    recipient=recipient,
                     processIdentifier=cov.proc_id,
                     )
+                if _debug: ActiveCOVSubscriptions._debug("    - recipient_process: %r", recipient_process)
 
                 cov_subscription = COVSubscription(
                     recipient=recipient_process,
