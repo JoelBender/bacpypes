@@ -78,12 +78,6 @@ class TNetwork(StateMachineGroup):
             # add it to this group
             self.append(csm)
 
-    def __getitem__(self, n):
-        if _debug: TNetwork._debug("__getitem__ %r", n)
-
-        # return the state machine for node address <n>
-        return self.state_machines[n - 1]
-
     def run(self, time_limit=60.0):
         if _debug: TNetwork._debug("run %r", time_limit)
 
@@ -118,10 +112,11 @@ class TestVLAN(unittest.TestCase):
 
         # two element network
         tnet = TNetwork(2, "192.168.1.{}/24")
+        tnode1, tnode2 = tnet.state_machines
 
         # set the start states of both machines to success
-        tnet[1].start_state.success()
-        tnet[2].start_state.success()
+        tnode1.start_state.success()
+        tnode2.start_state.success()
 
         # run the group
         tnet.run()
@@ -133,6 +128,7 @@ class TestVLAN(unittest.TestCase):
 
         # two element network
         tnet = TNetwork(2, "192.168.2.{}/24")
+        tnode1, tnode2 = tnet.state_machines
 
         # make a PDU from node 1 to node 2
         pdu = PDU(b'data',
@@ -142,8 +138,8 @@ class TestVLAN(unittest.TestCase):
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, mode 2 gets it
-        tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
+        tnode1.start_state.send(pdu).success()
+        tnode2.start_state.receive(ZPDU(
             pduSource=('192.168.2.1', 47808),
             )).success()
 
@@ -158,6 +154,7 @@ class TestVLAN(unittest.TestCase):
 
         # three element network
         tnet = TNetwork(3, "192.168.3.{}/24")
+        tnode1, tnode2, tnode3 = tnet.state_machines
 
         # make a broadcast PDU
         pdu = PDU(b'data',
@@ -167,11 +164,11 @@ class TestVLAN(unittest.TestCase):
         if _debug: TestVLAN._debug("    - pdu: %r", pdu)
 
         # node 1 sends the pdu, node 2 and 3 each get it
-        tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
+        tnode1.start_state.send(pdu).success()
+        tnode2.start_state.receive(ZPDU(
             pduSource=('192.168.3.1', 47808),
             )).success()
-        tnet[3].start_state.receive(ZPDU(
+        tnode3.start_state.receive(ZPDU(
             pduSource=('192.168.3.1', 47808)
             )).success()
 
@@ -184,8 +181,9 @@ class TestVLAN(unittest.TestCase):
         """
         if _debug: TestVLAN._debug("test_spoof_fail")
 
-        # two element network
+        # one element network
         tnet = TNetwork(1, "192.168.4.{}/24")
+        tnode1, = tnet.state_machines
 
         # make a unicast PDU with the wrong source
         pdu = PDU(b'data',
@@ -194,7 +192,7 @@ class TestVLAN(unittest.TestCase):
             )
 
         # the node sends the pdu and would be a success but...
-        tnet[1].start_state.send(pdu).success()
+        tnode1.start_state.send(pdu).success()
 
         # when the node attempts to send it raises an error
         with self.assertRaises(RuntimeError):
@@ -208,6 +206,7 @@ class TestVLAN(unittest.TestCase):
 
         # one node network
         tnet = TNetwork(1, "192.168.5.{}/24")
+        tnode1, = tnet.state_machines
 
         # reach into the network and enable spoofing for the node
         tnet.vlan.nodes[0].spoofing = True
@@ -219,7 +218,7 @@ class TestVLAN(unittest.TestCase):
             )
 
         # node 1 sends the pdu, but gets it back as if it was from node 3
-        tnet[1].start_state.send(pdu).receive(ZPDU(
+        tnode1.start_state.send(pdu).receive(ZPDU(
             pduSource=('192.168.5.3', 47808),
             )).success()
 
@@ -235,6 +234,7 @@ class TestVLAN(unittest.TestCase):
 
         # three element network
         tnet = TNetwork(3, "192.168.6.{}/24")
+        tnode1, tnode2, tnode3 = tnet.state_machines
 
         # reach into the network and enable promiscuous mode
         tnet.vlan.nodes[2].promiscuous = True
@@ -246,11 +246,11 @@ class TestVLAN(unittest.TestCase):
             )
 
         # node 1 sends the pdu to node 2, node 3 also gets a copy
-        tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
+        tnode1.start_state.send(pdu).success()
+        tnode2.start_state.receive(ZPDU(
             pduSource=('192.168.6.1', 47808),
             )).success()
-        tnet[3].start_state.receive(ZPDU(
+        tnode3.start_state.receive(ZPDU(
             pduDestination=('192.168.6.2', 47808),
             )).success()
 
@@ -262,6 +262,7 @@ class TestVLAN(unittest.TestCase):
 
         # three element network
         tnet = TNetwork(3, "192.168.7.{}/24")
+        tnode1, tnode2, tnode3 = tnet.state_machines
 
         # make a PDU from node 1 to node 2
         pdu = PDU(b'data',
@@ -270,13 +271,13 @@ class TestVLAN(unittest.TestCase):
             )
 
         # node 1 sends the pdu to node 2, node 3 waits and gets nothing
-        tnet[1].start_state.send(pdu).success()
-        tnet[2].start_state.receive(ZPDU(
+        tnode1.start_state.send(pdu).success()
+        tnode2.start_state.receive(ZPDU(
             pduSource=('192.168.7.1', 47808),
             )).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
-        tnet[3].start_state.timeout(1).success()
+        tnode3.start_state.timeout(1).success()
 
         # run the group
         tnet.run()
