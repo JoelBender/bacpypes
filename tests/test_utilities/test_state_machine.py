@@ -19,36 +19,17 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
-class TSMachine(TrappedStateMachine, StateMachine):
-
-    """
-    This class supplements the trapped state machine with additional functions
-    to help with testing and creates trapped states by default.
-    """
+class TPDU:
 
     def __init__(self, **kwargs):
-        """Initialize a trapped state machine."""
+        if _debug: TPDU._debug("__init__ %r", kwargs)
 
-        # provide a default state subclass
-        if 'state_subclass' not in kwargs:
-            kwargs['state_subclass'] = TrappedState
+        self.__dict__.update(kwargs)
 
-        # pass them all along
-        super(TSMachine, self).__init__(**kwargs)
-
-    def send(self, pdu):
-        """Called to send a PDU."""
-        if _debug: TSMachine._debug("send %r", pdu)
-
-        # keep a copy
-        self.sent = pdu
-
-    def match_pdu(self, pdu, transition_pdu):
-        """Very strong match condition."""
-        if _debug: TSMachine._debug("match_pdu %r %r", pdu, transition_pdu)
-
-        # must be identical objects
-        return pdu is transition_pdu
+    def __repr__(self):
+        return '<TPDU {}>'.format(', '.join(
+            '{}={}'.format(k, v) for k,v in self.__dict__.items(),
+            ))
 
 
 @bacpypes_debugging
@@ -62,6 +43,7 @@ class TestState(unittest.TestCase):
         ns = ts.doc("test state")
         assert ts.doc_string == "test state"
         assert ns is ts
+        if _debug: TestState._debug("    - passed")
 
     def test_state_success(self):
         if _debug: TestState._debug("test_state_success")
@@ -76,6 +58,7 @@ class TestState(unittest.TestCase):
             ts.success()
         with self.assertRaises(RuntimeError):
             ts.fail()
+        if _debug: TestState._debug("    - passed")
 
     def test_state_fail(self):
         if _debug: TestState._debug("test_state_fail")
@@ -90,9 +73,11 @@ class TestState(unittest.TestCase):
             ts.success()
         with self.assertRaises(RuntimeError):
             ts.fail()
+        if _debug: TestState._debug("    - passed")
 
     def test_something_else(self):
         if _debug: TestState._debug("test_something_else")
+        if _debug: TestState._debug("    - passed")
 
 
 @bacpypes_debugging
@@ -110,12 +95,13 @@ class TestStateMachine(unittest.TestCase):
         # check for still running in the start state
         assert tsm.running
         assert tsm.current_state is tsm.start_state
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_success(self):
         if _debug: TestStateMachine._debug("test_state_machine_success")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
         assert isinstance(tsm.start_state, TrappedState)
 
         # make the start state a success
@@ -127,12 +113,13 @@ class TestStateMachine(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_fail(self):
         if _debug: TestStateMachine._debug("test_state_machine_fail")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
         assert isinstance(tsm.start_state, TrappedState)
 
         # make the start state a fail
@@ -144,15 +131,16 @@ class TestStateMachine(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_fail_state
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_send(self):
         if _debug: TestStateMachine._debug("test_state_machine_send")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make pdu object
-        pdu = object()
+        pdu = TPDU()
 
         # make a send transition from start to success, run the machine
         tsm.start_state.send(pdu).success()
@@ -174,18 +162,19 @@ class TestStateMachine(unittest.TestCase):
         # check the transaction log
         assert len(tsm.transaction_log) == 1
         assert tsm.transaction_log[0][1] is pdu
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_receive(self):
         if _debug: TestStateMachine._debug("test_state_machine_receive")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make pdu object
-        pdu = object()
+        pdu = TPDU()
 
         # make a receive transition from start to success, run the machine
-        tsm.start_state.receive(pdu).success()
+        tsm.start_state.receive(TPDU).success()
         tsm.run()
 
         # check for still running
@@ -207,19 +196,20 @@ class TestStateMachine(unittest.TestCase):
         # check the transaction log
         assert len(tsm.transaction_log) == 1
         assert tsm.transaction_log[0][1] is pdu
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_unexpected(self):
         if _debug: TestStateMachine._debug("test_state_machine_unexpected")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make pdu object
-        good_pdu = object()
-        bad_pdu = object()
+        good_pdu = TPDU(a=1)
+        bad_pdu = TPDU(b=2)
 
         # make a receive transition from start to success, run the machine
-        tsm.start_state.receive(good_pdu).success()
+        tsm.start_state.receive(TPDU, a=1).success()
         tsm.run()
 
         # check for still running
@@ -239,21 +229,24 @@ class TestStateMachine(unittest.TestCase):
         # check the transaction log
         assert len(tsm.transaction_log) == 1
         assert tsm.transaction_log[0][1] is bad_pdu
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_loop_01(self):
         if _debug: TestStateMachine._debug("test_state_machine_loop_01")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make pdu object
-        first_pdu = object()
-        second_pdu = object()
+        first_pdu = TPDU(a=1)
+        if _debug: TestStateMachine._debug("    - first_pdu: %r", first_pdu)
+        second_pdu = TPDU(a=2)
+        if _debug: TestStateMachine._debug("    - second_pdu: %r", second_pdu)
 
         # after sending the first pdu, wait for the second
         s0 = tsm.start_state
         s1 = s0.send(first_pdu)
-        s2 = s1.receive(second_pdu)
+        s2 = s1.receive(TPDU, a=2)
         s2.success()
 
         # run the machine
@@ -262,6 +255,7 @@ class TestStateMachine(unittest.TestCase):
         # check for still running and waiting
         assert tsm.running
         assert tsm.current_state is s1
+        if _debug: TestStateMachine._debug("    - still running and waiting")
 
         # give the machine the second pdu
         tsm.receive(second_pdu)
@@ -269,31 +263,34 @@ class TestStateMachine(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        if _debug: TestStateMachine._debug("    - success")
 
         # check the callbacks
         assert s0.before_send_pdu is first_pdu
         assert s0.after_send_pdu is first_pdu
         assert s1.before_receive_pdu is second_pdu
         assert s1.after_receive_pdu is second_pdu
+        if _debug: TestStateMachine._debug("    - callbacks passed")
 
         # check the transaction log
         assert len(tsm.transaction_log) == 2
         assert tsm.transaction_log[0][1] is first_pdu
         assert tsm.transaction_log[1][1] is second_pdu
+        if _debug: TestStateMachine._debug("    - transaction log passed")
 
     def test_state_machine_loop_02(self):
         if _debug: TestStateMachine._debug("test_state_machine_loop_02")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make pdu object
-        first_pdu = object()
-        second_pdu = object()
+        first_pdu = TPDU(a=1)
+        second_pdu = TPDU(a=2)
 
         # when the first pdu is received, send the second
         s0 = tsm.start_state
-        s1 = s0.receive(first_pdu)
+        s1 = s0.receive(TPDU, a=1)
         s2 = s1.send(second_pdu)
         s2.success()
 
@@ -302,6 +299,7 @@ class TestStateMachine(unittest.TestCase):
 
         # check for still running
         assert tsm.running
+        if _debug: TestStateMachine._debug("    - still running")
 
         # give the machine the first pdu
         tsm.receive(first_pdu)
@@ -309,17 +307,20 @@ class TestStateMachine(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        if _debug: TestStateMachine._debug("    - success")
 
         # check the callbacks
         assert s0.before_receive_pdu is first_pdu
         assert s0.after_receive_pdu is first_pdu
         assert s1.before_send_pdu is second_pdu
         assert s1.after_send_pdu is second_pdu
+        if _debug: TestStateMachine._debug("    - callbacks passed")
 
         # check the transaction log
         assert len(tsm.transaction_log) == 2
         assert tsm.transaction_log[0][1] is first_pdu
         assert tsm.transaction_log[1][1] is second_pdu
+        if _debug: TestStateMachine._debug("    - transaction log passed")
 
 
 @bacpypes_debugging
@@ -329,7 +330,7 @@ class TestStateMachineTimeout1(unittest.TestCase):
         if _debug: TestStateMachineTimeout1._debug("test_state_machine_timeout_1")
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
 
         # make a timeout transition from start to success
         tsm.start_state.timeout(1.0).success()
@@ -345,6 +346,7 @@ class TestStateMachineTimeout1(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        if _debug: TestStateMachine._debug("    - passed")
 
 
 @bacpypes_debugging
@@ -354,11 +356,11 @@ class TestStateMachineTimeout2(unittest.TestCase):
         if _debug: TestStateMachineTimeout2._debug("test_state_machine_timeout_2")
 
         # make some pdu's
-        first_pdu = object()
-        second_pdu = object()
+        first_pdu = TPDU(a=1)
+        second_pdu = TPDU(a=2)
 
         # create a trapped state machine
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
         s0 = tsm.start_state
 
         # send something, wait, send something, wait, success
@@ -383,6 +385,7 @@ class TestStateMachineTimeout2(unittest.TestCase):
         assert len(tsm.transaction_log) == 2
         assert tsm.transaction_log[0][1] is first_pdu
         assert tsm.transaction_log[1][1] is second_pdu
+        if _debug: TestStateMachine._debug("    - passed")
 
 
 @bacpypes_debugging
@@ -395,7 +398,7 @@ class TestStateMachineGroup(unittest.TestCase):
         smg = StateMachineGroup()
 
         # create a trapped state machine, start state is success
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
         tsm.start_state.success()
 
         # add it to the group
@@ -414,6 +417,7 @@ class TestStateMachineGroup(unittest.TestCase):
         assert not tsm.running
         assert tsm.current_state.is_success_state
         assert smg.is_success_state
+        if _debug: TestStateMachine._debug("    - passed")
 
     def test_state_machine_group_fail(self):
         if _debug: TestStateMachineGroup._debug("test_state_machine_group_fail")
@@ -422,7 +426,7 @@ class TestStateMachineGroup(unittest.TestCase):
         smg = StateMachineGroup()
 
         # create a trapped state machine, start state is fail
-        tsm = TSMachine()
+        tsm = TrappedStateMachine()
         tsm.start_state.fail()
 
         # add it to the group
@@ -441,3 +445,5 @@ class TestStateMachineGroup(unittest.TestCase):
         assert not tsm.running
         assert tsm.current_state.is_fail_state
         assert smg.is_fail_state
+        if _debug: TestStateMachine._debug("    - passed")
+

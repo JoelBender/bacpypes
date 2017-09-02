@@ -45,10 +45,10 @@ class SendTransition(Transition):
 
 class ReceiveTransition(Transition):
 
-    def __init__(self, pdu, next_state):
+    def __init__(self, criteria, next_state):
         Transition.__init__(self, next_state)
 
-        self.pdu = pdu
+        self.criteria = criteria
 
 
 class TimeoutTransition(Transition):
@@ -215,14 +215,26 @@ class State(object):
         """Called after each PDU sent."""
         self.state_machine.after_send(pdu)
 
-    def receive(self, pdu, next_state=None):
+    def receive(self, pdu_type, **pdu_attrs):
         """Create a ReceiveTransition from this state to another, possibly new,
         state.  The next state is returned for method chaining.
 
-        :param pdu: PDU to match
+        :param criteria: PDU to match
         :param next_state: destination state after a successful match
+
+        Simulate the function as if it was defined in Python3.5+ like this:
+            def receive(self, *pdu_type, next_state=None, **pdu_attrs)
         """
-        if _debug: State._debug("receive(%s) %r next_state=%r", self.doc_string, pdu, next_state)
+        if _debug: State._debug("receive(%s) %r %r", self.doc_string, pdu_type, pdu_attrs)
+
+        # extract the next_state keyword argument
+        if 'next_state' in pdu_attrs:
+            next_state = pdu_attrs['next_state']
+            if _debug: State._debug("    - next_state: %r", next_state)
+
+            del pdu_attrs['next_state']
+        else:
+            next_state = None
 
         # maybe build a new state
         if not next_state:
@@ -231,8 +243,12 @@ class State(object):
         elif next_state not in self.state_machine.states:
             raise ValueError("off the rails")
 
+        # create a bundle of the match criteria
+        criteria = (pdu_type, pdu_attrs)
+        if _debug: State._debug("    - criteria: %r", criteria)
+
         # add this to the list of transitions
-        self.receive_transitions.append(ReceiveTransition(pdu, next_state))
+        self.receive_transitions.append(ReceiveTransition(criteria, next_state))
 
         # return the next state
         return next_state
@@ -590,7 +606,7 @@ class StateMachine(object):
 
         # look for a matching receive transition
         for transition in current_state.receive_transitions:
-            if self.match_pdu(pdu, transition.pdu):
+            if self.match_pdu(pdu, transition.criteria):
                 if _debug: StateMachine._debug("    - match found")
                 match_found = True
 
@@ -647,13 +663,28 @@ class StateMachine(object):
         # go to the state specified
         self.goto_state(self.timeout_state)
 
-    def match_pdu(self, pdu, transition_pdu):
-        if _debug: StateMachine._debug("match_pdu %r %r", pdu, transition_pdu)
+    def match_pdu(self, pdu, criteria):
+        if _debug: StateMachine._debug("match_pdu %r %r", pdu, criteria)
 
-        successful_match = (pdu == transition_pdu)
-        if _debug: StateMachine._debug("    - successful_match: %r", successful_match)
+        # separate the pdu_type and attributes to match
+        pdu_type, pdu_attrs = criteria
 
-        return successful_match
+        # check the type
+        if pdu_type and not isinstance(pdu, pdu_type):
+            if _debug: StateMachine._debug("    - wrong type")
+            return False
+
+        # check for matching attribute values
+        for attr_name, attr_value in pdu_attrs.items():
+            if not hasattr(pdu, attr_name):
+                if _debug: StateMachine._debug("    - missing attr: %r", attr_name)
+                return False
+            if getattr(pdu, attr_name) != attr_value:
+                if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
+                return False
+        if _debug: StateMachine._debug("    - successful_match")
+
+        return True
 
     def __repr__(self):
         if not self.running:

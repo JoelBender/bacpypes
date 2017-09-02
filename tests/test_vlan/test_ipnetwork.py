@@ -27,37 +27,6 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
-class ZPDU():
-
-    def __init__(self, cls=None, **kwargs):
-        if _debug: ZPDU._debug("__init__ %r %r", cls, kwargs)
-
-        self.cls = cls
-        self.kwargs = kwargs
-
-    def __eq__(self, pdu):
-        if _debug: ZPDU._debug("__eq__ %r", pdu)
-
-        # match the object type if it was provided
-        if self.cls is not None:
-            if not isinstance(pdu, self.cls):
-                if _debug: ZPDU._debug("    - wrong class")
-                return False
-
-        # match the attribute names and values
-        for k, v in self.kwargs.items():
-            if not hasattr(pdu, k):
-                if _debug: ZPDU._debug("    - missing attribute: %r", k)
-                return False
-            if getattr(pdu, k) != v:
-                if _debug: ZPDU._debug("    - %s value: %r", k, v)
-                return False
-
-        # nothing failed
-        return True
-
-
-@bacpypes_debugging
 class TNetwork(StateMachineGroup):
 
     def __init__(self, node_count, address_pattern):
@@ -139,9 +108,9 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu, mode 2 gets it
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(
+        tnode2.start_state.receive(PDU,
             pduSource=('192.168.2.1', 47808),
-            )).success()
+            ).success()
 
         # run the group
         tnet.run()
@@ -165,12 +134,12 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu, node 2 and 3 each get it
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(
+        tnode2.start_state.receive(PDU,
             pduSource=('192.168.3.1', 47808),
-            )).success()
-        tnode3.start_state.receive(ZPDU(
+            ).success()
+        tnode3.start_state.receive(PDU,
             pduSource=('192.168.3.1', 47808)
-            )).success()
+            ).success()
 
         # run the group
         tnet.run()
@@ -218,9 +187,9 @@ class TestVLAN(unittest.TestCase):
             )
 
         # node 1 sends the pdu, but gets it back as if it was from node 3
-        tnode1.start_state.send(pdu).receive(ZPDU(
+        tnode1.start_state.send(pdu).receive(PDU,
             pduSource=('192.168.5.3', 47808),
-            )).success()
+            ).success()
 
         # run the group
         tnet.run()
@@ -247,12 +216,12 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu to node 2, node 3 also gets a copy
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(
+        tnode2.start_state.receive(PDU,
             pduSource=('192.168.6.1', 47808),
-            )).success()
-        tnode3.start_state.receive(ZPDU(
+            ).success()
+        tnode3.start_state.receive(PDU,
             pduDestination=('192.168.6.2', 47808),
-            )).success()
+            ).success()
 
         # run the group
         tnet.run()
@@ -272,9 +241,9 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu to node 2, node 3 waits and gets nothing
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(
+        tnode2.start_state.receive(PDU,
             pduSource=('192.168.7.1', 47808),
-            )).success()
+            ).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
         tnode3.start_state.timeout(1).success()
@@ -369,9 +338,9 @@ class TestRouter(unittest.TestCase):
 
         # node 1 sends the pdu, mode 2 gets it
         csm_10_2.start_state.send(pdu).success()
-        csm_20_3.start_state.receive(ZPDU(
+        csm_20_3.start_state.receive(PDU,
             pduSource=('192.168.10.2', 47808),
-            )).success()
+            ).success()
 
         # other nodes get nothing
         csm_10_3.start_state.timeout(1).success()
@@ -396,10 +365,10 @@ class TestRouter(unittest.TestCase):
         # node 10-2 sends the pdu, node 10-3 gets nothing, nodes 20-2 and 20-3 get it
         csm_10_2.start_state.send(pdu).success()
         csm_10_3.start_state.timeout(1).success()
-        csm_20_2.start_state.receive(ZPDU(
+        csm_20_2.start_state.receive(PDU,
             pduSource=('192.168.10.2', 47808),
-            )).success()
-        csm_20_3.start_state.receive(ZPDU(
+            ).success()
+        csm_20_3.start_state.receive(PDU,
             pduSource=('192.168.10.2', 47808),
-            )).success()
+            ).success()
 

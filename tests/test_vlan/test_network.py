@@ -26,37 +26,6 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
-class ZPDU():
-
-    def __init__(self, cls=None, **kwargs):
-        if _debug: ZPDU._debug("__init__ %r %r", cls, kwargs)
-
-        self.cls = cls
-        self.kwargs = kwargs
-
-    def __eq__(self, pdu):
-        if _debug: ZPDU._debug("__eq__ %r", pdu)
-
-        # match the object type if it was provided
-        if self.cls is not None:
-            if not isinstance(pdu, self.cls):
-                if _debug: ZPDU._debug("    - wrong class")
-                return False
-
-        # match the attribute names and values
-        for k, v in self.kwargs.items():
-            if not hasattr(pdu, k):
-                if _debug: ZPDU._debug("    - missing attribute: %r", k)
-                return False
-            if getattr(pdu, k) != v:
-                if _debug: ZPDU._debug("    - %s value: %r", k, v)
-                return False
-
-        # nothing failed
-        return True
-
-
-@bacpypes_debugging
 class TNetwork(StateMachineGroup):
 
     def __init__(self, node_count):
@@ -133,7 +102,7 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu, mode 2 gets it
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(pduSource=1)).success()
+        tnode2.start_state.receive(PDU, pduSource=1).success()
 
         # run the group
         tnet.run()
@@ -154,8 +123,8 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu, node 2 and 3 each get it
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(pduSource=1)).success()
-        tnode3.start_state.receive(ZPDU(pduSource=1)).success()
+        tnode2.start_state.receive(PDU, pduSource=1).success()
+        tnode3.start_state.receive(PDU, pduSource=1).success()
 
         # run the group
         tnet.run()
@@ -197,7 +166,7 @@ class TestVLAN(unittest.TestCase):
         pdu = PDU(b'data', source=3, destination=1)
 
         # node 1 sends the pdu, but gets it back as if it was from node 3
-        tnode1.start_state.send(pdu).receive(ZPDU(pduSource=3)).success()
+        tnode1.start_state.send(pdu).receive(PDU, pduSource=3).success()
 
         # run the group
         tnet.run()
@@ -221,8 +190,8 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu to node 2, node 3 also gets a copy
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(pduSource=1)).success()
-        tnode3.start_state.receive(ZPDU(pduDestination=2)).success()
+        tnode2.start_state.receive(PDU, pduSource=1).success()
+        tnode3.start_state.receive(PDU, pduDestination=2).success()
 
         # run the group
         tnet.run()
@@ -239,7 +208,7 @@ class TestVLAN(unittest.TestCase):
 
         # node 1 sends the pdu to node 2, node 3 waits and gets nothing
         tnode1.start_state.send(pdu).success()
-        tnode2.start_state.receive(ZPDU(pduSource=1)).success()
+        tnode2.start_state.receive(PDU, pduSource=1).success()
 
         # if node 3 receives anything it will trigger unexpected receive and fail
         tnode3.start_state.timeout(0.5).success()
