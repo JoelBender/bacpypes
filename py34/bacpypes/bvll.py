@@ -221,7 +221,7 @@ class WriteBroadcastDistributionTable(BVLPDU):
         BVLCI.update(bvlpdu, self)
         for bdte in self.bvlciBDT:
             bvlpdu.put_data( bdte.addrAddr )
-            bvlpdu.put_data( bdte.addrMask )
+            bvlpdu.put_long( bdte.addrMask )
 
     def decode(self, bvlpdu):
         BVLCI.update(self, bvlpdu)
