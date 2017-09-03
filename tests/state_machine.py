@@ -59,6 +59,36 @@ class TimeoutTransition(Transition):
         self.timeout = timeout
 
 
+#
+#   match_pdu
+#
+
+@bacpypes_debugging
+def match_pdu(pdu, pdu_type=None, **pdu_attrs):
+    if _debug: match_pdu._debug("match_pdu %r %r %r", pdu, pdu_type, pdu_attrs)
+
+    # check the type
+    if pdu_type and not isinstance(pdu, pdu_type):
+        if _debug: match_pdu._debug("    - wrong type")
+        return False
+
+    # check for matching attribute values
+    for attr_name, attr_value in pdu_attrs.items():
+        if not hasattr(pdu, attr_name):
+            if _debug: match_pdu._debug("    - missing attr: %r", attr_name)
+            return False
+        if getattr(pdu, attr_name) != attr_value:
+            if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
+            return False
+    if _debug: match_pdu._debug("    - successful_match")
+
+    return True
+
+
+#
+#   State
+#
+
 @bacpypes_debugging
 class State(object):
 
@@ -669,22 +699,8 @@ class StateMachine(object):
         # separate the pdu_type and attributes to match
         pdu_type, pdu_attrs = criteria
 
-        # check the type
-        if pdu_type and not isinstance(pdu, pdu_type):
-            if _debug: StateMachine._debug("    - wrong type")
-            return False
-
-        # check for matching attribute values
-        for attr_name, attr_value in pdu_attrs.items():
-            if not hasattr(pdu, attr_name):
-                if _debug: StateMachine._debug("    - missing attr: %r", attr_name)
-                return False
-            if getattr(pdu, attr_name) != attr_value:
-                if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
-                return False
-        if _debug: StateMachine._debug("    - successful_match")
-
-        return True
+        # pass along to the global function
+        return match_pdu(pdu, pdu_type, **pdu_attrs)
 
     def __repr__(self):
         if not self.running:

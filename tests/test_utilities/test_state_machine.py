@@ -9,7 +9,7 @@ Test Utilities State Machine
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from ..state_machine import State, StateMachine, StateMachineGroup
+from ..state_machine import State, StateMachine, StateMachineGroup, match_pdu
 from ..time_machine import reset_time_machine, run_time_machine
 from ..trapped_classes import TrappedState, TrappedStateMachine
 
@@ -30,6 +30,37 @@ class TPDU:
         return '<TPDU {}>'.format(', '.join(
             '{}={}'.format(k, v) for k,v in self.__dict__.items(),
             ))
+
+
+@bacpypes_debugging
+class TestMatchPDU(unittest.TestCase):
+
+    def test_match_pdu(self):
+        if _debug: TestMatchPDU._debug("test_match_pdu")
+
+        tpdu = TPDU(x=1)
+        Anon = type('Anon', (), {})
+        anon = Anon()
+
+        # no criteria passes
+        assert match_pdu(tpdu)
+        assert match_pdu(anon)
+
+        # matching/not matching types
+        assert match_pdu(tpdu, TPDU)
+        assert not match_pdu(tpdu, Anon)
+        assert match_pdu(tpdu, (TPDU, Anon))
+
+        # matching/not matching attributes
+        assert match_pdu(tpdu, x=1)
+        assert not match_pdu(tpdu, x=2)
+        assert not match_pdu(tpdu, y=1)
+        assert not match_pdu(anon, x=1)
+
+        # matching/not matching types and attributes
+        assert match_pdu(tpdu, TPDU, x=1)
+        assert not match_pdu(tpdu, TPDU, x=2)
+        assert not match_pdu(tpdu, TPDU, y=1)
 
 
 @bacpypes_debugging

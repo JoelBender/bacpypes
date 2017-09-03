@@ -20,3 +20,6 @@ from . import test_pdu
 from . import test_primitive_data
 from . import test_utilities
 from . import test_vlan
+
+from . import test_bvll
+
