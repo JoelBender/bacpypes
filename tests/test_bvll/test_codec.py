@@ -16,7 +16,10 @@ from bacpypes.pdu import PDU, Address, LocalBroadcast
 
 from bacpypes.bvll import Result, WriteBroadcastDistributionTable, \
     ReadBroadcastDistributionTable, ReadBroadcastDistributionTableAck, \
-    ForwardedNPDU, RegisterForeignDevice, ReadForeignDeviceTable
+    ForwardedNPDU, RegisterForeignDevice, ReadForeignDeviceTable, \
+    ReadForeignDeviceTableAck, FDTEntry, DeleteForeignDeviceTableEntry, \
+    DistributeBroadcastToNetwork, OriginalUnicastNPDU, \
+    OriginalBroadcastNPDU
 from bacpypes.bvllservice import AnnexJCodec
 
 from ..trapped_classes import TrappedClient, TrappedServer
@@ -184,19 +187,90 @@ class TestAnnexJCodec(unittest.TestCase):
         """Test the ReadForeignDeviceTableAck encoding and decoding."""
         if _debug: TestAnnexJCodec._debug("test_read_foreign_device_table_ack")
 
+        # read returns an empty table
+        self.request(ReadForeignDeviceTableAck([]))
+        self.indication(pduData=xxtob('81.07.0004'))
+
+        self.response(PDU(xxtob('81.07.0004')))
+        self.confirmation(ReadForeignDeviceTableAck, bvlciFDT=[])
+
+        # read returns a table with one entry
+        fdte = FDTEntry()
+        fdte.fdAddress = Address("192.168.0.10")
+        fdte.fdTTL = 30
+        fdte.fdRemain = 15
+        pdu_bytes = xxtob('81.07.000e'
+            'c0.a8.00.0a.ba.c0'
+            '001e.000f'
+            )
+
+        self.request(ReadForeignDeviceTableAck([fdte]))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
+        self.confirmation(ReadForeignDeviceTableAck, bvlciFDT=[fdte])
+
     def test_delete_foreign_device_table_entry(self):
         """Test the DeleteForeignDeviceTableEntry encoding and decoding."""
         if _debug: TestAnnexJCodec._debug("test_delete_foreign_device_table_entry")
+
+        # delete an element
+        addr = Address('192.168.0.11/24')
+        pdu_bytes = xxtob('81.08.000a'
+            'c0.a8.00.0b.ba.c0'         # address of entry to be deleted
+            )
+
+        self.request(DeleteForeignDeviceTableEntry(addr))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
+        self.confirmation(DeleteForeignDeviceTableEntry, bvlciAddress=addr)
 
     def test_distribute_broadcast_to_network(self):
         """Test the DistributeBroadcastToNetwork encoding and decoding."""
         if _debug: TestAnnexJCodec._debug("test_distribute_broadcast_to_network")
 
+        # read returns a table with an element
+        xpdu = xxtob('deadbeef')
+        pdu_bytes = xxtob('81.09.0008'
+            'deadbeef'                  # PDU to broadcast
+            )
+
+        self.request(DistributeBroadcastToNetwork(xpdu))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
+        self.confirmation(DistributeBroadcastToNetwork, pduData=xpdu)
+
     def test_original_unicast_npdu(self):
         """Test the OriginalUnicastNPDU encoding and decoding."""
         if _debug: TestAnnexJCodec._debug("test_original_unicast_npdu")
 
+        # read returns a table with an element
+        xpdu = xxtob('deadbeef')
+        pdu_bytes = xxtob('81.0a.0008'
+            'deadbeef'                  # PDU being unicast
+            )
+
+        self.request(OriginalUnicastNPDU(xpdu))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
+        self.confirmation(OriginalUnicastNPDU, pduData=xpdu)
+
     def test_original_broadcast_npdu(self):
         """Test the OriginalBroadcastNPDU encoding and decoding."""
         if _debug: TestAnnexJCodec._debug("test_original_broadcast_npdu")
+
+        # read returns a table with an element
+        xpdu = xxtob('deadbeef')
+        pdu_bytes = xxtob('81.0b.0008'
+            'deadbeef'                  # PDU being broadcast
+            )
+
+        self.request(OriginalBroadcastNPDU(xpdu))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
+        self.confirmation(OriginalBroadcastNPDU, pduData=xpdu)
 

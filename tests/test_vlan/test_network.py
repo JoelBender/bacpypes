@@ -216,3 +216,41 @@ class TestVLAN(unittest.TestCase):
         # run the group
         tnet.run()
 
+@bacpypes_debugging
+class TestVLANEvents(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        if _debug: TestVLANEvents._debug("__init__ %r %r", args, kwargs)
+        super(TestVLANEvents, self).__init__(*args, **kwargs)
+
+    def test_send_receive(self):
+        """Test that a node can send a message to another node and use
+        events to continue with the messages.
+        """
+        if _debug: TestVLAN._debug("test_send_receive")
+
+        # two element network
+        tnet = TNetwork(2)
+        tnode1, tnode2 = tnet.state_machines
+
+        # make a PDU from node 1 to node 2
+        dead_pdu = PDU(b'dead', source=1, destination=2)
+        if _debug: TestVLAN._debug("    - dead_pdu: %r", dead_pdu)
+
+        # make a PDU from node 1 to node 2
+        beef_pdu = PDU(b'beef', source=1, destination=2)
+        if _debug: TestVLAN._debug("    - beef_pdu: %r", beef_pdu)
+
+        # node 1 sends dead_pdu, waits for event, sends beef_pdu
+        tnode1.start_state \
+            .send(dead_pdu).wait_event('e') \
+            .send(beef_pdu).success()
+
+        # node 2 receives dead_pdu, sets event, waits for beef_pdu
+        tnode2.start_state \
+            .receive(PDU, pduData=b'dead').set_event('e') \
+            .receive(PDU, pduData=b'beef').success()
+
+        # run the group
+        tnet.run()
+

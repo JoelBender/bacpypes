@@ -478,3 +478,69 @@ class TestStateMachineGroup(unittest.TestCase):
         assert smg.is_fail_state
         if _debug: TestStateMachine._debug("    - passed")
 
+
+@bacpypes_debugging
+class TestStateMachineEvents(unittest.TestCase):
+
+    def test_state_machine_event_01(self):
+        if _debug: TestStateMachineEvents._debug("test_state_machine_event_01")
+
+        # create a state machine group
+        smg = StateMachineGroup()
+
+        # create a trapped state machine, start state is success
+        tsm1 = TrappedStateMachine()
+        tsm1.start_state.set_event('e').success()
+        smg.append(tsm1)
+
+        # create another trapped state machine, waiting for the event
+        tsm2 = TrappedStateMachine()
+        tsm2.start_state.wait_event('e').success()
+        smg.append(tsm2)
+
+        reset_time_machine()
+        if _debug: TestStateMachineEvents._debug("    - time machine reset")
+
+        # tell the group to run
+        smg.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineEvents._debug("    - time machine finished")
+
+        # check for success
+        assert tsm1.current_state.is_success_state
+        assert tsm2.current_state.is_success_state
+        assert smg.is_success_state
+        if _debug: TestStateMachineEvents._debug("    - passed")
+
+    def test_state_machine_event_02(self):
+        if _debug: TestStateMachineEvents._debug("test_state_machine_event_02")
+
+        # create a state machine group
+        smg = StateMachineGroup()
+
+        # create a trapped state machine, waiting for an event
+        tsm1 = TrappedStateMachine()
+        tsm1.start_state.wait_event('e').success()
+        smg.append(tsm1)
+
+        # create another trapped state machine, start state is success
+        tsm2 = TrappedStateMachine()
+        tsm2.start_state.set_event('e').success()
+        smg.append(tsm2)
+
+        reset_time_machine()
+        if _debug: TestStateMachineEvents._debug("    - time machine reset")
+
+        # tell the group to run
+        smg.run()
+
+        run_time_machine(60.0)
+        if _debug: TestStateMachineEvents._debug("    - time machine finished")
+
+        # check for success
+        assert tsm1.current_state.is_success_state
+        assert tsm2.current_state.is_success_state
+        assert smg.is_success_state
+        if _debug: TestStateMachineEvents._debug("    - passed")
+
