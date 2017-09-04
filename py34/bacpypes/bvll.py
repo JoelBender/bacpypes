@@ -398,6 +398,11 @@ class FDTEntry(DebugContents):
         self.fdTTL = None
         self.fdRemain = None
 
+    def __eq__(self, other):
+        """Return true iff entries are identical."""
+        return (self.fdAddress == other.fdAddress) and \
+            (self.fdTTL == other.fdTTL) and (self.fdRemain == other.fdRemain)
+
     def bvlpdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
         # make/extend the dictionary of content
