@@ -472,9 +472,6 @@ class ActiveCOVSubscriptions(Property):
                 # add the list
                 cov_subscriptions.append(cov_subscription)
 
-            # add the list
-            cov_subscriptions.append(cov_subscription)
-
         return cov_subscriptions
 
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None):

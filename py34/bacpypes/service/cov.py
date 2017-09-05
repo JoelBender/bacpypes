@@ -243,6 +243,7 @@ class COVDetection(DetectionAlgorithm):
             "(" + ','.join(self.properties_tracked) + ')' + \
             ">"
 
+
 class GenericCriteria(COVDetection):
 
     properties_tracked = (

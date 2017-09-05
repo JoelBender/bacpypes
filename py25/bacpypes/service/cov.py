@@ -304,7 +304,8 @@ class COVIncrementCriteria(COVDetection):
         # continue
         COVDetection.send_cov_notifications(self)
 
-bacpypes_debugging(COVDetection)
+bacpypes_debugging(COVIncrementCriteria)
+
 
 class AccessDoorCriteria(COVDetection):
 
@@ -318,6 +319,7 @@ class AccessDoorCriteria(COVDetection):
         'statusFlags',
         'doorAlarmState',
         )
+
 
 class AccessPointCriteria(COVDetection):
 
@@ -335,6 +337,7 @@ class AccessPointCriteria(COVDetection):
         )
     monitored_property_reference = 'accessEvent'
 
+
 class CredentialDataInputCriteria(COVDetection):
 
     properties_tracked = (
@@ -346,6 +349,7 @@ class CredentialDataInputCriteria(COVDetection):
         'statusFlags',
         'updateTime',
         )
+
 
 class LoadControlCriteria(COVDetection):
 
@@ -366,6 +370,7 @@ class LoadControlCriteria(COVDetection):
         'dutyWindow',
         )
 
+
 class PulseConverterCriteria(COVDetection):
 
     properties_tracked = (
@@ -376,6 +381,7 @@ class PulseConverterCriteria(COVDetection):
         'presentValue',
         'statusFlags',
         )
+
 
 # mapping from object type to appropriate criteria class
 criteria_type_map = {
@@ -481,6 +487,7 @@ class ActiveCOVSubscriptions(Property):
 
 bacpypes_debugging(ActiveCOVSubscriptions)
 
+
 #
 #   ChangeOfValueServices
 #
@@ -490,9 +497,6 @@ class ChangeOfValueServices(Capability):
     def __init__(self):
         if _debug: ChangeOfValueServices._debug("__init__")
         Capability.__init__(self)
-
-        # list of active subscriptions
-        self.active_cov_subscriptions = []
 
         # map from an object to its detection algorithm
         self.cov_detections = {}
@@ -648,3 +652,4 @@ class ChangeOfValueServices(Capability):
         self.response(response)
 
 bacpypes_debugging(ChangeOfValueServices)
+
