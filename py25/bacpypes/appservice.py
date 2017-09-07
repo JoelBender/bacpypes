@@ -1474,7 +1474,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
-            except Exception,err:
+            except Exception, err:
                 ApplicationServiceAccessPoint._exception("error PDU decoding error: %r", err)
                 xpdu = Error(errorClass=0, errorCode=0)
 

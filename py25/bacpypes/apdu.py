@@ -1495,7 +1495,7 @@ class DeviceCommunicationControlRequestEnableDisable(Enumerated):
     enumerations = \
         { 'enable':0
         , 'disable':1
-        , 'defaultInitiation':2
+        , 'disableInitiation':2
         }
 
 class DeviceCommunicationControlRequest(ConfirmedRequestSequence):
