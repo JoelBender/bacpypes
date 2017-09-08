@@ -6,6 +6,7 @@ Test Primitive Data Unsigned
 ----------------------------
 """
 
+import sys
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
@@ -78,6 +79,16 @@ class TestUnsigned(unittest.TestCase):
         obj = Unsigned()
         assert obj.value == 0
 
+        assert Unsigned.is_valid(1)
+        assert not Unsigned.is_valid(-1)
+        if sys.version[0] == 2:
+            assert Unsigned.is_valid(long(1))
+            assert not Unsigned.is_valid(long(-1))
+
+        assert not Unsigned.is_valid(True)
+        assert not Unsigned.is_valid(-1)
+        assert not Unsigned.is_valid(1.0)
+
         with self.assertRaises(TypeError):
             Unsigned("some string")
         with self.assertRaises(TypeError):
@@ -139,3 +150,4 @@ class TestUnsigned(unittest.TestCase):
 
         unsigned_endec(2147483647, '7fffffff')
         unsigned_endec(2147483648, '80000000')
+

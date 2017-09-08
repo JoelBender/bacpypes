@@ -622,7 +622,7 @@ class Unsigned(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        return isinstance(arg, (int, long)) and (arg >= 0)
+        return isinstance(arg, (int, long)) and (not isinstance(arg, bool)) and (arg >= 0)
 
     def __str__(self):
         return "Unsigned(%s)" % (self.value, )
@@ -697,7 +697,7 @@ class Integer(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        return isinstance(arg, (int, long))
+        return isinstance(arg, (int, long)) and (not isinstance(arg, bool))
 
     def __str__(self):
         return "Integer(%s)" % (self.value, )
