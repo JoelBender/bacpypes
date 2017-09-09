@@ -83,7 +83,7 @@ _identLock = threading.Lock()
 @bacpypes_debugging
 class IOCB(DebugContents):
 
-    _debugContents = \
+    _debug_contents = \
         ( 'args', 'kwargs'
         , 'ioState', 'ioResponse-', 'ioError'
         , 'ioController', 'ioServerRef', 'ioControllerRef', 'ioClientID', 'ioClientAddr'
