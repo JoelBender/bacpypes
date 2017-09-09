@@ -196,6 +196,9 @@ def read_property_to_result_element(obj, propertyIdentifier, propertyArrayIndex=
     read_result = ReadAccessResultElementChoice()
 
     try:
+        if not obj:
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
+
         read_result.propertyValue = read_property_to_any(obj, propertyIdentifier, propertyArrayIndex)
         if _debug: read_property_to_result_element._debug("    - success")
     except PropertyError as error:
@@ -250,12 +253,6 @@ class ReadWritePropertyMultipleServices(Capability):
             obj = self.get_object_id(objectIdentifier)
             if _debug: ReadWritePropertyMultipleServices._debug("    - object: %r", obj)
 
-            # make sure it exists
-            if not obj:
-                resp = Error(errorClass='object', errorCode='unknownObject', context=apdu)
-                if _debug: ReadWritePropertyMultipleServices._debug("    - unknown object error: %r", resp)
-                break
-
             # build a list of result elements
             read_access_result_element_list = []
 
@@ -271,28 +268,43 @@ class ReadWritePropertyMultipleServices(Capability):
 
                 # check for special property identifiers
                 if propertyIdentifier in ('all', 'required', 'optional'):
-                    for propId, prop in obj._properties.items():
-                        if _debug: ReadWritePropertyMultipleServices._debug("    - checking: %r %r", propId, prop.optional)
+                    if not obj:
+                        # build a property access error
+                        read_result = ReadAccessResultElementChoice()
+                        read_result.propertyAccessError = ErrorType(errorClass='object', errorCode='unknownObject')
 
-                        if (propertyIdentifier == 'all'):
-                            pass
-                        elif (propertyIdentifier == 'required') and (prop.optional):
-                            if _debug: ReadWritePropertyMultipleServices._debug("    - not a required property")
-                            continue
-                        elif (propertyIdentifier == 'optional') and (not prop.optional):
-                            if _debug: ReadWritePropertyMultipleServices._debug("    - not an optional property")
-                            continue
-
-                        # read the specific property
-                        read_access_result_element = read_property_to_result_element(obj, propId, propertyArrayIndex)
-
-                        # check for undefined property
-                        if read_access_result_element.readResult.propertyAccessError \
-                            and read_access_result_element.readResult.propertyAccessError.errorCode == 'unknownProperty':
-                            continue
+                        # make an element for this error
+                        read_access_result_element = ReadAccessResultElement(
+                            propertyIdentifier=propertyIdentifier,
+                            propertyArrayIndex=propertyArrayIndex,
+                            readResult=read_result,
+                            )
 
                         # add it to the list
                         read_access_result_element_list.append(read_access_result_element)
+                    else:
+                        for propId, prop in obj._properties.items():
+                            if _debug: ReadWritePropertyMultipleServices._debug("    - checking: %r %r", propId, prop.optional)
+
+                            if (propertyIdentifier == 'all'):
+                                pass
+                            elif (propertyIdentifier == 'required') and (prop.optional):
+                                if _debug: ReadWritePropertyMultipleServices._debug("    - not a required property")
+                                continue
+                            elif (propertyIdentifier == 'optional') and (not prop.optional):
+                                if _debug: ReadWritePropertyMultipleServices._debug("    - not an optional property")
+                                continue
+
+                            # read the specific property
+                            read_access_result_element = read_property_to_result_element(obj, propId, propertyArrayIndex)
+
+                            # check for undefined property
+                            if read_access_result_element.readResult.propertyAccessError \
+                                and read_access_result_element.readResult.propertyAccessError.errorCode == 'unknownProperty':
+                                continue
+
+                            # add it to the list
+                            read_access_result_element_list.append(read_access_result_element)
 
                 else:
                     # read the specific property
