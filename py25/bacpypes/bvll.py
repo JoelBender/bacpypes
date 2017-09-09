@@ -224,7 +224,7 @@ class WriteBroadcastDistributionTable(BVLPDU):
         BVLCI.update(bvlpdu, self)
         for bdte in self.bvlciBDT:
             bvlpdu.put_data( bdte.addrAddr )
-            bvlpdu.put_data( bdte.addrMask )
+            bvlpdu.put_long( bdte.addrMask )
 
     def decode(self, bvlpdu):
         BVLCI.update(self, bvlpdu)
@@ -400,6 +400,11 @@ class FDTEntry(DebugContents):
         self.fdAddress = None
         self.fdTTL = None
         self.fdRemain = None
+
+    def __eq__(self, other):
+        """Return true iff entries are identical."""
+        return (self.fdAddress == other.fdAddress) and \
+            (self.fdTTL == other.fdTTL) and (self.fdRemain == other.fdRemain)
 
     def bvlpdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""

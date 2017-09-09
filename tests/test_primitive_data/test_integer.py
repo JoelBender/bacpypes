@@ -6,6 +6,7 @@ Test Primitive Data Integer
 ---------------------------
 """
 
+import sys
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
@@ -78,6 +79,15 @@ class TestInteger(unittest.TestCase):
         obj = Integer()
         assert obj.value == 0
 
+        assert Integer.is_valid(1)
+        assert Integer.is_valid(-1)
+        if sys.version[0] == 2:
+            assert Integer.is_valid(long(1))
+            assert Integer.is_valid(long(-1))
+
+        assert not Integer.is_valid(True)
+        assert not Integer.is_valid(1.0)
+
         with self.assertRaises(TypeError):
             Integer("some string")
         with self.assertRaises(TypeError):
@@ -140,3 +150,4 @@ class TestInteger(unittest.TestCase):
 
         integer_endec(2147483647, '7fffffff')
         integer_endec(-2147483648, '80000000')
+
