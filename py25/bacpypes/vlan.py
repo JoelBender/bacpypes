@@ -26,9 +26,10 @@ _log = ModuleLogger(globals())
 
 class Network:
 
-    def __init__(self, broadcast_address=None, drop_percent=0.0):
-        if _debug: Network._debug("__init__ broadcast_address=%r drop_percent=%r", broadcast_address, drop_percent)
+    def __init__(self, name='', broadcast_address=None, drop_percent=0.0):
+        if _debug: Network._debug("__init__ name=%r broadcast_address=%r drop_percent=%r", name, broadcast_address, drop_percent)
 
+        self.name = name
         self.nodes = []
         self.broadcast_address = broadcast_address
         self.drop_percent = drop_percent
@@ -39,6 +40,10 @@ class Network:
 
         self.nodes.append(node)
         node.lan = self
+
+        # update the node name
+        if not node.name:
+            node.name = '%s:%s' % (self.name, node.address)
 
     def remove_node(self, node):
         """ Remove a node from this network. """
@@ -51,7 +56,7 @@ class Network:
         """ Process a PDU by sending a copy to each node as dictated by the
             addressing and if a node is promiscuous.
         """
-        if _debug: Network._debug("process_pdu %r", pdu)
+        if _debug: Network._debug("[%s]process_pdu %r", self.name, pdu)
 
         # randomly drop a packet
         if self.drop_percent != 0.0:
@@ -83,15 +88,16 @@ bacpypes_debugging(Network)
 
 class Node(Server):
 
-    def __init__(self, addr, lan=None, promiscuous=False, spoofing=False, sid=None):
+    def __init__(self, addr, lan=None, name='', promiscuous=False, spoofing=False, sid=None):
         if _debug:
-            Node._debug("__init__ %r lan=%r promiscuous=%r spoofing=%r sid=%r",
-                addr, lan, promiscuous, spoofing, sid
+            Node._debug("__init__ %r lan=%r name=%r, promiscuous=%r spoofing=%r sid=%r",
+                addr, lan, name, promiscuous, spoofing, sid
                 )
         Server.__init__(self, sid)
 
         self.lan = None
         self.address = addr
+        self.name = name
 
         # bind to a lan if it was provided
         if lan is not None:
@@ -109,7 +115,7 @@ class Node(Server):
 
     def indication(self, pdu):
         """Send a message."""
-        if _debug: Node._debug("indication %r", pdu)
+        if _debug: Node._debug("[%s]indication %r", self.name, pdu)
 
         # make sure we're connected
         if not self.lan:
