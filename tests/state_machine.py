@@ -45,10 +45,18 @@ class SendTransition(Transition):
 
 class ReceiveTransition(Transition):
 
-    def __init__(self, pdu, next_state):
+    def __init__(self, criteria, next_state):
         Transition.__init__(self, next_state)
 
-        self.pdu = pdu
+        self.criteria = criteria
+
+
+class EventTransition(Transition):
+
+    def __init__(self, event_id, next_state):
+        Transition.__init__(self, next_state)
+
+        self.event_id = event_id
 
 
 class TimeoutTransition(Transition):
@@ -58,6 +66,36 @@ class TimeoutTransition(Transition):
 
         self.timeout = timeout
 
+
+#
+#   match_pdu
+#
+
+@bacpypes_debugging
+def match_pdu(pdu, pdu_type=None, **pdu_attrs):
+    if _debug: match_pdu._debug("match_pdu %r %r %r", pdu, pdu_type, pdu_attrs)
+
+    # check the type
+    if pdu_type and not isinstance(pdu, pdu_type):
+        if _debug: match_pdu._debug("    - wrong type")
+        return False
+
+    # check for matching attribute values
+    for attr_name, attr_value in pdu_attrs.items():
+        if not hasattr(pdu, attr_name):
+            if _debug: match_pdu._debug("    - missing attr: %r", attr_name)
+            return False
+        if getattr(pdu, attr_name) != attr_value:
+            if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
+            return False
+    if _debug: match_pdu._debug("    - successful_match")
+
+    return True
+
+
+#
+#   State
+#
 
 @bacpypes_debugging
 class State(object):
@@ -87,6 +125,11 @@ class State(object):
         # empty lists of send and receive transitions
         self.send_transitions = []
         self.receive_transitions = []
+
+        # empty lists of event transitions
+        self.set_event_transitions = []
+        self.clear_event_transitions = []
+        self.wait_event_transitions = []
 
         # timeout transition
         self.timeout_transition = None
@@ -215,14 +258,26 @@ class State(object):
         """Called after each PDU sent."""
         self.state_machine.after_send(pdu)
 
-    def receive(self, pdu, next_state=None):
+    def receive(self, pdu_type, **pdu_attrs):
         """Create a ReceiveTransition from this state to another, possibly new,
         state.  The next state is returned for method chaining.
 
-        :param pdu: PDU to match
+        :param criteria: PDU to match
         :param next_state: destination state after a successful match
+
+        Simulate the function as if it was defined in Python3.5+ like this:
+            def receive(self, *pdu_type, next_state=None, **pdu_attrs)
         """
-        if _debug: State._debug("receive(%s) %r next_state=%r", self.doc_string, pdu, next_state)
+        if _debug: State._debug("receive(%s) %r %r", self.doc_string, pdu_type, pdu_attrs)
+
+        # extract the next_state keyword argument
+        if 'next_state' in pdu_attrs:
+            next_state = pdu_attrs['next_state']
+            if _debug: State._debug("    - next_state: %r", next_state)
+
+            del pdu_attrs['next_state']
+        else:
+            next_state = None
 
         # maybe build a new state
         if not next_state:
@@ -231,8 +286,12 @@ class State(object):
         elif next_state not in self.state_machine.states:
             raise ValueError("off the rails")
 
+        # create a bundle of the match criteria
+        criteria = (pdu_type, pdu_attrs)
+        if _debug: State._debug("    - criteria: %r", criteria)
+
         # add this to the list of transitions
-        self.receive_transitions.append(ReceiveTransition(pdu, next_state))
+        self.receive_transitions.append(ReceiveTransition(criteria, next_state))
 
         # return the next state
         return next_state
@@ -252,6 +311,60 @@ class State(object):
 
         # pass along to the state machine
         self.state_machine.unexpected_receive(pdu)
+
+    def set_event(self, event_id):
+        """Create an EventTransition for this state that sets an event.  The
+        current state is returned for method chaining.
+
+        :param event_id: event identifier
+        """
+        if _debug: State._debug("set_event(%s) %r", self.doc_string, event_id)
+
+        # add this to the list of transitions
+        self.set_event_transitions.append(EventTransition(event_id, None))
+
+        # return the next state
+        return self
+
+    def event_set(self, event_id):
+        """Called with the event that was set."""
+        pass
+
+    def clear_event(self, event_id):
+        """Create an EventTransition for this state that clears an event.  The
+        current state is returned for method chaining.
+
+        :param event_id: event identifier
+        """
+        if _debug: State._debug("clear_event(%s) %r", self.doc_string, event_id)
+
+        # add this to the list of transitions
+        self.clear_event_transitions.append(EventTransition(event_id, None))
+
+        # return the next state
+        return next_state
+
+    def wait_event(self, event_id, next_state=None):
+        """Create an EventTransition from this state to another, possibly new,
+        state.  The next state is returned for method chaining.
+
+        :param pdu: PDU to send
+        :param next_state: state to transition to after sending
+        """
+        if _debug: State._debug("wait_event(%s) %r next_state=%r", self.doc_string, event_id, next_state)
+
+        # maybe build a new state
+        if not next_state:
+            next_state = self.state_machine.new_state()
+            if _debug: State._debug("    - new next_state: %r", next_state)
+        elif next_state not in self.state_machine.states:
+            raise ValueError("off the rails")
+
+        # add this to the list of transitions
+        self.wait_event_transitions.append(EventTransition(event_id, next_state))
+
+        # return the next state
+        return next_state
 
     def timeout(self, delay, next_state=None):
         """Create a TimeoutTransition from this state to another, possibly new,
@@ -473,6 +586,18 @@ class StateMachine(object):
         # here we are
         current_state = self.current_state = state
 
+        # events are managed by a state machine group
+        if self.machine_group:
+            # setting events
+            for transition in current_state.set_event_transitions:
+                if _debug: StateMachine._debug("    - setting event: %r", transition.event_id)
+                self.machine_group.set_event(transition.event_id)
+
+            # clearing events
+            for transition in current_state.clear_event_transitions:
+                if _debug: StateMachine._debug("    - clearing event: %r", transition.event_id)
+                self.machine_group.clear_event(transition.event_id)
+
         # check for success state
         if current_state.is_success_state:
             if _debug: StateMachine._debug("    - success state")
@@ -508,20 +633,39 @@ class StateMachine(object):
         # assume we can stay
         next_state = None
 
+        # events are managed by a state machine group
+        if self.machine_group:
+            # check to see if there are events that are already set
+            for transition in current_state.wait_event_transitions:
+                if _debug: StateMachine._debug("    - waiting event: %r", transition.event_id)
+
+                # check for a transition
+                if transition.event_id in self.machine_group.events:
+                    next_state = transition.next_state
+                    if _debug: StateMachine._debug("    - next_state: %r", next_state)
+
+                    if next_state is not current_state:
+                        break
+            else:
+                if _debug: StateMachine._debug("    - no events already set")
+        else:
+            if _debug: StateMachine._debug("    - not part of a group")
+
         # send everything that needs to be sent
-        for transition in current_state.send_transitions:
-            if _debug: StateMachine._debug("    - sending: %r", transition)
+        if not next_state:
+            for transition in current_state.send_transitions:
+                if _debug: StateMachine._debug("    - sending: %r", transition)
 
-            current_state.before_send(transition.pdu)
-            self.send(transition.pdu)
-            current_state.after_send(transition.pdu)
+                current_state.before_send(transition.pdu)
+                self.send(transition.pdu)
+                current_state.after_send(transition.pdu)
 
-            # check for a transition
-            next_state = transition.next_state
-            if _debug: StateMachine._debug("    - next_state: %r", next_state)
+                # check for a transition
+                next_state = transition.next_state
+                if _debug: StateMachine._debug("    - next_state: %r", next_state)
 
-            if next_state is not current_state:
-                break
+                if next_state is not current_state:
+                    break
 
         if not next_state:
             if _debug: StateMachine._debug("    - nowhere to go")
@@ -552,9 +696,18 @@ class StateMachine(object):
         # add a reference to the pdu in the transaction log
         self.transaction_log.append(("<<<", pdu),)
 
+    def send(self, pdu):
+        raise NotImplementedError("send not implemented")
+
     def after_send(self, pdu):
         """Called after each PDU sent."""
         pass
+
+    def before_receive(self, pdu):
+        """Called with each PDU received before matching."""
+
+        # add a reference to the pdu in the transaction log
+        self.transaction_log.append((">>>", pdu),)
 
     def receive(self, pdu):
         if _debug: StateMachine._debug("receive %r", pdu)
@@ -581,7 +734,7 @@ class StateMachine(object):
 
         # look for a matching receive transition
         for transition in current_state.receive_transitions:
-            if self.match_pdu(pdu, transition.pdu):
+            if self.match_pdu(pdu, transition.criteria):
                 if _debug: StateMachine._debug("    - match found")
                 match_found = True
 
@@ -606,12 +759,6 @@ class StateMachine(object):
 
             self.goto_state(next_state)
 
-    def before_receive(self, pdu):
-        """Called with each PDU received before matching."""
-
-        # add a reference to the pdu in the transaction log
-        self.transaction_log.append((">>>", pdu),)
-
     def after_receive(self, pdu):
         """Called with PDU received after match."""
         pass
@@ -623,6 +770,49 @@ class StateMachine(object):
 
         # go to the unexpected receive state (failing)
         self.goto_state(self.unexpected_receive_state)
+
+    def event_set(self, event_id):
+        """Called by the state machine group when an event is set, the state
+        machine checks to see if it's waiting for the event and makes the
+        state transition if there is a match."""
+        if _debug: StateMachine._debug("event_set %r", event_id)
+
+        if not self.running:
+            if _debug: StateMachine._debug("    - not running")
+            return
+
+        # check to see if we are transitioning
+        if self.state_transitioning:
+            if _debug: StateMachine._debug("    - transitioning")
+            return
+        if not self.current_state:
+            raise RuntimeError("no current state")
+        current_state = self.current_state
+
+        match_found = False
+
+        # look for a matching event transition
+        for transition in current_state.wait_event_transitions:
+            if transition.event_id == event_id:
+                if _debug: StateMachine._debug("    - match found")
+                match_found = True
+
+                # let the state know this event was set
+                current_state.event_set(event_id)
+
+                # check for a transition
+                next_state = transition.next_state
+                if _debug: StateMachine._debug("    - next_state: %r", next_state)
+
+                if next_state is not current_state:
+                    break
+        else:
+            if _debug: StateMachine._debug("    - going nowhere")
+
+        if match_found and next_state is not current_state:
+            if _debug: StateMachine._debug("    - going")
+
+            self.goto_state(next_state)
 
     def state_timeout(self):
         if _debug: StateMachine._debug("state_timeout")
@@ -644,13 +834,14 @@ class StateMachine(object):
         # go to the state specified
         self.goto_state(self.timeout_state)
 
-    def send(self, pdu):
-        raise NotImplementedError("send not implemented")
+    def match_pdu(self, pdu, criteria):
+        if _debug: StateMachine._debug("match_pdu %r %r", pdu, criteria)
 
-    def match_pdu(self, pdu, transition_pdu):
-        if _debug: StateMachine._debug("match_pdu %r %r", pdu, transition_pdu)
+        # separate the pdu_type and attributes to match
+        pdu_type, pdu_attrs = criteria
 
-        return pdu == transition_pdu
+        # pass along to the global function
+        return match_pdu(pdu, pdu_type, **pdu_attrs)
 
     def __repr__(self):
         if not self.running:
@@ -698,6 +889,9 @@ class StateMachineGroup(object):
         self.is_success_state = None
         self.is_fail_state = None
 
+        # set of events that are set
+        self.events = set()
+
     def append(self, state_machine):
         """Add a state machine to the end of the list of state machines."""
         if _debug: StateMachineGroup._debug("append %r", state_machine)
@@ -742,6 +936,32 @@ class StateMachineGroup(object):
         # flags for remembering success or fail
         self.is_success_state = False
         self.is_fail_state = False
+
+        # events that are set
+        self.events = set()
+
+    def set_event(self, event_id):
+        """Save an event as 'set' and pass it to the state machines to see
+        if they are in a state that is waiting for the event."""
+        if _debug: StateMachineGroup._debug("set_event %r", event_id)
+
+        self.events.add(event_id)
+        if _debug: StateMachineGroup._debug("    - event set")
+
+        # pass along to each machine
+        for state_machine in self.state_machines:
+            if _debug: StateMachineGroup._debug("    - state_machine: %r", state_machine)
+            state_machine.event_set(event_id)
+
+    def clear_event(self, event_id):
+        """Remove an event from the set of elements that are 'set'."""
+        if _debug: StateMachineGroup._debug("clear_event %r", event_id)
+
+        if event_id in self.events:
+            self.events.remove(event_id)
+            if _debug: StateMachineGroup._debug("    - event cleared")
+        else:
+            if _debug: StateMachineGroup._debug("    - noop")
 
     def run(self):
         """Runs all the machines in the group."""
@@ -810,8 +1030,8 @@ class StateMachineGroup(object):
             some_failed = some_failed or state_machine.current_state.is_fail_state
 
         if _debug:
-            StateMachineGroup._debug("    all_success: %r", all_success)
-            StateMachineGroup._debug("    some_failed: %r", some_failed)
+            StateMachineGroup._debug("    - all_success: %r", all_success)
+            StateMachineGroup._debug("    - some_failed: %r", some_failed)
 
         # return the results of the check
         return (all_success, some_failed)
