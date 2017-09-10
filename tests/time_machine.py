@@ -67,7 +67,8 @@ class TimeMachine(_TaskManager):
         and return how long it will be until the next one should be
         processed."""
         if _debug: TimeMachine._debug("get_next_task @ %r", self.current_time)
-        if _debug: TimeMachine._debug("    - self.tasks: %r", self.tasks)
+        if _debug: TimeMachine._debug("    - time_limit: %r", self.time_limit)
+        if _debug: TimeMachine._debug("    - tasks: %r", self.tasks)
 
         task = None
         delta = None
@@ -123,6 +124,7 @@ def reset_time_machine():
         raise RuntimeError("no time machine")
 
     # begin time at the beginning
+    time_machine.tasks = []
     time_machine.current_time = 0.0
     time_machine.time_limit = None
 
@@ -146,3 +148,4 @@ def run_time_machine(time_limit):
 
     # run until there is nothing left to do
     run_once()
+
