@@ -885,6 +885,9 @@ class StateMachineGroup(object):
         # flag for starting up
         self._startup_flag = False
 
+        # flag for at least one machine running
+        self.is_running = False
+
         # flags for remembering success or fail
         self.is_success_state = None
         self.is_fail_state = None
@@ -969,6 +972,7 @@ class StateMachineGroup(object):
 
         # turn on the startup flag
         self._startup_flag = True
+        self.is_running = True
 
         # pass along to each machine
         for state_machine in self.state_machines:
@@ -985,6 +989,8 @@ class StateMachineGroup(object):
             self.success()
         elif some_failed:
             self.fail()
+        else:
+            if _debug: StateMachineGroup._debug("    - some still running")
 
     def running(self, state_machine):
         """Called by a state machine in the group when it has completed its
@@ -1050,6 +1056,7 @@ class StateMachineGroup(object):
         are all in a 'success' final state."""
         if _debug: StateMachineGroup._debug("success")
 
+        self.is_running = False
         self.is_success_state = True
 
     def fail(self):
@@ -1057,6 +1064,7 @@ class StateMachineGroup(object):
         at least one of them is in a 'fail' final state."""
         if _debug: StateMachineGroup._debug("fail")
 
+        self.is_running = False
         self.is_fail_state = True
 
 

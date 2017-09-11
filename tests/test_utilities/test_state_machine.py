@@ -447,6 +447,7 @@ class TestStateMachineGroup(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachine._debug("    - passed")
 
@@ -475,6 +476,7 @@ class TestStateMachineGroup(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_fail_state
+        assert not smg.is_running
         assert smg.is_fail_state
         if _debug: TestStateMachine._debug("    - passed")
 
@@ -510,6 +512,7 @@ class TestStateMachineEvents(unittest.TestCase):
         # check for success
         assert tsm1.current_state.is_success_state
         assert tsm2.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachineEvents._debug("    - passed")
 
@@ -541,6 +544,7 @@ class TestStateMachineEvents(unittest.TestCase):
         # check for success
         assert tsm1.current_state.is_success_state
         assert tsm2.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachineEvents._debug("    - passed")
 

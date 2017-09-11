@@ -69,17 +69,21 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_codec_01")
 
         # Request successful
-        self.request(Result(0))
-        self.indication(pduData=xtob('810000060000'))
+        pdu_bytes = xxtob('81.00.0006.0000')
 
-        self.response(PDU(xtob('810000060000')))
+        self.request(Result(0))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(Result, bvlciResultCode=0)
 
         # Request error condition
-        self.request(Result(1))
-        self.indication(pduData=xtob('810000060001'))
+        pdu_bytes = xxtob('81.00.0006.0001')
 
-        self.response(PDU(xtob('810000060001')))
+        self.request(Result(1))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(Result, bvlciResultCode=1)
 
     def test_write_broadcast_distribution_table(self):
@@ -87,16 +91,18 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_write_broadcast_distribution_table")
 
         # write an empty table
-        self.request(WriteBroadcastDistributionTable([]))
-        self.indication(pduData=xxtob('81.01.0004'))
+        pdu_bytes = xxtob('81.01.0004')
 
-        self.response(PDU(xxtob('81.01.0004')))
+        self.request(WriteBroadcastDistributionTable([]))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(WriteBroadcastDistributionTable, bvlciBDT=[])
 
         # write a table with an element
         addr = Address('192.168.0.254/24')
         pdu_bytes = xxtob('81.01.000e'
-            'c0.a8.00.fe.ba.c0.ff.ff.ff.00'
+            'c0.a8.00.fe.ba.c0 ff.ff.ff.00'     # address and mask
             )
 
         self.request(WriteBroadcastDistributionTable([addr]))
@@ -110,10 +116,12 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_read_broadcast_distribution_table")
 
         # read the table
-        self.request(ReadBroadcastDistributionTable())
-        self.indication(pduData=xxtob('81.02.0004'))
+        pdu_bytes = xxtob('81.02.0004')
 
-        self.response(PDU(xxtob('81.02.0004')))
+        self.request(ReadBroadcastDistributionTable())
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(ReadBroadcastDistributionTable)
 
     def test_read_broadcast_distribution_table_ack(self):
@@ -121,16 +129,18 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_read_broadcast_distribution_table_ack")
 
         # read returns an empty table
-        self.request(ReadBroadcastDistributionTableAck([]))
-        self.indication(pduData=xxtob('81.03.0004'))
+        pdu_bytes = xxtob('81.03.0004')
 
-        self.response(PDU(xxtob('81.03.0004')))
+        self.request(ReadBroadcastDistributionTableAck([]))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(ReadBroadcastDistributionTableAck, bvlciBDT=[])
 
         # read returns a table with an element
         addr = Address('192.168.0.254/24')
-        pdu_bytes = xxtob('81.03.000e'
-            'c0.a8.00.fe.ba.c0.ff.ff.ff.00'
+        pdu_bytes = xxtob('81.03.000e'          # bvlci
+            'c0.a8.00.fe.ba.c0 ff.ff.ff.00'     # address and mask
             )
 
         self.request(ReadBroadcastDistributionTableAck([addr]))
@@ -146,7 +156,7 @@ class TestAnnexJCodec(unittest.TestCase):
         # read returns a table with an element
         addr = Address('192.168.0.1')
         xpdu = xxtob('deadbeef')
-        pdu_bytes = xxtob('81.04.000e'
+        pdu_bytes = xxtob('81.04.000e'  # bvlci
             'c0.a8.00.01.ba.c0'         # original source address
             'deadbeef'                  # forwarded PDU
             )
@@ -162,7 +172,7 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_register_foreign_device")
 
         # register as a foreign device with a 30 second time-to-live
-        pdu_bytes = xxtob('81.05.0006'
+        pdu_bytes = xxtob('81.05.0006'  # bvlci
             '001e'                      # time-to-live
             )
 
@@ -177,10 +187,12 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_read_foreign_device_table")
 
         # read returns an empty table
-        self.request(ReadForeignDeviceTable())
-        self.indication(pduData=xxtob('81.06.0004'))
+        pdu_bytes = xxtob('81.06.0004')
 
-        self.response(PDU(xxtob('81.06.0004')))
+        self.request(ReadForeignDeviceTable())
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(ReadForeignDeviceTable)
 
     def test_read_foreign_device_table_ack(self):
@@ -188,10 +200,12 @@ class TestAnnexJCodec(unittest.TestCase):
         if _debug: TestAnnexJCodec._debug("test_read_foreign_device_table_ack")
 
         # read returns an empty table
-        self.request(ReadForeignDeviceTableAck([]))
-        self.indication(pduData=xxtob('81.07.0004'))
+        pdu_bytes = xxtob('81.07.0004')
 
-        self.response(PDU(xxtob('81.07.0004')))
+        self.request(ReadForeignDeviceTableAck([]))
+        self.indication(pduData=pdu_bytes)
+
+        self.response(PDU(pdu_bytes))
         self.confirmation(ReadForeignDeviceTableAck, bvlciFDT=[])
 
         # read returns a table with one entry
@@ -199,9 +213,9 @@ class TestAnnexJCodec(unittest.TestCase):
         fdte.fdAddress = Address("192.168.0.10")
         fdte.fdTTL = 30
         fdte.fdRemain = 15
-        pdu_bytes = xxtob('81.07.000e'
-            'c0.a8.00.0a.ba.c0'
-            '001e.000f'
+        pdu_bytes = xxtob('81.07.000e'  # bvlci
+            'c0.a8.00.0a.ba.c0'         # address
+            '001e.000f'                 # ttl and remaining
             )
 
         self.request(ReadForeignDeviceTableAck([fdte]))
@@ -216,7 +230,7 @@ class TestAnnexJCodec(unittest.TestCase):
 
         # delete an element
         addr = Address('192.168.0.11/24')
-        pdu_bytes = xxtob('81.08.000a'
+        pdu_bytes = xxtob('81.08.000a'  # bvlci
             'c0.a8.00.0b.ba.c0'         # address of entry to be deleted
             )
 
@@ -232,7 +246,7 @@ class TestAnnexJCodec(unittest.TestCase):
 
         # read returns a table with an element
         xpdu = xxtob('deadbeef')
-        pdu_bytes = xxtob('81.09.0008'
+        pdu_bytes = xxtob('81.09.0008'  # bvlci
             'deadbeef'                  # PDU to broadcast
             )
 
@@ -248,7 +262,7 @@ class TestAnnexJCodec(unittest.TestCase):
 
         # read returns a table with an element
         xpdu = xxtob('deadbeef')
-        pdu_bytes = xxtob('81.0a.0008'
+        pdu_bytes = xxtob('81.0a.0008'  # bvlci
             'deadbeef'                  # PDU being unicast
             )
 
@@ -264,7 +278,7 @@ class TestAnnexJCodec(unittest.TestCase):
 
         # read returns a table with an element
         xpdu = xxtob('deadbeef')
-        pdu_bytes = xxtob('81.0b.0008'
+        pdu_bytes = xxtob('81.0b.0008'  # bvlci
             'deadbeef'                  # PDU being broadcast
             )
 

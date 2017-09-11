@@ -62,6 +62,33 @@ class TimeMachine(_TaskManager):
 
         _TaskManager.resume_task(self, task)
 
+    def peek_next_task(self):
+        """Get the next task if there's one that should be processed."""
+        if _debug: TimeMachine._debug("peek_next_task @ %r", self.current_time)
+        if _debug: TimeMachine._debug("    - time_limit: %r", self.time_limit)
+        if _debug: TimeMachine._debug("    - tasks: %r", self.tasks)
+
+        task = None
+
+        if (self.time_limit is not None) and (self.current_time >= self.time_limit):
+            if _debug: TimeMachine._debug("    - time limit reached")
+
+        elif not self.tasks:
+            if _debug: TimeMachine._debug("    - no more tasks")
+
+        else:
+            # peek at the next task and see when it is supposed to run
+            when, task = self.tasks[0]
+            if when >= self.time_limit:
+                if _debug: TimeMachine._debug("    - time limit reached")
+
+                # clear out the task
+                task = None
+            else:
+                if _debug: TimeMachine._debug("    - task: %r", task)
+
+        return task
+
     def get_next_task(self):
         """get the next task if there's one that should be processed,
         and return how long it will be until the next one should be
@@ -132,7 +159,9 @@ def reset_time_machine():
 @bacpypes_debugging
 def run_time_machine(time_limit):
     """This function is called after a set of tasks have been installed
-    and they should all run.
+    and they should run.  The machine will stop when the limit has been
+    reached (maybe the middle of some tests) and can be called again to
+    continue running.
     """
     if _debug: run_time_machine._debug("run_time_machine %r", time_limit)
     global time_machine
@@ -142,10 +171,18 @@ def run_time_machine(time_limit):
         raise RuntimeError("no time machine")
     if time_limit <= 0.0:
         raise ValueError("time limit required")
+    if time_machine.current_time is None:
+        raise RuntimeError("reset the time machine before running")
 
     # pass the limit to the time machine
-    time_machine.time_limit = time_limit
+    time_machine.time_limit = time_machine.current_time + time_limit
 
     # run until there is nothing left to do
-    run_once()
+    while True:
+        run_once()
+        if _debug: run_time_machine._debug("    - ran once")
+
+        if not time_machine.peek_next_task():
+            if _debug: run_time_machine._debug("    - no more to do")
+            break
 
