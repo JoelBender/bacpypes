@@ -12,11 +12,12 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from bacpypes.pdu import Address, PDU, LocalBroadcast
 from bacpypes.vlan import IPNetwork, IPRouter
+from bacpypes.bvll import ReadForeignDeviceTable, ReadForeignDeviceTableAck
 
-from ..state_machine import match_pdu, StateMachineGroup
+from ..state_machine import StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine
 
-from .helpers import SnifferNode, SimpleNode, ForeignNode, BBMDNode
+from .helpers import SnifferNode, CodecNode, SimpleNode, ForeignNode, BBMDNode
 
 # some debugging
 _debug = 0
@@ -49,25 +50,13 @@ class TNetwork(StateMachineGroup):
         self.home_vlan = IPNetwork()
         self.router.add_network(Address("192.168.5.1/24"), self.home_vlan)
 
-        # home sniffer node
-        self.home_sniffer = SnifferNode("192.168.5.254/24", self.home_vlan)
-        self.append(self.home_sniffer)
-
         # make a remote LAN
         self.remote_vlan = IPNetwork()
         self.router.add_network(Address("192.168.6.1/24"), self.remote_vlan)
 
-        # remote sniffer node
-        self.remote_sniffer = SnifferNode("192.168.6.254/24", self.remote_vlan)
-        self.append(self.remote_sniffer)
-
         # the foreign device
         self.fd = ForeignNode("192.168.6.2/24", self.remote_vlan)
         self.append(self.fd)
-
-        # intermediate test node
-        self.tnode = SimpleNode("192.168.5.2/24", self.home_vlan)
-        self.append(self.tnode)
 
         # bbmd
         self.bbmd = BBMDNode("192.168.5.3/24", self.home_vlan)
@@ -81,12 +70,7 @@ class TNetwork(StateMachineGroup):
 
         # run it for some time
         run_time_machine(time_limit)
-        if _debug:
-            TNetwork._debug("    - time machine finished")
-            for state_machine in self.state_machines:
-                TNetwork._debug("    - machine: %r", state_machine)
-                for direction, pdu in state_machine.transaction_log:
-                    TNetwork._debug("        %s %s", direction, str(pdu))
+        if _debug: TNetwork._debug("    - time machine finished")
 
         # check for success
         all_success, some_failed = super(TNetwork, self).check_for_success()
@@ -94,22 +78,227 @@ class TNetwork(StateMachineGroup):
 
 
 @bacpypes_debugging
-class TestSimple(unittest.TestCase):
+class TestForeign(unittest.TestCase):
 
     def test_idle(self):
         """Test an idle network, nothing happens is success."""
-        if _debug: TestSimple._debug("test_idle")
+        if _debug: TestForeign._debug("test_idle")
 
         # create a network
         tnet = TNetwork()
 
         # all start states are successful
-        tnet.home_sniffer.start_state.success()
-        tnet.remote_sniffer.start_state.success()
         tnet.fd.start_state.success()
-        tnet.tnode.start_state.success()
         tnet.bbmd.start_state.success()
 
         # run the group
         tnet.run()
+
+    def test_registration(self):
+        """Test foreign device registration."""
+        if _debug: TestForeign._debug("test_registration")
+
+        # create a network
+        tnet = TNetwork()
+
+        # add an addition codec node to the home vlan
+        cnode = CodecNode("192.168.5.2/24", tnet.home_vlan)
+        tnet.append(cnode)
+
+        # home sniffer node
+        home_sniffer = SnifferNode("192.168.5.254/24", tnet.home_vlan)
+        tnet.append(home_sniffer)
+
+        # remote sniffer node
+        remote_sniffer = SnifferNode("192.168.6.254/24", tnet.remote_vlan)
+        tnet.append(remote_sniffer)
+
+        # tell the B/IP layer of the foreign device to register
+        tnet.fd.start_state \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 30) \
+            .success()
+
+        # sniffer pieces
+        registration_request = xxtob('81.05.0006'   # bvlci
+            '001e'                                  # time-to-live
+            )
+        registration_ack = xxtob('81.00.0006.0000') # simple ack
+
+        # remote sniffer sees registration
+        remote_sniffer.start_state \
+            .receive(PDU, pduData=registration_request).doc("--1-1") \
+            .receive(PDU, pduData=registration_ack).doc("--1-2") \
+            .set_event('fd-registered').doc("--1-3") \
+            .success()
+
+        # the bbmd is idle
+        tnet.bbmd.start_state.success()
+
+        # read the FDT
+        cnode.start_state \
+            .wait_event('fd-registered').doc("--1-4") \
+            .send(ReadForeignDeviceTable(destination=tnet.bbmd.address)).doc("--1-5") \
+            .receive(ReadForeignDeviceTableAck).doc("--1-6") \
+            .success()
+
+        # the tnode reads the registration table
+        read_fdt_request = xxtob('81.06.0004')      # bvlci
+        read_fdt_ack = xxtob('81.07.000e'           # read-ack
+            'c0.a8.06.02.ba.c0 001e 0023'           # address, ttl, remaining
+            )
+
+        # home sniffer sees registration
+        home_sniffer.start_state \
+            .receive(PDU, pduData=registration_request).doc("--1-7") \
+            .receive(PDU, pduData=registration_ack).doc("--1-8") \
+            .receive(PDU, pduData=read_fdt_request).doc("--1-9") \
+            .receive(PDU, pduData=read_fdt_ack).doc("--1-A") \
+            .success()
+
+        # run the group
+        tnet.run()
+
+    def test_refresh_registration(self):
+        """Test refreshing foreign device registration."""
+        if _debug: TestForeign._debug("test_refresh_registration")
+
+        # create a network
+        tnet = TNetwork()
+
+        # tell the B/IP layer of the foreign device to register
+        tnet.fd.start_state \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 10) \
+            .success()
+
+        # the bbmd is idle
+        tnet.bbmd.start_state.success()
+
+        # remote sniffer node
+        remote_sniffer = SnifferNode("192.168.6.254/24", tnet.remote_vlan)
+        tnet.append(remote_sniffer)
+
+        # sniffer pieces
+        registration_request = xxtob('81.05.0006'   # bvlci
+            '000a'                                  # time-to-live
+            )
+        registration_ack = xxtob('81.00.0006.0000') # simple ack
+
+        # remote sniffer sees registration
+        remote_sniffer.start_state \
+            .receive(PDU, pduData=registration_request).doc("--2-1") \
+            .receive(PDU, pduData=registration_ack).doc("--2-2") \
+            .receive(PDU, pduData=registration_request).doc("--2-3") \
+            .receive(PDU, pduData=registration_ack).doc("--2-4") \
+            .success()
+
+        # run the group
+        tnet.run()
+
+    def test_unicast(self):
+        """Test a unicast message from the foreign device to the bbmd."""
+        if _debug: TestForeign._debug("test_unicast")
+
+        # create a network
+        tnet = TNetwork()
+
+        # make a PDU from node 1 to node 2
+        pdu_data = xxtob('dead.beef')
+        pdu = PDU(pdu_data, source=tnet.fd.address, destination=tnet.bbmd.address)
+        if _debug: TestForeign._debug("    - pdu: %r", pdu)
+
+        # register, wait for ack, send some beef
+        tnet.fd.start_state \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("--3-1") \
+            .wait_event('fd-registered').doc("--3-2") \
+            .send(pdu).doc("--3-3") \
+            .success()
+
+        # the bbmd is happy when it gets the pdu
+        tnet.bbmd.start_state \
+            .receive(PDU, pduSource=tnet.fd.address, pduData=pdu_data) \
+            .success()
+
+        # remote sniffer node
+        remote_sniffer = SnifferNode("192.168.6.254/24", tnet.remote_vlan)
+        tnet.append(remote_sniffer)
+
+        # sniffer pieces
+        registration_request = xxtob('81.05.0006'   # bvlci
+            '003c'                                  # time-to-live (60)
+            )
+        registration_ack = xxtob('81.00.0006.0000') # simple ack
+        unicast_pdu = xxtob('81.0a.0008'            # original unicast bvlci
+            'dead.beef'                             # PDU being unicast
+            )
+
+        # remote sniffer sees registration
+        remote_sniffer.start_state \
+            .receive(PDU, pduData=registration_request).doc("--3-4") \
+            .receive(PDU, pduData=registration_ack).doc("--3-5") \
+            .set_event('fd-registered').doc("--3-6") \
+            .receive(PDU, pduData=unicast_pdu).doc("--3-7") \
+            .success()
+
+        # run the group
+        tnet.run()
+
+    def test_broadcast(self):
+        """Test a broadcast message from the foreign device to the bbmd."""
+        if _debug: TestForeign._debug("+test_broadcast")
+
+        # create a network
+        tnet = TNetwork()
+
+        # make a broadcast pdu
+        pdu_data = xxtob('dead.beef')
+        pdu = PDU(pdu_data, destination=LocalBroadcast())
+        if _debug: TestForeign._debug("    - pdu: %r", pdu)
+
+        # register, wait for ack, send some beef
+        tnet.fd.start_state \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("--4-1") \
+            .wait_event('4-registered').doc("--4-2") \
+            .send(pdu).doc("--4-3") \
+            .success()
+
+        # the bbmd is happy when it gets the pdu
+        tnet.bbmd.start_state \
+            .receive(PDU, pduSource=tnet.fd.address, pduData=pdu_data) \
+            .success()
+
+        # home sniffer node
+        home_node = SimpleNode("192.168.5.254/24", tnet.home_vlan)
+        tnet.append(home_node)
+
+        # home node happy when getting the pdu, broadcast by the bbmd
+        home_node.start_state.doc("--4-4") \
+            .receive(PDU, pduSource=tnet.fd.address, pduData=pdu_data).doc("--4-5") \
+            .success()
+
+        # remote sniffer node
+        remote_sniffer = SnifferNode("192.168.6.254/24", tnet.remote_vlan)
+        tnet.append(remote_sniffer)
+
+        # sniffer pieces
+        registration_request = xxtob('81.05.0006'   # bvlci
+            '003c'                                  # time-to-live (60)
+            )
+        registration_ack = xxtob('81.00.0006.0000') # simple ack
+        distribute_pdu = xxtob('81.09.0008'         # bvlci
+            'deadbeef'                              # PDU to broadcast
+            )
+
+        # remote sniffer sees registration
+        remote_sniffer.start_state \
+            .receive(PDU, pduData=registration_request).doc("--4-6") \
+            .call(TestForeign._debug, "::--4-5").doc("--4-7") \
+            .receive(PDU, pduData=registration_ack).doc("--4-8") \
+            .set_event('4-registered') \
+            .call(TestForeign._debug, "::--4-7").doc("--4-9") \
+            .receive(PDU, pduData=distribute_pdu).doc("--4-10") \
+            .success()
+
+        # run the group
+        tnet.run(4.0)
+        if _debug: TestForeign._debug("-test_broadcast")
 

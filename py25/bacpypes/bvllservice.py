@@ -493,7 +493,7 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             # check for success
             if pdu.bvlciResultCode == 0:
                 # schedule for a refresh
-                self.install_task(_time() + self.bbmdTimeToLive)
+                self.install_task(delta=self.bbmdTimeToLive)
 
             return
 
@@ -541,7 +541,7 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         self.bbmdTimeToLive = ttl
 
         # install this task to run when it gets a chance
-        self.install_task(0)
+        self.install_task(delta=0)
 
     def unregister(self):
         """Drop the registration with a BBMD."""

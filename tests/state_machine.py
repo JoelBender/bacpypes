@@ -67,6 +67,15 @@ class TimeoutTransition(Transition):
         self.timeout = timeout
 
 
+class CallTransition(Transition):
+
+    def __init__(self, fnargs, next_state):
+        Transition.__init__(self, next_state)
+
+        # a tuple of (fn, *args, *kwargs)
+        self.fnargs = fnargs
+
+
 #
 #   match_pdu
 #
@@ -133,6 +142,9 @@ class State(object):
 
         # timeout transition
         self.timeout_transition = None
+
+        # call transition
+        self.call_transition = None
 
     def reset(self):
         """Override this method in a derived class if the state maintains
@@ -307,7 +319,7 @@ class State(object):
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
         state, the default behaviour is to fail."""
-        if _debug: State._debug("unexpected_receive %r", pdu)
+        if _debug: State._debug("unexpected_receive(%s) %r", self.doc_string, pdu)
 
         # pass along to the state machine
         self.state_machine.unexpected_receive(pdu)
@@ -393,6 +405,48 @@ class State(object):
         # return the next state
         return next_state
 
+    def call(self, fn, *args, **kwargs):
+        """Create a CallTransition from this state to another, possibly new,
+        state.  The next state is returned for method chaining.
+
+        :param criteria: PDU to match
+        :param next_state: destination state after a successful match
+
+        Simulate the function as if it was defined in Python3.5+ like this:
+            def receive(self, fn, *args, next_state=None, **kwargs)
+        """
+        if _debug: State._debug("call(%s) %r %r %r", self.doc_string, fn, args, kwargs)
+
+        # only one call per state
+        if self.call_transition:
+            raise RuntimeError("only one 'call' per state")
+
+        # extract the next_state keyword argument
+        if 'next_state' in kwargs:
+            next_state = kwargs['next_state']
+            if _debug: State._debug("    - next_state: %r", next_state)
+
+            del kwargs['next_state']
+        else:
+            next_state = None
+
+        # maybe build a new state
+        if not next_state:
+            next_state = self.state_machine.new_state()
+            if _debug: State._debug("    - new next_state: %r", next_state)
+        elif next_state not in self.state_machine.states:
+            raise ValueError("off the rails")
+
+        # create a bundle of the match criteria
+        fnargs = (fn, args, kwargs)
+        if _debug: State._debug("    - fnargs: %r", fnargs)
+
+        # add this to the list of transitions
+        self.call_transition = CallTransition(fnargs, next_state)
+
+        # return the next state
+        return next_state
+
     def __repr__(self):
         return "<%s(%s) at %s>" % (
             self.__class__.__name__,
@@ -421,8 +475,12 @@ class StateMachine(object):
             unexpected_receive_state=None,
             machine_group=None,
             state_subclass=State,
+            name='',
     ):
-        if _debug: StateMachine._debug("__init__")
+        if _debug: StateMachine._debug("__init__(%s)", name)
+
+        # save the name for debugging
+        self.name = name
 
         # no states to starting out, not running
         self.states = []
@@ -476,7 +534,7 @@ class StateMachine(object):
             self.timeout_task = None
 
     def new_state(self, doc="", state_subclass=None):
-        if _debug: StateMachine._debug("new_state %r %r", doc, state_subclass)
+        if _debug: StateMachine._debug("new_state(%s) %r %r", self.name, doc, state_subclass)
 
         # check for proper subclass
         if state_subclass and not issubclass(state_subclass, State):
@@ -493,7 +551,7 @@ class StateMachine(object):
         return state
 
     def reset(self):
-        if _debug: StateMachine._debug("reset")
+        if _debug: StateMachine._debug("reset(%s)", self.name)
 
         # make sure we're not running
         if self.running:
@@ -511,7 +569,7 @@ class StateMachine(object):
             state.reset()
 
     def run(self):
-        if _debug: StateMachine._debug("run")
+        if _debug: StateMachine._debug("run(%s)", self.name)
 
         if self.running:
             raise RuntimeError("state machine running")
@@ -542,7 +600,7 @@ class StateMachine(object):
 
     def halt(self):
         """Called when the state machine should no longer be running."""
-        if _debug: StateMachine._debug("halt")
+        if _debug: StateMachine._debug("halt(%s)", self.name)
 
         # make sure we're running
         if not self.running:
@@ -558,14 +616,14 @@ class StateMachine(object):
 
     def success(self):
         """Called when the state machine has successfully completed."""
-        if _debug: StateMachine._debug("success")
+        if _debug: StateMachine._debug("success(%s)", self.name)
 
     def fail(self):
         """Called when the state machine has failed."""
-        if _debug: StateMachine._debug("fail")
+        if _debug: StateMachine._debug("fail(%s)", self.name)
 
     def goto_state(self, state):
-        if _debug: StateMachine._debug("goto_state %r", state)
+        if _debug: StateMachine._debug("goto_state(%s) %r", self.name, state)
 
         # where do you think you're going?
         if state not in self.states:
@@ -585,6 +643,10 @@ class StateMachine(object):
 
         # here we are
         current_state = self.current_state = state
+
+        # let the state do something
+        current_state.enter_state()
+        if _debug: StateMachine._debug("    - state entered")
 
         # events are managed by a state machine group
         if self.machine_group:
@@ -626,10 +688,6 @@ class StateMachine(object):
 
             return
 
-        # let the state do something
-        current_state.enter_state()
-        if _debug: StateMachine._debug("    - state entered")
-
         # assume we can stay
         next_state = None
 
@@ -650,6 +708,21 @@ class StateMachine(object):
                 if _debug: StateMachine._debug("    - no events already set")
         else:
             if _debug: StateMachine._debug("    - not part of a group")
+
+        # call things that need to be called
+        if current_state.call_transition:
+            if _debug: StateMachine._debug("    - calling: %r", current_state.call_transition)
+
+            # pull apart the pieces and call it
+            fn, args, kwargs = current_state.call_transition.fnargs
+            fn( *args, **kwargs)
+            if _debug: StateMachine._debug("    - called")
+
+            # check for a transition
+            next_state = current_state.call_transition.next_state
+            if _debug: StateMachine._debug("    - next_state: %r", next_state)
+        else:
+            if _debug: StateMachine._debug("    - no calls")
 
         # send everything that needs to be sent
         if not next_state:
@@ -710,7 +783,7 @@ class StateMachine(object):
         self.transaction_log.append((">>>", pdu),)
 
     def receive(self, pdu):
-        if _debug: StateMachine._debug("receive %r", pdu)
+        if _debug: StateMachine._debug("receive(%s) %r", self.name, pdu)
 
         if not self.running:
             if _debug: StateMachine._debug("    - not running")
@@ -726,6 +799,7 @@ class StateMachine(object):
         if not self.current_state:
             raise RuntimeError("no current state")
         current_state = self.current_state
+        if _debug: StateMachine._debug("    - current_state: %r", current_state)
 
         # let the state know this was received
         current_state.before_receive(pdu)
@@ -766,7 +840,7 @@ class StateMachine(object):
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
         state, the default behaviour is to fail."""
-        if _debug: StateMachine._debug("unexpected_receive %r", pdu)
+        if _debug: StateMachine._debug("unexpected_receive(%s) %r", self.name, pdu)
 
         # go to the unexpected receive state (failing)
         self.goto_state(self.unexpected_receive_state)
@@ -775,7 +849,7 @@ class StateMachine(object):
         """Called by the state machine group when an event is set, the state
         machine checks to see if it's waiting for the event and makes the
         state transition if there is a match."""
-        if _debug: StateMachine._debug("event_set %r", event_id)
+        if _debug: StateMachine._debug("event_set(%s) %r", self.name, event_id)
 
         if not self.running:
             if _debug: StateMachine._debug("    - not running")
@@ -815,7 +889,7 @@ class StateMachine(object):
             self.goto_state(next_state)
 
     def state_timeout(self):
-        if _debug: StateMachine._debug("state_timeout")
+        if _debug: StateMachine._debug("state_timeout(%s)", self.name)
 
         if not self.running:
             raise RuntimeError("state machine not running")
@@ -826,7 +900,7 @@ class StateMachine(object):
         self.goto_state(self.current_state.timeout_transition.next_state)
 
     def state_machine_timeout(self):
-        if _debug: StateMachine._debug("state_machine_timeout")
+        if _debug: StateMachine._debug("state_machine_timeout(%s)", self.name)
 
         if not self.running:
             raise RuntimeError("state machine not running")
@@ -835,7 +909,7 @@ class StateMachine(object):
         self.goto_state(self.timeout_state)
 
     def match_pdu(self, pdu, criteria):
-        if _debug: StateMachine._debug("match_pdu %r %r", pdu, criteria)
+        if _debug: StateMachine._debug("match_pdu(%s) %r %r", self.name, pdu, criteria)
 
         # separate the pdu_type and attributes to match
         pdu_type, pdu_attrs = criteria
@@ -1062,7 +1136,12 @@ class StateMachineGroup(object):
     def fail(self):
         """Called when all of the machines in the group have halted and at
         at least one of them is in a 'fail' final state."""
-        if _debug: StateMachineGroup._debug("fail")
+        if _debug:
+            StateMachineGroup._debug("fail")
+            for state_machine in self.state_machines:
+                StateMachineGroup._debug("    - machine: %r", state_machine)
+                for direction, pdu in state_machine.transaction_log:
+                    StateMachineGroup._debug("        %s %s", direction, str(pdu))
 
         self.is_running = False
         self.is_fail_state = True
@@ -1120,3 +1199,4 @@ class ServerStateMachine(Server, StateMachine):
     def indication(self, pdu):
         if _debug: ServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
+

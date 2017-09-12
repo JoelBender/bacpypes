@@ -112,7 +112,8 @@ class SnifferNode(_repr, ClientStateMachine):
         if _debug: SnifferNode._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
-        # save the address
+        # save the name and address
+        self.name = address
         self.address = Address(address)
 
         # create a promiscuous node, added to the network
@@ -121,6 +122,31 @@ class SnifferNode(_repr, ClientStateMachine):
 
         # bind this to the node
         bind(self, self.node)
+
+
+#
+#   CodecNode
+#
+
+@bacpypes_debugging
+class CodecNode(_repr, ClientStateMachine):
+
+    def __init__(self, address, vlan):
+        if _debug: CodecNode._debug("__init__ %r %r", address, vlan)
+        ClientStateMachine.__init__(self)
+
+        # save the name and address
+        self.name = address
+        self.address = Address(address)
+
+        # BACnet/IP interpreter
+        self.annexj = AnnexJCodec()
+
+        # fake multiplexer has a VLAN node in it
+        self.mux = FauxMultiplexer(self.address, vlan)
+
+        # bind the stack together
+        bind(self, self.annexj, self.mux)
 
 
 #
@@ -134,7 +160,8 @@ class SimpleNode(_repr, ClientStateMachine):
         if _debug: SimpleNode._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
-        # save the address
+        # save the name and address
+        self.name = address
         self.address = Address(address)
 
         # BACnet/IP interpreter
@@ -159,7 +186,8 @@ class ForeignNode(_repr, ClientStateMachine):
         if _debug: ForeignNode._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
-        # save the address
+        # save the name and address
+        self.name = address
         self.address = Address(address)
 
         # BACnet/IP interpreter
@@ -183,17 +211,24 @@ class BBMDNode(_repr, ClientStateMachine):
         if _debug: BBMDNode._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
-        # save the address
+        # save the name and address
+        self.name = address
         self.address = Address(address)
 
         # BACnet/IP interpreter
         self.bip = BIPBBMD(self.address)
         self.annexj = AnnexJCodec()
 
+        # build an address, full mask
+        bdt_address = "%s/32:%d" % self.address.addrTuple
+        if _debug: BBMDNode._debug("    - bdt_address: %r", bdt_address)
+
+        # add itself as the first entry in the BDT
+        self.bip.add_peer(Address(bdt_address))
+
         # fake multiplexer has a VLAN node in it
         self.mux = FauxMultiplexer(self.address, vlan)
 
         # bind the stack together
         bind(self, self.bip, self.annexj, self.mux)
-
 
