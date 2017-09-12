@@ -125,20 +125,20 @@ class TestForeign(unittest.TestCase):
         registration_ack = xxtob('81.00.0006.0000') # simple ack
 
         # remote sniffer sees registration
-        remote_sniffer.start_state \
-            .receive(PDU, pduData=registration_request).doc("--1-1") \
-            .receive(PDU, pduData=registration_ack).doc("--1-2") \
-            .set_event('fd-registered').doc("--1-3") \
+        remote_sniffer.start_state.doc("1-1-0") \
+            .receive(PDU, pduData=registration_request).doc("1-1-1") \
+            .receive(PDU, pduData=registration_ack).doc("1-1-2") \
+            .set_event('fd-registered').doc("1-1-3") \
             .success()
 
         # the bbmd is idle
         tnet.bbmd.start_state.success()
 
         # read the FDT
-        cnode.start_state \
-            .wait_event('fd-registered').doc("--1-4") \
-            .send(ReadForeignDeviceTable(destination=tnet.bbmd.address)).doc("--1-5") \
-            .receive(ReadForeignDeviceTableAck).doc("--1-6") \
+        cnode.start_state.doc("1-2-0") \
+            .wait_event('fd-registered').doc("1-2-1") \
+            .send(ReadForeignDeviceTable(destination=tnet.bbmd.address)).doc("1-2-2") \
+            .receive(ReadForeignDeviceTableAck).doc("1-2-3") \
             .success()
 
         # the tnode reads the registration table
@@ -148,11 +148,11 @@ class TestForeign(unittest.TestCase):
             )
 
         # home sniffer sees registration
-        home_sniffer.start_state \
-            .receive(PDU, pduData=registration_request).doc("--1-7") \
-            .receive(PDU, pduData=registration_ack).doc("--1-8") \
-            .receive(PDU, pduData=read_fdt_request).doc("--1-9") \
-            .receive(PDU, pduData=read_fdt_ack).doc("--1-A") \
+        home_sniffer.start_state.doc("1-3-0") \
+            .receive(PDU, pduData=registration_request).doc("1-3-1") \
+            .receive(PDU, pduData=registration_ack).doc("1-3-2") \
+            .receive(PDU, pduData=read_fdt_request).doc("1-3-3") \
+            .receive(PDU, pduData=read_fdt_ack).doc("1-3-4") \
             .success()
 
         # run the group
@@ -184,11 +184,11 @@ class TestForeign(unittest.TestCase):
         registration_ack = xxtob('81.00.0006.0000') # simple ack
 
         # remote sniffer sees registration
-        remote_sniffer.start_state \
-            .receive(PDU, pduData=registration_request).doc("--2-1") \
-            .receive(PDU, pduData=registration_ack).doc("--2-2") \
-            .receive(PDU, pduData=registration_request).doc("--2-3") \
-            .receive(PDU, pduData=registration_ack).doc("--2-4") \
+        remote_sniffer.start_state.doc("2-1-0") \
+            .receive(PDU, pduData=registration_request).doc("2-1-1") \
+            .receive(PDU, pduData=registration_ack).doc("2-1-2") \
+            .receive(PDU, pduData=registration_request).doc("2-1-3") \
+            .receive(PDU, pduData=registration_ack).doc("2-1-4") \
             .success()
 
         # run the group
@@ -207,10 +207,10 @@ class TestForeign(unittest.TestCase):
         if _debug: TestForeign._debug("    - pdu: %r", pdu)
 
         # register, wait for ack, send some beef
-        tnet.fd.start_state \
-            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("--3-1") \
-            .wait_event('fd-registered').doc("--3-2") \
-            .send(pdu).doc("--3-3") \
+        tnet.fd.start_state.doc("3-1-0") \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("3-1-1") \
+            .wait_event('fd-registered').doc("3-1-2") \
+            .send(pdu).doc("3-1-3") \
             .success()
 
         # the bbmd is happy when it gets the pdu
@@ -232,11 +232,11 @@ class TestForeign(unittest.TestCase):
             )
 
         # remote sniffer sees registration
-        remote_sniffer.start_state \
-            .receive(PDU, pduData=registration_request).doc("--3-4") \
-            .receive(PDU, pduData=registration_ack).doc("--3-5") \
-            .set_event('fd-registered').doc("--3-6") \
-            .receive(PDU, pduData=unicast_pdu).doc("--3-7") \
+        remote_sniffer.start_state.doc("3-2-0") \
+            .receive(PDU, pduData=registration_request).doc("3-2-1") \
+            .receive(PDU, pduData=registration_ack).doc("3-2-2") \
+            .set_event('fd-registered').doc("3-2-3") \
+            .receive(PDU, pduData=unicast_pdu).doc("3-2-4") \
             .success()
 
         # run the group
@@ -244,7 +244,7 @@ class TestForeign(unittest.TestCase):
 
     def test_broadcast(self):
         """Test a broadcast message from the foreign device to the bbmd."""
-        if _debug: TestForeign._debug("+test_broadcast")
+        if _debug: TestForeign._debug("test_broadcast")
 
         # create a network
         tnet = TNetwork()
@@ -255,10 +255,10 @@ class TestForeign(unittest.TestCase):
         if _debug: TestForeign._debug("    - pdu: %r", pdu)
 
         # register, wait for ack, send some beef
-        tnet.fd.start_state \
-            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("--4-1") \
-            .wait_event('4-registered').doc("--4-2") \
-            .send(pdu).doc("--4-3") \
+        tnet.fd.start_state.doc("4-1-0") \
+            .call(tnet.fd.bip.register, tnet.bbmd.address, 60).doc("4-1-1") \
+            .wait_event('4-registered').doc("4-1-2") \
+            .send(pdu).doc("4-1-3") \
             .success()
 
         # the bbmd is happy when it gets the pdu
@@ -271,8 +271,8 @@ class TestForeign(unittest.TestCase):
         tnet.append(home_node)
 
         # home node happy when getting the pdu, broadcast by the bbmd
-        home_node.start_state.doc("--4-4") \
-            .receive(PDU, pduSource=tnet.fd.address, pduData=pdu_data).doc("--4-5") \
+        home_node.start_state.doc("4-2-0") \
+            .receive(PDU, pduSource=tnet.fd.address, pduData=pdu_data).doc("4-2-1") \
             .success()
 
         # remote sniffer node
@@ -289,16 +289,13 @@ class TestForeign(unittest.TestCase):
             )
 
         # remote sniffer sees registration
-        remote_sniffer.start_state \
-            .receive(PDU, pduData=registration_request).doc("--4-6") \
-            .call(TestForeign._debug, "::--4-5").doc("--4-7") \
-            .receive(PDU, pduData=registration_ack).doc("--4-8") \
+        remote_sniffer.start_state.doc("4-3-0") \
+            .receive(PDU, pduData=registration_request).doc("4-3-1") \
+            .receive(PDU, pduData=registration_ack).doc("4-3-2") \
             .set_event('4-registered') \
-            .call(TestForeign._debug, "::--4-7").doc("--4-9") \
-            .receive(PDU, pduData=distribute_pdu).doc("--4-10") \
+            .receive(PDU, pduData=distribute_pdu).doc("4-3-3") \
             .success()
 
         # run the group
         tnet.run(4.0)
-        if _debug: TestForeign._debug("-test_broadcast")
 
