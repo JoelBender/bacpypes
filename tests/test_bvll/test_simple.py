@@ -23,10 +23,6 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
-# extended form of xtob that first removes whitespace and period seperators
-xxtob = lambda s: xtob(''.join(s.split()).replace('.', ''))
-
-
 #
 #   TNetwork
 #
@@ -104,7 +100,7 @@ class TestSimple(unittest.TestCase):
         tnet = TNetwork()
 
         # make a PDU from node 1 to node 2
-        pdu_data = xxtob('dead.beef')
+        pdu_data = xtob('dead.beef')
         pdu = PDU(pdu_data, source=tnet.td.address, destination=tnet.iut.address)
         if _debug: TestSimple._debug("    - pdu: %r", pdu)
 
@@ -116,7 +112,7 @@ class TestSimple(unittest.TestCase):
         tnet.sniffer.start_state.receive(PDU,
             pduSource=tnet.td.address.addrTuple, 
             pduDestination=tnet.iut.address.addrTuple,
-            pduData=xxtob('81.0a.0008'      # original unicast bvlci
+            pduData=xtob('81.0a.0008'      # original unicast bvlci
                 'deadbeef'                  # PDU being unicast
                 ),
             ).timeout(1.0).success()
@@ -132,7 +128,7 @@ class TestSimple(unittest.TestCase):
         tnet = TNetwork()
 
         # make a PDU from node 1 to node 2
-        pdu_data = xxtob('dead.beef')
+        pdu_data = xtob('dead.beef')
         pdu = PDU(pdu_data, source=tnet.td.address, destination=LocalBroadcast())
         if _debug: TestSimple._debug("    - pdu: %r", pdu)
 
@@ -144,7 +140,7 @@ class TestSimple(unittest.TestCase):
         tnet.sniffer.start_state.receive(PDU,
             pduSource=tnet.td.address.addrTuple, 
             pduDestination=('192.168.4.255', 47808),
-            pduData=xxtob('81.0b.0008'      # original broadcast bvlci
+            pduData=xtob('81.0b.0008'      # original broadcast bvlci
                 'deadbeef'                  # PDU being unicast
                 ),
             ).timeout(1.0).success()

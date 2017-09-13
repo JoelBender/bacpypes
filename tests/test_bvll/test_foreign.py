@@ -24,10 +24,6 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
-# extended form of xtob that first removes whitespace and period seperators
-xxtob = lambda s: xtob(''.join(s.split()).replace('.', ''))
-
-
 #
 #   TNetwork
 #
@@ -119,10 +115,10 @@ class TestForeign(unittest.TestCase):
             .success()
 
         # sniffer pieces
-        registration_request = xxtob('81.05.0006'   # bvlci
+        registration_request = xtob('81.05.0006'   # bvlci
             '001e'                                  # time-to-live
             )
-        registration_ack = xxtob('81.00.0006.0000') # simple ack
+        registration_ack = xtob('81.00.0006.0000') # simple ack
 
         # remote sniffer sees registration
         remote_sniffer.start_state.doc("1-1-0") \
@@ -142,8 +138,8 @@ class TestForeign(unittest.TestCase):
             .success()
 
         # the tnode reads the registration table
-        read_fdt_request = xxtob('81.06.0004')      # bvlci
-        read_fdt_ack = xxtob('81.07.000e'           # read-ack
+        read_fdt_request = xtob('81.06.0004')      # bvlci
+        read_fdt_ack = xtob('81.07.000e'           # read-ack
             'c0.a8.06.02.ba.c0 001e 0023'           # address, ttl, remaining
             )
 
@@ -178,10 +174,10 @@ class TestForeign(unittest.TestCase):
         tnet.append(remote_sniffer)
 
         # sniffer pieces
-        registration_request = xxtob('81.05.0006'   # bvlci
+        registration_request = xtob('81.05.0006'   # bvlci
             '000a'                                  # time-to-live
             )
-        registration_ack = xxtob('81.00.0006.0000') # simple ack
+        registration_ack = xtob('81.00.0006.0000') # simple ack
 
         # remote sniffer sees registration
         remote_sniffer.start_state.doc("2-1-0") \
@@ -202,7 +198,7 @@ class TestForeign(unittest.TestCase):
         tnet = TNetwork()
 
         # make a PDU from node 1 to node 2
-        pdu_data = xxtob('dead.beef')
+        pdu_data = xtob('dead.beef')
         pdu = PDU(pdu_data, source=tnet.fd.address, destination=tnet.bbmd.address)
         if _debug: TestForeign._debug("    - pdu: %r", pdu)
 
@@ -223,11 +219,11 @@ class TestForeign(unittest.TestCase):
         tnet.append(remote_sniffer)
 
         # sniffer pieces
-        registration_request = xxtob('81.05.0006'   # bvlci
+        registration_request = xtob('81.05.0006'   # bvlci
             '003c'                                  # time-to-live (60)
             )
-        registration_ack = xxtob('81.00.0006.0000') # simple ack
-        unicast_pdu = xxtob('81.0a.0008'            # original unicast bvlci
+        registration_ack = xtob('81.00.0006.0000') # simple ack
+        unicast_pdu = xtob('81.0a.0008'            # original unicast bvlci
             'dead.beef'                             # PDU being unicast
             )
 
@@ -250,7 +246,7 @@ class TestForeign(unittest.TestCase):
         tnet = TNetwork()
 
         # make a broadcast pdu
-        pdu_data = xxtob('dead.beef')
+        pdu_data = xtob('dead.beef')
         pdu = PDU(pdu_data, destination=LocalBroadcast())
         if _debug: TestForeign._debug("    - pdu: %r", pdu)
 
@@ -280,11 +276,11 @@ class TestForeign(unittest.TestCase):
         tnet.append(remote_sniffer)
 
         # sniffer pieces
-        registration_request = xxtob('81.05.0006'   # bvlci
+        registration_request = xtob('81.05.0006'   # bvlci
             '003c'                                  # time-to-live (60)
             )
-        registration_ack = xxtob('81.00.0006.0000') # simple ack
-        distribute_pdu = xxtob('81.09.0008'         # bvlci
+        registration_ack = xtob('81.00.0006.0000') # simple ack
+        distribute_pdu = xtob('81.09.0008'         # bvlci
             'deadbeef'                              # PDU to broadcast
             )
 
