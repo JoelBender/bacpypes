@@ -11,10 +11,16 @@ import unittest
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from bacpypes.pdu import Address, LocalBroadcast, PDU
-from bacpypes.apdu import WhoIsRequest, IAmRequest, \
-    WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest
+from bacpypes.apdu import (
+    WhoIsRequest, IAmRequest,
+    WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
+#   DeviceCommunicationControlRequest,
+    )
 
-from bacpypes.service.device import WhoIsIAmServices, WhoHasIHaveServices
+from bacpypes.service.device import (
+    WhoIsIAmServices, WhoHasIHaveServices,
+#   DeviceCommunicationControlServices,
+    )
 
 from .helpers import ApplicationNetwork, ApplicationNode
 
