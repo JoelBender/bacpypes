@@ -13,13 +13,80 @@ from bacpypes.vlan import Network, Node
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
+from bacpypes.service.device import LocalDeviceObject
 
-from ..state_machine import StateMachine
+from ..state_machine import StateMachine, StateMachineGroup
+from ..time_machine import reset_time_machine, run_time_machine
 
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+
+#
+#   ApplicationNetwork
+#
+
+@bacpypes_debugging
+class ApplicationNetwork(StateMachineGroup):
+
+    def __init__(self):
+        if _debug: ApplicationNetwork._debug("__init__")
+        StateMachineGroup.__init__(self)
+
+        # reset the time machine
+        reset_time_machine()
+        if _debug: ApplicationNetwork._debug("    - time machine reset")
+
+        # make a little LAN
+        self.vlan = Network(broadcast_address=LocalBroadcast())
+
+        # test device object
+        td_device_object = LocalDeviceObject(
+            objectName="td",
+            objectIdentifier=("device", 10),
+            maxApduLengthAccepted=1024,
+            segmentationSupported='noSegmentation',
+            vendorIdentifier=999,
+            )
+
+        # test device
+        self.td = ApplicationNode(td_device_object, self.vlan)
+        self.append(self.td)
+
+        # implementation under test device object
+        iut_device_object = LocalDeviceObject(
+            objectName="iut",
+            objectIdentifier=("device", 20),
+            maxApduLengthAccepted=1024,
+            segmentationSupported='noSegmentation',
+            vendorIdentifier=999,
+            )
+
+        # implementation under test
+        self.iut = ApplicationNode(iut_device_object, self.vlan)
+        self.append(self.iut)
+
+    def run(self, time_limit=60.0):
+        if _debug: ApplicationNetwork._debug("run %r", time_limit)
+
+        # run the group
+        super(ApplicationNetwork, self).run()
+        if _debug: ApplicationNetwork._debug("    - group running")
+
+        # run it for some time
+        run_time_machine(time_limit)
+        if _debug:
+            ApplicationNetwork._debug("    - time machine finished")
+            for state_machine in self.state_machines:
+                ApplicationNetwork._debug("    - machine: %r", state_machine)
+                for direction, pdu in state_machine.transaction_log:
+                    ApplicationNetwork._debug("        %s %s", direction, str(pdu))
+
+        # check for success
+        all_success, some_failed = super(ApplicationNetwork, self).check_for_success()
+        assert all_success
 
 
 #
@@ -29,14 +96,16 @@ _log = ModuleLogger(globals())
 @bacpypes_debugging
 class SnifferNode(Client, StateMachine):
 
-    def __init__(self, localAddress, vlan):
-        if _debug: SnifferNode._debug("__init__ %r %r", localAddress, vlan)
+    def __init__(self, vlan):
+        if _debug: SnifferNode._debug("__init__ %r", vlan)
+
+        # save the name and give it a blank address
+        self.name = "sniffer"
+        self.address = Address()
+
+        # continue with initialization
         Client.__init__(self)
         StateMachine.__init__(self)
-
-        # save the name and address
-        self.name = "sniffer"
-        self.address = localAddress
 
         # create a promiscuous node, added to the network
         self.node = Node(self.address, vlan, promiscuous=True)
@@ -63,14 +132,16 @@ class SnifferNode(Client, StateMachine):
 @bacpypes_debugging
 class ApplicationNode(Application, StateMachine):
 
-    def __init__(self, localDevice, localAddress, vlan):
-        if _debug: ApplicationNode._debug("__init__ %r %r %r", localDevice, localAddress, vlan)
-        Application.__init__(self, localDevice, localAddress)
-        StateMachine.__init__(self)
+    def __init__(self, localDevice, vlan):
+        if _debug: ApplicationNode._debug("__init__ %r %r", localDevice, vlan)
 
         # save the name and address
         self.name = localDevice.objectName
-        self.address = localAddress
+        self.address = Address(localDevice.objectIdentifier[1])
+
+        # continue with initialization
+        Application.__init__(self, localDevice, self.address)
+        StateMachine.__init__(self)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
