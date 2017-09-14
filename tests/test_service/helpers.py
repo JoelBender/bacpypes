@@ -14,32 +14,12 @@ from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 
-from ..state_machine import StateMachine, ClientStateMachine
+from ..state_machine import StateMachine
 
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-#
-#   _repr
-#
-
-class _repr:
-
-    def __repr__(self):
-        if not self.running:
-            state_text = "idle "
-        else:
-            state_text = "in "
-        state_text += repr(self.current_state)
-
-        return "<%s(%s) %s at %s>" % (
-            self.__class__.__name__,
-            getattr(self, 'address', '?'),
-            state_text,
-            hex(id(self)),
-        )
 
 
 #
@@ -47,11 +27,12 @@ class _repr:
 #
 
 @bacpypes_debugging
-class SnifferNode(_repr, ClientStateMachine):
+class SnifferNode(Client, StateMachine):
 
     def __init__(self, localAddress, vlan):
         if _debug: SnifferNode._debug("__init__ %r %r", localAddress, vlan)
-        ClientStateMachine.__init__(self)
+        Client.__init__(self)
+        StateMachine.__init__(self)
 
         # save the name and address
         self.name = "sniffer"
@@ -64,31 +45,23 @@ class SnifferNode(_repr, ClientStateMachine):
         # bind this to the node
         bind(self, self.node)
 
+    def send(self, pdu):
+        if _debug: SnifferNode._debug("send(%s) %r", self.name, pdu)
+        raise RuntimeError("sniffers don't send")
 
-@bacpypes_debugging
-class ClientStateMachine(Client, StateMachine):
+    def confirmation(self, pdu):
+        if _debug: SnifferNode._debug("confirmation(%s) %r", self.name, pdu)
 
-    """
-    ClientStateMachine
-    ~~~~~~~~~~~~~~~~~~
+        # pass to the state machine
+        self.receive(pdu)
 
-    An instance of this class sits at the top of a stack.  PDU's that the
-    state machine sends are sent down the stack and PDU's coming up the
-    stack are fed as received PDU's.
-    """
-
-    def __init__(self):
-        if _debug: ClientStateMachine._debug("__init__")
-
-        Client.__init__(self)
-        StateMachine.__init__(self)
 
 #
 #   ApplicationNode
 #
 
 @bacpypes_debugging
-class ApplicationNode(_repr, Application, StateMachine):
+class ApplicationNode(Application, StateMachine):
 
     def __init__(self, localDevice, localAddress, vlan):
         if _debug: ApplicationNode._debug("__init__ %r %r %r", localDevice, localAddress, vlan)
@@ -126,11 +99,24 @@ class ApplicationNode(_repr, Application, StateMachine):
         # bind the network service to the node, no network number
         self.nsap.bind(self.node)
 
-    def send(self, pdu):
-        if _debug: ApplicationNode._debug("send %r", pdu)
-        self.request(pdu)
+    def send(self, apdu):
+        if _debug: ApplicationNode._debug("send(%s) %r", self.name, apdu)
 
-    def confirmation(self, pdu):
-        if _debug: ApplicationNode._debug("confirmation %r", pdu)
-        self.receive(pdu)
+        # send the apdu down the stack
+        self.request(apdu)
+
+    def indication(self, apdu):
+        if _debug: ApplicationNode._debug("indication(%s) %r", self.name, apdu)
+
+        # let the state machine know the request was received
+        self.receive(apdu)
+
+        # allow the application to process it
+        super(ApplicationNode, self).indication(apdu)
+
+    def confirmation(self, apdu):
+        if _debug: ApplicationNode._debug("confirmation(%s) %r", self.name, apdu)
+
+        # forward the confirmation to the state machine
+        self.receive(apdu)
 

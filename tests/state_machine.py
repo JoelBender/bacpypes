@@ -486,6 +486,10 @@ class StateMachine(object):
         self.states = []
         self.running = False
 
+        # flags for remembering success or fail
+        self.is_success_state = None
+        self.is_fail_state = None
+
         # might be part of a group
         self.machine_group = machine_group
 
@@ -557,6 +561,10 @@ class StateMachine(object):
         if self.running:
             raise RuntimeError("state machine running")
 
+        # flags for remembering success or fail
+        self.is_success_state = None
+        self.is_fail_state = None
+
         # no current state, empty transaction log
         self.current_state = None
         self.transaction_log = []
@@ -587,16 +595,16 @@ class StateMachine(object):
         # go to the start state
         self.goto_state(self.start_state)
 
+        # startup complete
+        self._startup_flag = False
+
         # if it is part of a group, let the group know
         if self.machine_group:
-            self.machine_group.running(self)
+            self.machine_group.started(self)
 
             # if it stopped already, let the group know
             if not self.running:
                 self.machine_group.stopped(self)
-
-        # startup complete
-        self._startup_flag = False
 
     def halt(self):
         """Called when the state machine should no longer be running."""
@@ -606,8 +614,8 @@ class StateMachine(object):
         if not self.running:
             raise RuntimeError("state machine not running")
 
-        # cancel the timeout
-        if self.timeout:
+        # cancel the timeout task
+        if self.timeout_task:
             if _debug: StateMachine._debug("    - cancel runtime limit")
             self.timeout_task.suspend_task()
 
@@ -618,9 +626,15 @@ class StateMachine(object):
         """Called when the state machine has successfully completed."""
         if _debug: StateMachine._debug("success(%s)", self.name)
 
+        # flags for remembering success or fail
+        self.is_success_state = True
+
     def fail(self):
         """Called when the state machine has failed."""
         if _debug: StateMachine._debug("fail(%s)", self.name)
+
+        # flags for remembering success or fail
+        self.is_fail_state = True
 
     def goto_state(self, state):
         if _debug: StateMachine._debug("goto_state(%s) %r", self.name, state)
@@ -785,19 +799,19 @@ class StateMachine(object):
     def receive(self, pdu):
         if _debug: StateMachine._debug("receive(%s) %r", self.name, pdu)
 
-        if not self.running:
-            if _debug: StateMachine._debug("    - not running")
-            return
-
-        # check to see if we are transitioning
-        if self.state_transitioning:
-            if _debug: StateMachine._debug("    - transitioning")
+        # check to see if haven't started yet or we are transitioning
+        if (not self.current_state) or self.state_transitioning:
+            if _debug: StateMachine._debug("    - queue for later")
 
             self.transition_queue.put(pdu)
             return
 
-        if not self.current_state:
-            raise RuntimeError("no current state")
+        # if this is not running it already completed
+        if not self.running:
+            if _debug: StateMachine._debug("    - already completed")
+            return
+
+        # reference the current state
         current_state = self.current_state
         if _debug: StateMachine._debug("    - current_state: %r", current_state)
 
@@ -819,10 +833,13 @@ class StateMachine(object):
                 next_state = transition.next_state
                 if _debug: StateMachine._debug("    - next_state: %r", next_state)
 
+                # a match was found, but by transitioning back to the
+                # current state, the pdu will not be "unexpectedly received"
+                # and there could be a subsequent match
                 if next_state is not current_state:
                     break
         else:
-            if _debug: StateMachine._debug("    - going nowhere")
+            if _debug: StateMachine._debug("    - no matches")
 
         if not match_found:
             if _debug: StateMachine._debug("    - unexpected")
@@ -918,17 +935,26 @@ class StateMachine(object):
         return match_pdu(pdu, pdu_type, **pdu_attrs)
 
     def __repr__(self):
-        if not self.running:
-            state_text = "idle "
+        if not self.current_state:
+            state_text = "not started"
+        elif self.is_success_state:
+            state_text = "success"
+        elif self.is_fail_state:
+            state_text = "fail"
+        elif not self.running:
+            state_text = "idle"
         else:
-            state_text = "in "
-        state_text += repr(self.current_state)
+            state_text = "in"
 
-        return "<%s %s at %s>" % (
+        if self.current_state:
+            state_text += " " + repr(self.current_state)
+
+        return "<%s(%s) %s at %s>" % (
             self.__class__.__name__,
+            self.name,
             state_text,
             hex(id(self)),
-        )
+            )
 
 
 @bacpypes_debugging
@@ -1050,7 +1076,7 @@ class StateMachineGroup(object):
 
         # pass along to each machine
         for state_machine in self.state_machines:
-            if _debug: StateMachineGroup._debug("    - running: %r", state_machine)
+            if _debug: StateMachineGroup._debug("    - starting: %r", state_machine)
             state_machine.run()
 
         # turn off the startup flag
@@ -1066,23 +1092,28 @@ class StateMachineGroup(object):
         else:
             if _debug: StateMachineGroup._debug("    - some still running")
 
-    def running(self, state_machine):
+    def started(self, state_machine):
         """Called by a state machine in the group when it has completed its
         transition into its starting state."""
-        if _debug: StateMachineGroup._debug("running %r", state_machine)
+        if _debug: StateMachineGroup._debug("started %r", state_machine)
 
     def stopped(self, state_machine):
         """Called by a state machine after it has halted and its success()
         or fail() method has been called."""
         if _debug: StateMachineGroup._debug("stopped %r", state_machine)
 
-        # if we are not starting up, check for success/fail
-        if not self._startup_flag:
-            all_success, some_failed = self.check_for_success()
-            if all_success:
-                self.success()
-            elif some_failed:
-                self.fail()
+        # if we are starting up try again later
+        if self._startup_flag:
+            if _debug: StateMachineGroup._debug("    - still starting up")
+            return
+
+        all_success, some_failed = self.check_for_success()
+        if all_success:
+            self.success()
+        elif some_failed:
+            self.fail()
+        else:
+            if _debug: StateMachineGroup._debug("    - some still running")
 
     def check_for_success(self):
         """Called after all of the machines have started, and each time a
@@ -1101,9 +1132,10 @@ class StateMachineGroup(object):
                 all_success = some_failed = None
                 break
 
-            # if there is no current state it was reset
+            # if there is no current state it hasn't started
             if not state_machine.current_state:
-                if _debug: StateMachineGroup._debug("    - no current state: %r", state_machine)
+                if _debug: StateMachineGroup._debug("    - not started: %r", state_machine)
+                all_success = some_failed = None
                 continue
 
             all_success = all_success and state_machine.current_state.is_success_state
@@ -1166,11 +1198,11 @@ class ClientStateMachine(Client, StateMachine):
         StateMachine.__init__(self)
 
     def send(self, pdu):
-        if _debug: ClientStateMachine._debug("send %r", pdu)
+        if _debug: ClientStateMachine._debug("send(%s) %r", self.name, pdu)
         self.request(pdu)
 
     def confirmation(self, pdu):
-        if _debug: ClientStateMachine._debug("confirmation %r", pdu)
+        if _debug: ClientStateMachine._debug("confirmation(%s) %r", self.name, pdu)
         self.receive(pdu)
 
 

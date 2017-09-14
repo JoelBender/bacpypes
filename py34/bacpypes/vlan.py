@@ -57,7 +57,7 @@ class Network:
         """ Process a PDU by sending a copy to each node as dictated by the
             addressing and if a node is promiscuous.
         """
-        if _debug: Network._debug("[%s]process_pdu %r", self.name, pdu)
+        if _debug: Network._debug("process_pdu(%s) %r", self.name, pdu)
 
         # randomly drop a packet
         if self.drop_percent != 0.0:
@@ -66,19 +66,20 @@ class Network:
                 return
 
         if pdu.pduDestination == self.broadcast_address:
-            for n in self.nodes:
-                if (pdu.pduSource != n.address):
-                    if _debug: Network._debug("    - match: %r", n)
-                    n.response(deepcopy(pdu))
+            if _debug: Network._debug("    - broadcast")
+            for node in self.nodes:
+                if (pdu.pduSource != node.address):
+                    if _debug: Network._debug("    - match: %r", node)
+                    node.response(deepcopy(pdu))
         else:
-            for n in self.nodes:
-                if n.promiscuous or (pdu.pduDestination == n.address):
-                    if _debug: Network._debug("    - match: %r", n)
-                    n.response(deepcopy(pdu))
+            if _debug: Network._debug("    - unicast")
+            for node in self.nodes:
+                if node.promiscuous or (pdu.pduDestination == node.address):
+                    if _debug: Network._debug("    - match: %r", node)
+                    node.response(deepcopy(pdu))
 
     def __len__(self):
         """ Simple way to determine the number of nodes in the network. """
-        if _debug: Network._debug("__len__")
         return len(self.nodes)
 
 #
@@ -115,7 +116,7 @@ class Node(Server):
 
     def indication(self, pdu):
         """Send a message."""
-        if _debug: Node._debug("[%s]indication %r", self.name, pdu)
+        if _debug: Node._debug("indication(%s) %r", self.name, pdu)
 
         # make sure we're connected
         if not self.lan:
@@ -130,6 +131,13 @@ class Node(Server):
 
         # actual network delivery is deferred
         deferred(self.lan.process_pdu, pdu)
+
+    def __repr__(self):
+        return "<%s(%s) at %s>" % (
+            self.__class__.__name__,
+            self.name,
+            hex(id(self)),
+            )
 
 
 #

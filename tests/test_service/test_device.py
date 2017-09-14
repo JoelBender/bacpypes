@@ -80,6 +80,7 @@ class TNetwork(StateMachineGroup):
 
         # run the group
         super(TNetwork, self).run()
+        if _debug: TNetwork._debug("    - group running")
 
         # run it for some time
         run_time_machine(time_limit)
