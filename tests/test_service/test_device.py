@@ -11,10 +11,16 @@ import unittest
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from bacpypes.pdu import Address, LocalBroadcast, PDU
-from bacpypes.apdu import WhoIsRequest, IAmRequest, \
-    WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest
+from bacpypes.apdu import (
+    WhoIsRequest, IAmRequest,
+    WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
+    DeviceCommunicationControlRequest,
+    )
 
-from bacpypes.service.device import WhoIsIAmServices, WhoHasIHaveServices
+from bacpypes.service.device import (
+    WhoIsIAmServices, WhoHasIHaveServices,
+    DeviceCommunicationControlServices,
+    )
 
 from .helpers import ApplicationNetwork, ApplicationNode
 
@@ -188,6 +194,32 @@ class TestWhoHasIHave(unittest.TestCase):
                 object=WhoHasObject(objectIdentifier=('device', 20)),
                 )).doc("6-1-1") \
             .receive(IHaveRequest, pduSource=anet.iut.address).doc("6-1-2") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+@bacpypes_debugging
+class TestDeviceCommunicationControl(unittest.TestCase):
+
+    def test_01(self):
+        """Test an unconstrained WhoIs, all devices respond."""
+        if _debug: TestDeviceCommunicationControl._debug("test_01")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # all start states are successful
+        anet.td.start_state.doc("7-1-0") \
+            .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("7-1-1") \
+            .receive(IAmRequest, pduSource=anet.iut.address).doc("7-1-2") \
             .success()
 
         # no IUT application layer matching
