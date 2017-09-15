@@ -229,9 +229,9 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         # run the group
         anet.run()
 
-    def test_turn_off_comm(self):
+    def test_disable(self):
         """Test."""
-        if _debug: TestDeviceCommunicationControl._debug("test_turn_off_comm")
+        if _debug: TestDeviceCommunicationControl._debug("test_disable")
 
         # create a network
         anet = ApplicationNetwork()
@@ -250,11 +250,79 @@ class TestDeviceCommunicationControl(unittest.TestCase):
             .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("7-2-3") \
             .timeout(10).doc("7-2-4") \
             .success()
-#           .receive(IAmRequest, pduSource=anet.iut.address).doc("7-2-4") \
 
         # no IUT application layer matching
         anet.iut.start_state.success()
 
         # run the group
         anet.run()
+
+    def test_disable_initiation(self):
+        """Test disabling initiation.  After the DCC request send the IUT
+        a WhoIsRequest and verify that the IAmRequest makes it back.
+        """
+        if _debug: TestDeviceCommunicationControl._debug("test_disable")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # test sequence
+        anet.td.start_state.doc("7-3-0") \
+            .send(DeviceCommunicationControlRequest(
+                destination=anet.iut.address,
+                enableDisable='disableInitiation',
+                )).doc("7-3-1") \
+            .receive(SimpleAckPDU).doc("7-3-2") \
+            .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("7-3-3") \
+            .receive(IAmRequest, pduSource=anet.iut.address).doc("7-3-4") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+    def test_disable_time_duration(self):
+        """Test disabling communication for a specific amount of time in
+        minutes.  After turning off communications, wait for 30 seconds and
+        send a request and nothing should come back.  Wait an additional 30
+        seconds and try again, this tim receiving the response."""
+        if _debug: TestDeviceCommunicationControl._debug("test_disable_time_duration")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # test sequence
+        anet.td.start_state.doc("7-4-0") \
+            .send(DeviceCommunicationControlRequest(
+                destination=anet.iut.address,
+                enableDisable='disable',
+                timeDuration=1,
+                )).doc("7-4-1") \
+            .receive(SimpleAckPDU).doc("7-4-2") \
+            .timeout(30).doc("7-4-3") \
+            .send(WhoIsRequest(
+                destination=anet.vlan.broadcast_address,
+                )).doc("7-4-4") \
+            .timeout(30).doc("7-4-5") \
+            .send(WhoIsRequest(
+                destination=anet.vlan.broadcast_address,
+                )).doc("7-4-6") \
+            .receive(IAmRequest, pduSource=anet.iut.address).doc("7-4-7") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group a little longer than a minute
+        anet.run(65)
 
