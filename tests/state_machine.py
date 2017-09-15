@@ -14,7 +14,7 @@ except ImportError:
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.comm import Client, Server
-from bacpypes.task import FunctionTask as _FunctionTask
+from bacpypes.task import OneShotTask
 
 # some debugging
 _debug = 0
@@ -100,6 +100,34 @@ def match_pdu(pdu, pdu_type=None, **pdu_attrs):
     if _debug: match_pdu._debug("    - successful_match")
 
     return True
+
+
+#
+#   TimeoutTask
+#
+
+@bacpypes_debugging
+class TimeoutTask(OneShotTask):
+
+    def __init__(self, fn, *args, **kwargs):
+        if _debug: TimeoutTask._debug("__init__ %r %r %r", fn, args, kwargs)
+        OneShotTask.__init__(self)
+
+        # save the function and args
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+    def process_task(self):
+        if _debug: TimeoutTask._debug("process_task %r", self.fn)
+        self.fn(*self.args, **self.kwargs)
+
+    def __repr__(self):
+        return "<%s of %r at %s>" % (
+            self.__class__.__name__,
+            self.fn,
+            hex(id(self)),
+        )
 
 
 #
@@ -526,13 +554,13 @@ class StateMachine(object):
         self.transition_queue = Queue()
 
         # create a state timeout task, to be installed as necessary
-        self.state_timeout_task = _FunctionTask(self.state_timeout)
+        self.state_timeout_task = TimeoutTask(self.state_timeout)
 
         # create a state machine timeout task
         self.timeout = timeout
         if timeout:
             self.timeout_state = self.new_state("state machine timeout").fail()
-            self.timeout_task = _FunctionTask(self.state_machine_timeout)
+            self.timeout_task = TimeoutTask(self.state_machine_timeout)
         else:
             self.timeout_state = None
             self.timeout_task = None
