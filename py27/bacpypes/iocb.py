@@ -764,7 +764,7 @@ class IOQController(IOController):
             task = FunctionTask(IOQController._wait_trigger, self)
             task.install_task(delay=self.wait_time)
 
-s        else:
+        else:
             # change our state
             self.state = CTRL_IDLE
             _statelog.debug("%s %s %s" % (_strftime(), self.name, "idle"))
