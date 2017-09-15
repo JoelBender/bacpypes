@@ -9,7 +9,7 @@ from heapq import heappop
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.core import run_once
+import bacpypes.core as _core
 from bacpypes.task import TaskManager as _TaskManager
 
 # some debugging
@@ -62,32 +62,35 @@ class TimeMachine(_TaskManager):
 
         _TaskManager.resume_task(self, task)
 
-    def peek_next_task(self):
+    def more_to_do(self):
         """Get the next task if there's one that should be processed."""
-        if _debug: TimeMachine._debug("peek_next_task @ %r", self.current_time)
+        if _debug: TimeMachine._debug("more_to_do @ %r", self.current_time)
+
+        # check if there are deferred functions
+        if _core.deferredFns:
+            if _debug: TimeMachine._debug("    - deferred functions")
+            return True
+
         if _debug: TimeMachine._debug("    - time_limit: %r", self.time_limit)
         if _debug: TimeMachine._debug("    - tasks: %r", self.tasks)
 
-        task = None
-
         if (self.time_limit is not None) and (self.current_time >= self.time_limit):
             if _debug: TimeMachine._debug("    - time limit reached")
+            return False
 
-        elif not self.tasks:
+        if not self.tasks:
             if _debug: TimeMachine._debug("    - no more tasks")
+            return False
 
-        else:
-            # peek at the next task and see when it is supposed to run
-            when, task = self.tasks[0]
-            if when >= self.time_limit:
-                if _debug: TimeMachine._debug("    - time limit reached")
+        # peek at the next task and see when it is supposed to run
+        when, task = self.tasks[0]
+        if when >= self.time_limit:
+            if _debug: TimeMachine._debug("    - time limit reached")
+            return False
+        if _debug: TimeMachine._debug("    - task: %r", task)
 
-                # clear out the task
-                task = None
-            else:
-                if _debug: TimeMachine._debug("    - task: %r", task)
-
-        return task
+        # there is a task to run
+        return True
 
     def get_next_task(self):
         """get the next task if there's one that should be processed,
@@ -179,10 +182,10 @@ def run_time_machine(time_limit):
 
     # run until there is nothing left to do
     while True:
-        run_once()
+        _core.run_once()
         if _debug: run_time_machine._debug("    - ran once")
 
-        if not time_machine.peek_next_task():
+        if not time_machine.more_to_do():
             if _debug: run_time_machine._debug("    - no more to do")
             break
 
