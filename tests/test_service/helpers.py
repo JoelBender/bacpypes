@@ -135,13 +135,13 @@ class ApplicationNode(Application, StateMachine):
     def __init__(self, localDevice, vlan):
         if _debug: ApplicationNode._debug("__init__ %r %r", localDevice, vlan)
 
-        # save the name and address
-        self.name = localDevice.objectName
+        # build an address and save it
         self.address = Address(localDevice.objectIdentifier[1])
+        if _debug: ApplicationNode._debug("    - address: %r", self.address)
 
         # continue with initialization
         Application.__init__(self, localDevice, self.address)
-        StateMachine.__init__(self)
+        StateMachine.__init__(self, name=localDevice.objectName)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
