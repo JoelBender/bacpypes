@@ -15,6 +15,7 @@ from bacpypes.apdu import (
     WhoIsRequest, IAmRequest,
     WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
     DeviceCommunicationControlRequest,
+    SimpleAckPDU,
     )
 
 from bacpypes.service.device import (
@@ -205,9 +206,9 @@ class TestWhoHasIHave(unittest.TestCase):
 @bacpypes_debugging
 class TestDeviceCommunicationControl(unittest.TestCase):
 
-    def test_01(self):
-        """Test an unconstrained WhoIs, all devices respond."""
-        if _debug: TestDeviceCommunicationControl._debug("test_01")
+    def test_default_behavior(self):
+        """Test."""
+        if _debug: TestDeviceCommunicationControl._debug("test_default_behavior")
 
         # create a network
         anet = ApplicationNetwork()
@@ -216,11 +217,40 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         anet.iut.add_capability(WhoIsIAmServices)
         anet.iut.add_capability(DeviceCommunicationControlServices)
 
-        # all start states are successful
+        # test sequence
         anet.td.start_state.doc("7-1-0") \
             .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("7-1-1") \
             .receive(IAmRequest, pduSource=anet.iut.address).doc("7-1-2") \
             .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+    def test_turn_off_comm(self):
+        """Test."""
+        if _debug: TestDeviceCommunicationControl._debug("test_turn_off_comm")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # test sequence
+        anet.td.start_state.doc("7-2-0") \
+            .send(DeviceCommunicationControlRequest(
+                destination=anet.iut.address,
+                enableDisable='disable',
+                )).doc("7-2-1") \
+            .receive(SimpleAckPDU).doc("7-2-2") \
+            .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("7-2-3") \
+            .timeout(10).doc("7-2-4") \
+            .success()
+#           .receive(IAmRequest, pduSource=anet.iut.address).doc("7-2-4") \
 
         # no IUT application layer matching
         anet.iut.start_state.success()
