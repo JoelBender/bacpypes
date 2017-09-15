@@ -86,7 +86,7 @@ class SSM(OneShotTask, DebugContents):
             self.suspend_task()
 
         # now install this
-        self.install_task(_time() + (msecs / 1000.0))
+        self.install_task(delta=msecs / 1000.0)
 
     def stop_timer(self):
         if _debug: SSM._debug("stop_timer")
@@ -105,7 +105,7 @@ class SSM(OneShotTask, DebugContents):
             self.suspend_task()
 
         # now install this
-        self.install_task(_time() + (msecs / 1000.0))
+        self.install_task(delta=msecs / 1000.0)
 
     def set_state(self, newState, timer=0):
         """This function is called when the derived class wants to change state."""
