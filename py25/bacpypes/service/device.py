@@ -381,6 +381,7 @@ class DeviceCommunicationControlServices(Capability):
         if _debug: DeviceCommunicationControlServices._debug("__init__")
         Capability.__init__(self)
 
+        # task to run if there is a time duration
         self._dcc_enable_task = None
 
     def do_DeviceCommunicationControlRequest(self, apdu):
@@ -391,11 +392,8 @@ class DeviceCommunicationControlServices(Capability):
                 raise ExecutionError(errorClass="security", errorCode="passwordFailure")
 
         if apdu.enableDisable == "enable":
-            if self._dcc_enable_task:
-                self._dcc_enable_task.suspend_task()
-                self._dcc_enable_task = None
-
             self.enable_communications()
+
         else:
             # disable or disableInitiation
             self.disable_communications(apdu.enableDisable)
@@ -404,6 +402,7 @@ class DeviceCommunicationControlServices(Capability):
             if apdu.timeDuration:
                 self._dcc_enable_task = FunctionTask(self.enable_communications)
                 self._dcc_enable_task.install_task(delta=apdu.timeDuration * 60)
+                if _debug: DeviceCommunicationControlServices._debug("    - enable scheduled")
 
         # respond with a simple ack
         self.response(SimpleAckPDU(context=apdu))
@@ -414,11 +413,21 @@ class DeviceCommunicationControlServices(Capability):
         # tell the State Machine Access Point
         self.smap.dccEnableDisable = 'enable'
 
+        # if an enable task was scheduled, cancel it
+        if self._dcc_enable_task:
+            self._dcc_enable_task.suspend_task()
+            self._dcc_enable_task = None
+
     def disable_communications(self, enable_disable):
         if _debug: DeviceCommunicationControlServices._debug("disable_communications %r", enable_disable)
 
         # tell the State Machine Access Point
         self.smap.dccEnableDisable = enable_disable
+
+        # if an enable task was scheduled, cancel it
+        if self._dcc_enable_task:
+            self._dcc_enable_task.suspend_task()
+            self._dcc_enable_task = None
 
 bacpypes_debugging(DeviceCommunicationControlServices)
 
