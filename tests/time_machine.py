@@ -42,29 +42,29 @@ class TimeMachine(_TaskManager):
         time_machine = self
 
     def get_time(self):
-        if _debug: TimeMachine._debug("get_time")
+        if _debug: TimeMachine._debug("get_time @ %r:", self.current_time)
 
         # return the fake time
         return self.current_time
 
     def install_task(self, task):
-        if _debug: TimeMachine._debug("install_task %r @ %r", task, task.taskTime)
+        if _debug: TimeMachine._debug("install_task @ %r: %r @ %r", self.current_time, task, task.taskTime)
 
         _TaskManager.install_task(self, task)
 
     def suspend_task(self, task):
-        if _debug: TimeMachine._debug("suspend_task %r", task)
+        if _debug: TimeMachine._debug("suspend_task @ %r: %r", self.current_time, task)
 
         _TaskManager.suspend_task(self, task)
 
     def resume_task(self, task):
-        if _debug: TimeMachine._debug("resume_task %r", task)
+        if _debug: TimeMachine._debug("resume_task @ %r: %r", self.current_time, task)
 
         _TaskManager.resume_task(self, task)
 
     def more_to_do(self):
         """Get the next task if there's one that should be processed."""
-        if _debug: TimeMachine._debug("more_to_do @ %r", self.current_time)
+        if _debug: TimeMachine._debug("more_to_do @ %r:", self.current_time)
 
         # check if there are deferred functions
         if _core.deferredFns:
@@ -96,7 +96,7 @@ class TimeMachine(_TaskManager):
         """get the next task if there's one that should be processed,
         and return how long it will be until the next one should be
         processed."""
-        if _debug: TimeMachine._debug("get_next_task @ %r", self.current_time)
+        if _debug: TimeMachine._debug("get_next_task @ %r:", self.current_time)
         if _debug: TimeMachine._debug("    - time_limit: %r", self.time_limit)
         if _debug: TimeMachine._debug("    - tasks: %r", self.tasks)
 
@@ -136,7 +136,7 @@ class TimeMachine(_TaskManager):
         return (task, delta)
 
     def process_task(self, task):
-        if _debug: TimeMachine._debug("process_task %r", task)
+        if _debug: TimeMachine._debug("process_task @ %r: %r", self.current_time, task)
 
         _TaskManager.process_task(self, task)
 
@@ -179,6 +179,10 @@ def run_time_machine(time_limit):
 
     # pass the limit to the time machine
     time_machine.time_limit = time_machine.current_time + time_limit
+
+    # check if there are deferred functions
+    if _core.deferredFns:
+        if _debug: run_time_machine._debug("    - deferred functions!")
 
     # run until there is nothing left to do
     while True:
