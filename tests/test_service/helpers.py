@@ -43,7 +43,7 @@ class ApplicationNetwork(StateMachineGroup):
         self.vlan = Network(broadcast_address=LocalBroadcast())
 
         # test device object
-        td_device_object = LocalDeviceObject(
+        self.td_device_object = LocalDeviceObject(
             objectName="td",
             objectIdentifier=("device", 10),
             maxApduLengthAccepted=1024,
@@ -52,11 +52,11 @@ class ApplicationNetwork(StateMachineGroup):
             )
 
         # test device
-        self.td = ApplicationNode(td_device_object, self.vlan)
+        self.td = ApplicationNode(self.td_device_object, self.vlan)
         self.append(self.td)
 
         # implementation under test device object
-        iut_device_object = LocalDeviceObject(
+        self.iut_device_object = LocalDeviceObject(
             objectName="iut",
             objectIdentifier=("device", 20),
             maxApduLengthAccepted=1024,
@@ -65,7 +65,7 @@ class ApplicationNetwork(StateMachineGroup):
             )
 
         # implementation under test
-        self.iut = ApplicationNode(iut_device_object, self.vlan)
+        self.iut = ApplicationNode(self.iut_device_object, self.vlan)
         self.append(self.iut)
 
     def run(self, time_limit=60.0):
