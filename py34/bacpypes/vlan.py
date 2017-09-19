@@ -12,9 +12,9 @@ from copy import deepcopy
 from .errors import ConfigurationError
 from .debugging import ModuleLogger, bacpypes_debugging
 
-from .core import deferred
 from .pdu import Address
 from .comm import Client, Server, bind
+from .task import OneShotFunction
 
 # some debugging
 _debug = 0
@@ -129,8 +129,8 @@ class Node(Server):
         elif (not self.spoofing) and (pdu.pduSource != self.address):
             raise RuntimeError("spoofing address conflict")
 
-        # actual network delivery is deferred
-        deferred(self.lan.process_pdu, pdu)
+        # actual network delivery is a zero-delay task
+        OneShotFunction(self.lan.process_pdu, pdu)
 
     def __repr__(self):
         return "<%s(%s) at %s>" % (
