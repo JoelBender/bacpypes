@@ -1073,7 +1073,7 @@ class Enumerated(Atomic):
             # convert it to a string if you can
             self.value = self._xlate_table.get(arg, arg)
 
-        elif isinstance(arg, str):
+        elif isinstance(arg, basestring):
             if arg not in self._xlate_table:
                 raise ValueError("undefined enumeration '%s'" % (arg,))
             self.value = arg
@@ -1088,7 +1088,7 @@ class Enumerated(Atomic):
     def get_long(self):
         if isinstance(self.value, (int, long)):
             return self.value
-        elif isinstance(self.value, str):
+        elif isinstance(self.value, basestring):
             return long(self._xlate_table[self.value])
         else:
             raise TypeError("%s is an invalid enumeration value datatype" % (type(self.value),))
@@ -1132,7 +1132,7 @@ class Enumerated(Atomic):
             value = long(self.value)
         elif isinstance(self.value, long):
             value = self.value
-        elif isinstance(self.value, str):
+        elif isinstance(self.value, basestring):
             value = self._xlate_table[self.value]
         else:
             raise TypeError("%s is an invalid enumeration value datatype" % (type(self.value),))
@@ -1170,7 +1170,7 @@ class Enumerated(Atomic):
         value is wrong for the enumeration, the encoding will fail.
         """
         return (isinstance(arg, (int, long)) and (arg >= 0)) or \
-            isinstance(arg, str)
+            isinstance(arg, basestring)
 
     def __str__(self):
         return "%s(%s)" % (self.__class__.__name__, self.value)
@@ -1607,7 +1607,7 @@ class ObjectIdentifier(Atomic):
             objType = self.objectTypeClass._xlate_table.get(objType, objType)
         elif isinstance(objType, long):
             objType = self.objectTypeClass._xlate_table.get(objType, int(objType))
-        elif isinstance(objType, str):
+        elif isinstance(objType, basestring):
             # make sure the type is known
             if objType not in self.objectTypeClass._xlate_table:
                 raise ValueError("unrecognized object type '%s'" % (objType,))
@@ -1629,7 +1629,7 @@ class ObjectIdentifier(Atomic):
             pass
         elif isinstance(objType, long):
             objType = int(objType)
-        elif isinstance(objType, str):
+        elif isinstance(objType, basestring):
             # turn it back into an integer
             objType = self.objectTypeClass()[objType]
         else:
@@ -1680,7 +1680,7 @@ class ObjectIdentifier(Atomic):
         # rip it apart
         objType, objInstance = self.value
 
-        if isinstance(objType, str):
+        if isinstance(objType, basestring):
             typestr = objType
         elif objType < 0:
             typestr = "Bad %d" % (objType,)

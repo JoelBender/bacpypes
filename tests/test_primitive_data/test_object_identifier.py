@@ -97,6 +97,12 @@ class TestObjectIdentifier(unittest.TestCase):
     def test_object_identifier_tuple(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_tuple")
 
+        obj = ObjectIdentifier(('analogInput', 0))
+        assert obj.value == ('analogInput', 0)
+
+        obj = ObjectIdentifier((u'analogInput', 0))
+        assert obj.value == (u'analogInput', 0)
+
         with self.assertRaises(ValueError):
             ObjectIdentifier((0, -1))
         with self.assertRaises(ValueError):
@@ -136,5 +142,7 @@ class TestObjectIdentifier(unittest.TestCase):
 
         # test standard types
         object_identifier_endec(('analogInput', 0), '00000000')
+        object_identifier_endec((u'analogInput', 0), '00000000')
 
         # test vendor types
+

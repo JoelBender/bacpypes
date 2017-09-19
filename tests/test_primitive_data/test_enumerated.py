@@ -18,6 +18,14 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
+class QuickBrownFox(Enumerated):
+    enumerations = {
+        'quick': 0,
+        'brown': 1,
+        'fox': 2,
+        }
+
+
 @bacpypes_debugging
 def enumerated_tag(x):
     """Convert a hex string to an enumerated application tag."""
@@ -92,6 +100,38 @@ class TestEnumerated(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Enumerated(-1)
+
+    def test_enumerated_str(self):
+        if _debug: TestEnumerated._debug("test_enumerated_str")
+
+        obj = QuickBrownFox('quick')
+        assert obj.value == 'quick'
+        assert str(obj) == "QuickBrownFox(quick)"
+
+        with self.assertRaises(ValueError):
+            QuickBrownFox(-1)
+        with self.assertRaises(ValueError):
+            QuickBrownFox('lazyDog')
+
+        tag = Tag(Tag.applicationTagClass, Tag.enumeratedAppTag, 1, xtob('01'))
+        obj = QuickBrownFox(tag)
+        assert obj.value == 'brown'
+
+    def test_enumerated_unicode(self):
+        if _debug: TestEnumerated._debug("test_enumerated_unicode")
+
+        obj = QuickBrownFox(u'quick')
+        assert obj.value == u'quick'
+        assert str(obj) == "QuickBrownFox(quick)"
+
+        with self.assertRaises(ValueError):
+            QuickBrownFox(-1)
+        with self.assertRaises(ValueError):
+            QuickBrownFox(u'lazyDog')
+
+        tag = Tag(Tag.applicationTagClass, Tag.enumeratedAppTag, 1, xtob('01'))
+        obj = QuickBrownFox(tag)
+        assert obj.value == u'brown'
 
     def test_enumerated_tag(self):
         if _debug: TestEnumerated._debug("test_enumerated_tag")
