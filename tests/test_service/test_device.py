@@ -15,7 +15,7 @@ from bacpypes.apdu import (
     WhoIsRequest, IAmRequest,
     WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
     DeviceCommunicationControlRequest,
-    SimpleAckPDU,
+    SimpleAckPDU, Error,
     )
 
 from bacpypes.service.device import (
@@ -291,7 +291,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         """Test disabling communication for a specific amount of time in
         minutes.  After turning off communications, wait for 30 seconds and
         send a request and nothing should come back.  Wait an additional 30
-        seconds and try again, this tim receiving the response."""
+        seconds and try again, this time receiving the response."""
         if _debug: TestDeviceCommunicationControl._debug("test_disable_time_duration")
 
         # create a network
@@ -313,7 +313,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
             .send(WhoIsRequest(
                 destination=anet.vlan.broadcast_address,
                 )).doc("7-4-4") \
-            .timeout(30).doc("7-4-5") \
+            .timeout(30.1).doc("7-4-5") \
             .send(WhoIsRequest(
                 destination=anet.vlan.broadcast_address,
                 )).doc("7-4-6") \
@@ -324,5 +324,70 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         anet.iut.start_state.success()
 
         # run the group a little longer than a minute
-        anet.run(65)
+        anet.run(61)
+
+    def test_correct_password(self):
+        """Test disabling communication that requires a password."""
+        if _debug: TestDeviceCommunicationControl._debug("test_correct_password")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # set the password
+        anet.iut_device_object._dcc_password = "xyzzy"
+
+        # test sequence
+        anet.td.start_state.doc("7-5-0") \
+            .send(DeviceCommunicationControlRequest(
+                destination=anet.iut.address,
+                timeDuration=1,
+                enableDisable='disable',
+                password="xyzzy",
+                )).doc("7-5-1") \
+            .receive(SimpleAckPDU).doc("7-5-2") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+    def test_incorrect_password(self):
+        """Test disabling communication that requires a password."""
+        if _debug: TestDeviceCommunicationControl._debug("test_incorrect_password")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # add the service capability to the IUT
+        anet.iut.add_capability(WhoIsIAmServices)
+        anet.iut.add_capability(DeviceCommunicationControlServices)
+
+        # set the password
+        anet.iut_device_object._dcc_password = "xyzzy"
+
+        # test sequence
+        anet.td.start_state.doc("7-6-0") \
+            .send(DeviceCommunicationControlRequest(
+                destination=anet.iut.address,
+                timeDuration=1,
+                enableDisable='disable',
+                password="plugh",
+                )).doc("7-6-1") \
+            .receive(Error,
+                errorClass='security',
+                errorCode='passwordFailure',
+                ).doc("7-6-2") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
 
