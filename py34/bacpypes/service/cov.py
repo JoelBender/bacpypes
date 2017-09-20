@@ -317,6 +317,7 @@ class AccessDoorCriteria(COVDetection):
         'doorAlarmState',
         )
 
+
 class AccessPointCriteria(COVDetection):
 
     properties_tracked = (
@@ -333,6 +334,7 @@ class AccessPointCriteria(COVDetection):
         )
     monitored_property_reference = 'accessEvent'
 
+
 class CredentialDataInputCriteria(COVDetection):
 
     properties_tracked = (
@@ -344,6 +346,7 @@ class CredentialDataInputCriteria(COVDetection):
         'statusFlags',
         'updateTime',
         )
+
 
 class LoadControlCriteria(COVDetection):
 
@@ -364,6 +367,7 @@ class LoadControlCriteria(COVDetection):
         'dutyWindow',
         )
 
+
 class PulseConverterCriteria(COVDetection):
 
     properties_tracked = (
@@ -374,6 +378,7 @@ class PulseConverterCriteria(COVDetection):
         'presentValue',
         'statusFlags',
         )
+
 
 # mapping from object type to appropriate criteria class
 criteria_type_map = {

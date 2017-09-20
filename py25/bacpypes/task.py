@@ -135,7 +135,7 @@ def OneShotFunction(fn, *args, **kwargs):
     if not _task_manager:
         _unscheduled_tasks.append(task)
     else:
-        task.install_task(_task_manager.get_time())
+        task.install_task(delta=0)
 
     return task
 

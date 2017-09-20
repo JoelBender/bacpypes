@@ -11,7 +11,7 @@ from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 from .comm import Client, ServiceAccessPoint, ApplicationServiceElement
 from .task import OneShotTask
 
-from .pdu import Address, LocalStation, RemoteStation
+from .pdu import Address
 from .apdu import AbortPDU, AbortReason, ComplexAckPDU, \
     ConfirmedRequestPDU, Error, ErrorPDU, RejectPDU, SegmentAckPDU, \
     SimpleAckPDU, UnconfirmedRequestPDU, apdu_types, \
@@ -86,7 +86,7 @@ class SSM(OneShotTask, DebugContents):
             self.suspend_task()
 
         # now install this
-        self.install_task(_time() + (msecs / 1000.0))
+        self.install_task(delta=msecs / 1000.0)
 
     def stop_timer(self):
         if _debug: SSM._debug("stop_timer")
@@ -105,7 +105,7 @@ class SSM(OneShotTask, DebugContents):
             self.suspend_task()
 
         # now install this
-        self.install_task(_time() + (msecs / 1000.0))
+        self.install_task(delta=msecs / 1000.0)
 
     def set_state(self, newState, timer=0):
         """This function is called when the derived class wants to change state."""
@@ -1081,6 +1081,9 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         self.segmentTimeout = 1500
         self.maxSegmentsAccepted = 8
 
+        # device communication control
+        self.dccEnableDisable = 'enable'
+
         # local device object provides these
         if localDevice:
             self.retryCount = localDevice.numberOfApduRetries
@@ -1118,6 +1121,22 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
     def confirmation(self, pdu):
         """Packets coming up the stack are APDU's."""
         if _debug: StateMachineAccessPoint._debug("confirmation %r", pdu)
+
+        # check device communication control
+        if self.dccEnableDisable == 'enable':
+            if _debug: StateMachineAccessPoint._debug("    - communications enabled")
+        elif self.dccEnableDisable == 'disable':
+            if (pdu.apduType == 0) and (pdu.apduService == 17):
+                if _debug: StateMachineAccessPoint._debug("    - continue with DCC request")
+            elif (pdu.apduType == 0) and (pdu.apduService == 20):
+                if _debug: StateMachineAccessPoint._debug("    - continue with reinitialize device")
+            elif (pdu.apduType == 1) and (pdu.apduService == 8):
+                if _debug: StateMachineAccessPoint._debug("    - continue with Who-Is")
+            else:
+                if _debug: StateMachineAccessPoint._debug("    - not a Who-Is, dropped")
+                return
+        elif self.dccEnableDisable == 'disableInitiation':
+            if _debug: StateMachineAccessPoint._debug("    - initiation disabled")
 
         # make a more focused interpretation
         atype = apdu_types.get(pdu.apduType)
@@ -1216,6 +1235,23 @@ class StateMachineAccessPoint(Client, ServiceAccessPoint):
         """This function is called when the application is requesting
         a new transaction as a client."""
         if _debug: StateMachineAccessPoint._debug("sap_indication %r", apdu)
+
+        # check device communication control
+        if self.dccEnableDisable == 'enable':
+            if _debug: StateMachineAccessPoint._debug("    - communications enabled")
+
+        elif self.dccEnableDisable == 'disable':
+            if _debug: StateMachineAccessPoint._debug("    - communications disabled")
+            return
+
+        elif self.dccEnableDisable == 'disableInitiation':
+            if _debug: StateMachineAccessPoint._debug("    - initiation disabled")
+
+            if (apdu.apduType == 1) and (apdu.apduService == 0):
+                if _debug: StateMachineAccessPoint._debug("    - continue with I-Am")
+            else:
+                if _debug: StateMachineAccessPoint._debug("    - not an I-Am")
+                return
 
         if isinstance(apdu, UnconfirmedRequestPDU):
             # deliver to the device

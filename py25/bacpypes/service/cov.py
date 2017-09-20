@@ -304,7 +304,7 @@ class COVIncrementCriteria(COVDetection):
         # continue
         COVDetection.send_cov_notifications(self)
 
-bacpypes_debugging(COVIncrementCriteria)
+bacpypes_debugging(COVDetection)
 
 
 class AccessDoorCriteria(COVDetection):

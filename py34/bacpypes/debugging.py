@@ -5,6 +5,7 @@ Debugging
 """
 
 import sys
+import re
 import logging
 import binascii
 from io import StringIO
@@ -40,9 +41,8 @@ def btox(data, sep=''):
 
 def xtob(data, sep=''):
     """Interpret the hex encoding of a blob (byte string)."""
-    # if there is a separator, remove it
-    if sep:
-        data = ''.join(data.split(sep))
+    # remove the non-hex characters
+    data = re.sub("[^0-9a-fA-F]", '', data)
 
     # interpret the hex
     return binascii.unhexlify(data)

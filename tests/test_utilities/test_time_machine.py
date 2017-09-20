@@ -69,8 +69,8 @@ class SampleOneShotTask(OneShotTask):
         self.process_task_called = []
 
     def process_task(self):
-        if _debug: SampleOneShotTask._debug("process_task @ %r", time_machine.current_time)
         global time_machine
+        if _debug: SampleOneShotTask._debug("process_task @ %r", time_machine.current_time)
 
         # add the current time
         self.process_task_called.append(time_machine.current_time)
@@ -81,8 +81,8 @@ sample_task_function_called = []
 
 @bacpypes_debugging
 def sample_task_function(*args, **kwargs):
-    if _debug: sample_task_function._debug("sample_task_function %r %r @ %r", args, kwargs, time_machine.current_time)
     global sample_task_function_called, time_machine
+    if _debug: sample_task_function._debug("sample_task_function %r %r @ %r", args, kwargs, time_machine.current_time)
 
     # bump the counter
     sample_task_function_called.append(time_machine.current_time)
@@ -98,8 +98,8 @@ class SampleRecurringTask(RecurringTask):
         self.process_task_called = []
 
     def process_task(self):
-        if _debug: SampleRecurringTask._debug("process_task @ %r", time_machine.current_time)
         global time_machine
+        if _debug: SampleRecurringTask._debug("process_task @ %r", time_machine.current_time)
 
         # add the current time
         self.process_task_called.append(time_machine.current_time)
