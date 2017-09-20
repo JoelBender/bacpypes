@@ -36,7 +36,7 @@ class CurrentDateProperty(Property):
         now.now()
         return now.value
 
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
@@ -58,7 +58,7 @@ class CurrentTimeProperty(Property):
         now.now()
         return now.value
 
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
