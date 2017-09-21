@@ -744,6 +744,11 @@ class WhatIsNetworkNumber(NPDU):
 
     messageType = 0x12
 
+    def __init__(self, *args, **kwargs):
+        super(WhatIsNetworkNumber, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = WhatIsNetworkNumber.messageType
+
     def encode(self, npdu):
         NPCI.update(npdu, self)
 
@@ -764,9 +769,16 @@ register_npdu_type(WhatIsNetworkNumber)
 
 class NetworkNumberIs(NPDU):
 
-    _debug_contents = ('nniNET', 'nniFlag',)
+    _debug_contents = ('nniNet', 'nniFlag',)
 
     messageType = 0x13
+
+    def __init__(self, net=None, flag=None, *args, **kwargs):
+        super(NetworkNumberIs, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = NetworkNumberIs.messageType
+        self.nniNet = net
+        self.nniFlag = flag
 
     def encode(self, npdu):
         NPCI.update(npdu, self)

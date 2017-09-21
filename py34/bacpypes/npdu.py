@@ -741,6 +741,11 @@ class WhatIsNetworkNumber(NPDU):
 
     messageType = 0x12
 
+    def __init__(self, *args, **kwargs):
+        super(WhatIsNetworkNumber, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = WhatIsNetworkNumber.messageType
+
     def encode(self, npdu):
         NPCI.update(npdu, self)
 
@@ -761,25 +766,32 @@ register_npdu_type(WhatIsNetworkNumber)
 
 class NetworkNumberIs(NPDU):
 
-    _debug_contents = ('nniNET', 'nniFlag',)
+    _debug_contents = ('nniNet', 'nniFlag',)
 
     messageType = 0x13
 
+    def __init__(self, net=None, flag=None, *args, **kwargs):
+        super(NetworkNumberIs, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = NetworkNumberIs.messageType
+        self.nniNet = net
+        self.nniFlag = flag
+
     def encode(self, npdu):
         NPCI.update(npdu, self)
-        npdu.put_short( self.nniNET )
+        npdu.put_short( self.nniNet )
         npdu.put( self.nniFlag )
 
     def decode(self, npdu):
         NPCI.update(self, npdu)
-        self.nniNET = npdu.get_short()
+        self.nniNet = npdu.get_short()
         self.nniFlag = npdu.get()
 
     def npdu_contents(self, use_dict=None, as_class=dict):
         return key_value_contents(use_dict=use_dict, as_class=as_class,
             key_values=(
                 ('function', 'NetorkNumberIs'),
-                ('net', self.nniNET),
+                ('net', self.nniNet),
                 ('flag', self.nniFlag),
             ))
 
