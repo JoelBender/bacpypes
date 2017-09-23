@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-Test NPDU Encoding and Decoding
--------------------------------
+Test Network Discovery
+----------------------
+
+The TD is on network 1 with sniffer1, network 2 has sniffer2, network 3 has
+sniffer3.  All three networks are connected to one IUT router.
 """
 
 import unittest
@@ -48,6 +51,9 @@ class TNetwork(StateMachineGroup):
         reset_time_machine()
         if _debug: TNetwork._debug("    - time machine reset")
 
+        # implementation under test
+        self.iut = RouterNode()
+
         # make a little LAN
         self.vlan1 = Network(name="vlan1", broadcast_address=LocalBroadcast())
 
@@ -59,19 +65,28 @@ class TNetwork(StateMachineGroup):
         self.sniffer1 = SnifferNode("2", self.vlan1)
         self.append(self.sniffer1)
 
+        # add the network
+        self.iut.add_network("3", self.vlan1, 1)
+
         # make another little LAN
         self.vlan2 = Network(name="vlan2", broadcast_address=LocalBroadcast())
 
         # sniffer node
-        self.sniffer2 = SnifferNode("3", self.vlan2)
+        self.sniffer2 = SnifferNode("4", self.vlan2)
         self.append(self.sniffer2)
 
-        # implementation under test
-        self.iut = RouterNode()
-
-        # add the networks
-        self.iut.add_network("4", self.vlan1, 1)
+        # add the network
         self.iut.add_network("5", self.vlan2, 2)
+
+        # make another little LAN
+        self.vlan3 = Network(name="vlan3", broadcast_address=LocalBroadcast())
+
+        # sniffer node
+        self.sniffer3 = SnifferNode("6", self.vlan3)
+        self.append(self.sniffer3)
+
+        # add the network
+        self.iut.add_network("7", self.vlan3, 3)
 
     def run(self, time_limit=60.0):
         if _debug: TNetwork._debug("run %r", time_limit)
@@ -107,6 +122,7 @@ class TestSimple(unittest.TestCase):
         tnet.td.start_state.success()
         tnet.sniffer1.start_state.success()
         tnet.sniffer2.start_state.success()
+        tnet.sniffer3.start_state.success()
 
         # run the group
         tnet.run()
@@ -122,21 +138,38 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
         # create a network
         tnet = TNetwork()
 
-        # all start states are successful
+        # test device sends request, sees response
         tnet.td.start_state.doc("1-1-0") \
             .send(WhoIsRouterToNetwork(
                 destination=LocalBroadcast(),
                 )).doc("1-1-1") \
             .receive(IAmRouterToNetwork,
-                iartnNetworkList=[2],
+                iartnNetworkList=[2, 3],
                 ).doc("1-1-2") \
             .success()
 
-        tnet.sniffer1.start_state.success()
+        # sniffer on network 1 sees the request and the response
+        tnet.sniffer1.start_state.doc("1-2-0") \
+            .receive(PDU,
+                pduData=xtob('01.80'        # version, network layer
+                    '00'                    # message type, no network
+                    )
+                ).doc("1-2-1") \
+            .receive(PDU,
+                pduData=xtob('01.80'        # version, network layer
+                    '01 0002 0003'          # message type and network list
+                    )
+                ).doc("1-2-2") \
+            .success()
 
         # nothing received on network 2
-        tnet.sniffer2.start_state.doc("1-2-0") \
-            .timeout(3).doc("1-2-1") \
+        tnet.sniffer2.start_state.doc("1-3-0") \
+            .timeout(3).doc("1-3-1") \
+            .success()
+
+        # nothing received on network 3
+        tnet.sniffer3.start_state.doc("1-4-0") \
+            .timeout(3).doc("1-4-1") \
             .success()
 
         # run the group
@@ -166,6 +199,8 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
             .timeout(3).doc("2-2-1") \
             .success()
 
+        tnet.sniffer3.start_state.success()
+
         # run the group
         tnet.run()
 
@@ -178,7 +213,7 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
 
         # send request, receive nothing back
         tnet.td.start_state.doc("3-1-0") \
-            .send(WhoIsRouterToNetwork(3,
+            .send(WhoIsRouterToNetwork(4,
                 destination=LocalBroadcast(),
                 )).doc("3-1-1") \
             .timeout(3).doc("3-1-2") \
@@ -188,7 +223,7 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
         tnet.sniffer1.start_state.doc("3-2-0") \
             .receive(PDU,
                 pduData=xtob('01.80'        # version, network layer
-                    '00 0003'               # message type and network
+                    '00 0004'               # message type and network
                     )
                 ).doc("3-2-1") \
             .success()
@@ -198,10 +233,12 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
             .receive(PDU,
                 pduData=xtob('01.88'        # version, network layer, routed
                     '0001 01 01'            # snet/slen/sadr
-                    '00 0003'               # message type and network
+                    '00 0004'               # message type and network
                     ),
                 ).doc("3-3-1") \
             .success()
+
+        tnet.sniffer3.start_state.success()
 
         # run the group
         tnet.run()
