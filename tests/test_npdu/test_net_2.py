@@ -27,8 +27,8 @@ from bacpypes.npdu import (
     WhatIsNetworkNumber, NetworkNumberIs,
     )
 
-from ..state_machine import match_pdu, StateMachineGroup
-from ..time_machine import reset_time_machine, run_time_machine, current_time
+from ..state_machine import match_pdu, StateMachineGroup, TrafficLog
+from ..time_machine import reset_time_machine, run_time_machine
 
 from .helpers import SnifferNode, NetworkLayerNode, RouterNode
 
@@ -36,32 +36,6 @@ from .helpers import SnifferNode, NetworkLayerNode, RouterNode
 _debug = 0
 _log = ModuleLogger(globals())
 
-
-#
-#   TrafficLog
-#
-
-@bacpypes_debugging
-class TrafficLog:
-
-    def __init__(self):
-        """Initialize with no traffic."""
-        self.traffic = []
-
-    def __call__(self, *args):
-        """Capture the current time and the arguments."""
-        self.traffic.append((current_time(),) + args)
-
-    def dump(self):
-        """Dump the traffic."""
-        for args in self.traffic:
-            arg_format = "   %6.3f:"
-            for arg in args[1:]:
-                if hasattr(arg, 'debug_contents'):
-                    arg_format += " %r"
-                else:
-                    arg_format += " %s"
-            TrafficLog._debug(arg_format, *args)
 
 #
 #   TNetwork
@@ -87,7 +61,7 @@ class TNetwork(StateMachineGroup):
 
         # make a little LAN
         self.vlan1 = Network(name="vlan1", broadcast_address=LocalBroadcast())
-        self.vlan1._sniffer = self.traffic_log
+        self.vlan1.traffic_log = self.traffic_log
 
         # test device
         self.td = NetworkLayerNode("1", self.vlan1)
@@ -102,7 +76,7 @@ class TNetwork(StateMachineGroup):
 
         # make another little LAN
         self.vlan2 = Network(name="vlan2", broadcast_address=LocalBroadcast())
-        self.vlan2._sniffer = self.traffic_log
+        self.vlan2.traffic_log = self.traffic_log
 
         # sniffer node
         self.sniffer2 = SnifferNode("4", self.vlan2)
@@ -114,7 +88,7 @@ class TNetwork(StateMachineGroup):
 
         # make another little LAN
         self.vlan3 = Network(name="vlan3", broadcast_address=LocalBroadcast())
-        self.vlan3._sniffer = self.traffic_log
+        self.vlan3.traffic_log = self.traffic_log
 
         # sniffer node
         self.sniffer3 = SnifferNode("7", self.vlan3)
@@ -133,11 +107,17 @@ class TNetwork(StateMachineGroup):
         run_time_machine(time_limit)
         if _debug:
             TNetwork._debug("    - time machine finished")
+
+            # list the state machines which shows their current state
             for state_machine in self.state_machines:
                 TNetwork._debug("    - machine: %r", state_machine)
+
+                # each one has a list of sent/received pdus
                 for direction, pdu in state_machine.transaction_log:
                     TNetwork._debug("        %s %s", direction, str(pdu))
-            self.traffic_log.dump()
+
+            # traffic log has what was processed on each vlan
+            self.traffic_log.dump(TNetwork._debug)
 
         # check for success
         all_success, some_failed = super(TNetwork, self).check_for_success()
