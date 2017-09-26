@@ -35,8 +35,8 @@ class Network:
         self.broadcast_address = broadcast_address
         self.drop_percent = drop_percent
 
-        # hidden sniffer function
-        self._sniffer = None
+        # point to a TrafficLog instance
+        self.traffic_log = None
 
     def add_node(self, node):
         """ Add a node to this network, let the node know which network it's on. """
@@ -62,9 +62,9 @@ class Network:
         """
         if _debug: Network._debug("process_pdu(%s) %r", self.name, pdu)
 
-        # if there is a sniffer, call it with the network name and pdu
-        if self._sniffer:
-            self._sniffer(self.name, pdu)
+        # if there is a traffic log, call it with the network name and pdu
+        if self.traffic_log:
+            self.traffic_log(self.name, pdu)
 
         # randomly drop a packet
         if self.drop_percent != 0.0:
