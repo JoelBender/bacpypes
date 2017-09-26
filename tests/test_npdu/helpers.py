@@ -66,32 +66,11 @@ class NPDUCodec(Client, Server):
 
 
 #
-#   _repr
-#
-
-class _repr:
-
-    def __repr__(self):
-        if not self.running:
-            state_text = "idle "
-        else:
-            state_text = "in "
-        state_text += repr(self.current_state)
-
-        return "<%s(%s) %s at %s>" % (
-            self.__class__.__name__,
-            getattr(self, 'address', '?'),
-            state_text,
-            hex(id(self)),
-        )
-
-
-#
 #   SnifferNode
 #
 
 @bacpypes_debugging
-class SnifferNode(_repr, ClientStateMachine):
+class SnifferNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: SnifferNode._debug("__init__ %r %r", address, vlan)
@@ -113,7 +92,7 @@ class SnifferNode(_repr, ClientStateMachine):
 #
 
 @bacpypes_debugging
-class NetworkLayerNode(_repr, ClientStateMachine):
+class NetworkLayerNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: NetworkLayerNode._debug("__init__ %r %r", address, vlan)
@@ -169,7 +148,7 @@ class RouterNode:
 #
 
 @bacpypes_debugging
-class ApplicationNode(_repr, Application, ClientStateMachine):
+class ApplicationNode(Application, ClientStateMachine):
 
     def __init__(self, localDevice, vlan):
         if _debug: ApplicationNode._debug("__init__ %r %r", address, vlan)
