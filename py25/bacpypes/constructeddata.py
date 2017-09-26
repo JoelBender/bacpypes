@@ -600,6 +600,11 @@ def ArrayOf(klass):
             # not found
             raise ValueError("%r not in array" % (value,))
 
+        def remove(self, item):
+            # find the index of the item and delete it
+            indx = self.index(item)
+            self.__delitem__(indx)
+
         def encode(self, taglist):
             if _debug: ArrayOf._debug("(%r)encode %r", self.__class__.__name__, taglist)
 
