@@ -135,7 +135,7 @@ def OneShotFunction(fn, *args, **kwargs):
     if not _task_manager:
         _unscheduled_tasks.append(task)
     else:
-        task.install_task(_task_manager.get_time())
+        task.install_task(delta=0)
 
     return task
 
@@ -183,7 +183,8 @@ class RecurringTask(_Task):
         if interval is not None:
             self.taskInterval = interval
         if offset is not None:
-            self.taskIntervalOffset = interval
+            self.taskIntervalOffset = offset
+
         if self.taskInterval is None:
             raise RuntimeError("interval unset, use ctor or install_task parameter")
         if self.taskInterval <= 0.0:
@@ -195,15 +196,18 @@ class RecurringTask(_Task):
             _unscheduled_tasks.append(self)
 
         else:
-            # offset is also in milliseconds to be consistent
+            # get ready for the next interval plus a jitter
+            now = _task_manager.get_time() + 0.000001
+
+            # interval and offset are in milliseconds to be consistent
+            interval = self.taskInterval / 1000.0
             if self.taskIntervalOffset:
                 offset = self.taskIntervalOffset / 1000.0
             else:
                 offset = 0.0
+            if _debug: RecurringTask._debug("    - now, interval, offset: %r, %r, %r", now, interval, offset)
 
-            # get ready for the next interval (aligned)
-            now = _task_manager.get_time()
-            interval = self.taskInterval / 1000.0
+            # compute the time
             self.taskTime = (now - offset) + interval - ((now - offset) % interval) + offset
             if _debug: RecurringTask._debug("    - task time: %r", self.taskTime)
 

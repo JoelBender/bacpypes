@@ -73,7 +73,7 @@ _identLock = threading.Lock()
 @bacpypes_debugging
 class IOCB(DebugContents):
 
-    _debugContents = \
+    _debug_contents = \
         ( 'args', 'kwargs'
         , 'ioState', 'ioResponse-', 'ioError'
         , 'ioController', 'ioServerRef', 'ioControllerRef', 'ioClientID', 'ioClientAddr'
@@ -209,7 +209,7 @@ class IOCB(DebugContents):
             self.ioTimeout = FunctionTask(self.abort, err)
 
         # (re)schedule it
-        self.ioTimeout.install_task(_time() + delay)
+        self.ioTimeout.install_task(delay=delay)
 
     def __repr__(self):
         xid = id(self)
@@ -227,7 +227,7 @@ class IOCB(DebugContents):
 @bacpypes_debugging
 class IOChainMixIn(DebugContents):
 
-    _debugContents = ( 'ioChain++', )
+    _debug_contents = ( 'ioChain++', )
 
     def __init__(self, iocb):
         if _debug: IOChainMixIn._debug("__init__ %r", iocb)
@@ -364,7 +364,7 @@ class IOChain(IOCB, IOChainMixIn):
 @bacpypes_debugging
 class IOGroup(IOCB, DebugContents):
 
-    _debugContents = ('ioMembers',)
+    _debug_contents = ('ioMembers',)
 
     def __init__(self):
         """Initialize a group."""
@@ -699,7 +699,7 @@ class IOQController(IOController):
 
         # if we're busy, queue it
         if (self.state != CTRL_IDLE):
-            if _debug: IOQController._debug("    - busy, request queued")
+            if _debug: IOQController._debug("    - busy, request queued, active_iocb: %r", self.active_iocb)
 
             iocb.ioState = PENDING
             self.ioQueue.put(iocb)
@@ -714,6 +714,7 @@ class IOQController(IOController):
         except:
             # extract the error
             err = sys.exc_info()[1]
+            if _debug: IOQController._debug("    - process_io() exception: %r", err)
 
         # if there was an error, abort the request
         if err:
@@ -761,7 +762,7 @@ class IOQController(IOController):
 
             # schedule a call in the future
             task = FunctionTask(IOQController._wait_trigger, self)
-            task.install_task(_time() + self.wait_time)
+            task.install_task(delay=self.wait_time)
 
         else:
             # change our state
@@ -865,7 +866,7 @@ class ClientController(Client, IOQController):
         self.request(iocb.args[0])
 
     def confirmation(self, pdu):
-        if _debug: ClientController._debug("confirmation %r %r", args, kwargs)
+        if _debug: ClientController._debug("confirmation %r", pdu)
 
         # make sure it has an active iocb
         if not self.active_iocb:
@@ -909,13 +910,18 @@ class SieveQueue(IOQController):
 @bacpypes_debugging
 class SieveClientController(Client, IOController):
 
-    def __init__(self):
+    def __init__(self, queue_class=SieveQueue):
         if _debug: SieveClientController._debug("__init__")
         Client.__init__(self)
         IOController.__init__(self)
 
+        # make sure it's the correct class
+        if not issubclass(queue_class, SieveQueue):
+            raise TypeError("queue class must be a subclass of SieveQueue")
+
         # queues for each address
         self.queues = {}
+        self.queue_class = queue_class
 
     def process_io(self, iocb):
         if _debug: SieveClientController._debug("process_io %r", iocb)
@@ -928,7 +934,7 @@ class SieveClientController(Client, IOController):
         queue = self.queues.get(destination_address, None)
         if not queue:
             if _debug: SieveClientController._debug("    - new queue")
-            queue = SieveQueue(self.request, destination_address)
+            queue = self.queue_class(self.request, destination_address)
             self.queues[destination_address] = queue
         if _debug: SieveClientController._debug("    - queue: %r", queue)
 

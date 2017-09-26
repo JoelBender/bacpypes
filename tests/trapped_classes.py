@@ -122,20 +122,23 @@ class TrappedStateMachine(Trapper, StateMachine):
     throw an exception.
     """
 
+    def __init__(self, **kwargs):
+        """Initialize a trapped state machine."""
+        if _debug: TrappedStateMachine._debug("__init__ %r", kwargs)
+
+        # provide a default state subclass
+        if 'state_subclass' not in kwargs:
+            kwargs['state_subclass'] = TrappedState
+
+        # pass them all along
+        super(TrappedStateMachine, self).__init__(**kwargs)
+
     def send(self, pdu):
-        """Called to send a PDU.
-        """
+        """Called to send a PDU."""
         if _debug: TrappedStateMachine._debug("send %r", pdu)
 
         # keep a copy
         self.sent = pdu
-
-    def match_pdu(self, pdu, transition_pdu):
-        """Very strong match condition."""
-        if _debug: TrappedStateMachine._debug("match_pdu %r %r", pdu, transition_pdu)
-
-        # must be identical objects
-        return pdu is transition_pdu
 
 
 @bacpypes_debugging

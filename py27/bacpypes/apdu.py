@@ -1486,9 +1486,9 @@ register_confirmed_request_type(RemoveListElementRequest)
 
 class DeviceCommunicationControlRequestEnableDisable(Enumerated):
     enumerations = \
-        { 'enable':0
-        , 'disable':1
-        , 'defaultInitiation':2
+        { 'enable': 0
+        , 'disable': 1
+        , 'disableInitiation': 2
         }
 
 class DeviceCommunicationControlRequest(ConfirmedRequestSequence):

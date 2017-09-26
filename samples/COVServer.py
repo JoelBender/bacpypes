@@ -45,27 +45,17 @@ class COVConsoleCmd(ConsoleCmd):
         if _debug: COVConsoleCmd._debug("do_status %r", args)
         global test_application
 
-        # reference the list of active subscriptions
-        active_subscriptions = test_application.active_cov_subscriptions
-        if _debug: COVConsoleCmd._debug("    - %d active subscriptions", len(active_subscriptions))
+        # dump from the COV detections dict
+        for obj_ref, cov_detection in test_application.cov_detections.items():
+            print("{} {}".format(obj_ref.objectIdentifier, obj_ref))
 
-        # dump then out
-        for subscription in active_subscriptions:
-            print("{} {} {} {} {}".format(
-                subscription.client_addr,
-                subscription.proc_id,
-                subscription.obj_id,
-                subscription.confirmed,
-                subscription.lifetime,
-                ))
-
-        # reference the object to algorithm map
-        object_detections = test_application.object_detections
-        for objref, cov_detection in object_detections.items():
-            print("{} {}".format(
-                objref.objectIdentifier,
-                cov_detection,
-                ))
+            for cov_subscription in cov_detection.cov_subscriptions:
+                print("    {} proc_id={} confirmed={} lifetime={}".format(
+                    cov_subscription.client_addr,
+                    cov_subscription.proc_id,
+                    cov_subscription.confirmed,
+                    cov_subscription.lifetime,
+                    ))
 
     def do_trigger(self, args):
         """trigger object_name"""

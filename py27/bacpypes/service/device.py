@@ -7,11 +7,12 @@ from ..pdu import GlobalBroadcast
 from ..primitivedata import Date, Time, ObjectIdentifier
 from ..constructeddata import ArrayOf
 
-from ..apdu import WhoIsRequest, IAmRequest, IHaveRequest
+from ..apdu import WhoIsRequest, IAmRequest, IHaveRequest, SimpleAckPDU, Error
 from ..errors import ExecutionError, InconsistentParameters, \
     MissingRequiredParameter, ParameterOutOfRange
 from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
+from ..task import FunctionTask
 
 # some debugging
 _debug = 0
@@ -36,7 +37,7 @@ class CurrentDateProperty(Property):
         now.now()
         return now.value
 
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
@@ -58,7 +59,7 @@ class CurrentTimeProperty(Property):
         now.now()
         return now.value
 
-    def WriteProperty(self, obj, value, arrayIndex=None, priority=None):
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
@@ -89,6 +90,11 @@ class LocalDeviceObject(DeviceObject):
         for attr, value in LocalDeviceObject.defaultProperties.items():
             if attr not in kwargs:
                 kwargs[attr] = value
+
+        for key, value in kwargs.items():
+            if key.startswith("_"):
+                setattr(self, key, value)
+                del kwargs[key]
 
         # check for registration
         if self.__class__ not in registered_object_types.values():
@@ -361,3 +367,63 @@ class WhoHasIHaveServices(Capability):
             raise MissingRequiredParameter("objectName required")
 
         ### check to see if the application is looking for this object
+
+#
+#   Device Communication Control
+#
+
+@bacpypes_debugging
+class DeviceCommunicationControlServices(Capability):
+
+    def __init__(self):
+        if _debug: DeviceCommunicationControlServices._debug("__init__")
+        Capability.__init__(self)
+
+        # task to run if there is a time duration
+        self._dcc_enable_task = None
+
+    def do_DeviceCommunicationControlRequest(self, apdu):
+        if _debug: DeviceCommunicationControlServices._debug("do_CommunicationControlRequest, %r", apdu)
+
+        if getattr(self.localDevice, "_dcc_password", None):
+            if not apdu.password or apdu.password != getattr(self.localDevice, "_dcc_password"):
+                raise ExecutionError(errorClass="security", errorCode="passwordFailure")
+
+        if apdu.enableDisable == "enable":
+            self.enable_communications()
+
+        else:
+            # disable or disableInitiation
+            self.disable_communications(apdu.enableDisable)
+
+            # if there is a time duration, it's in minutes
+            if apdu.timeDuration:
+                self._dcc_enable_task = FunctionTask(self.enable_communications)
+                self._dcc_enable_task.install_task(delta=apdu.timeDuration * 60)
+                if _debug: DeviceCommunicationControlServices._debug("    - enable scheduled")
+
+        # respond with a simple ack
+        self.response(SimpleAckPDU(context=apdu))
+
+    def enable_communications(self):
+        if _debug: DeviceCommunicationControlServices._debug("enable_communications")
+
+        # tell the State Machine Access Point
+        self.smap.dccEnableDisable = 'enable'
+
+        # if an enable task was scheduled, cancel it
+        if self._dcc_enable_task:
+            self._dcc_enable_task.suspend_task()
+            self._dcc_enable_task = None
+
+    def disable_communications(self, enable_disable):
+        if _debug: DeviceCommunicationControlServices._debug("disable_communications %r", enable_disable)
+
+        # tell the State Machine Access Point
+        self.smap.dccEnableDisable = enable_disable
+
+        # if an enable task was scheduled, cancel it
+        if self._dcc_enable_task:
+            self._dcc_enable_task.suspend_task()
+            self._dcc_enable_task = None
+

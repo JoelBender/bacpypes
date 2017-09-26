@@ -243,6 +243,7 @@ class COVDetection(DetectionAlgorithm):
             "(" + ','.join(self.properties_tracked) + ')' + \
             ">"
 
+
 class GenericCriteria(COVDetection):
 
     properties_tracked = (
@@ -316,6 +317,7 @@ class AccessDoorCriteria(COVDetection):
         'doorAlarmState',
         )
 
+
 class AccessPointCriteria(COVDetection):
 
     properties_tracked = (
@@ -332,6 +334,7 @@ class AccessPointCriteria(COVDetection):
         )
     monitored_property_reference = 'accessEvent'
 
+
 class CredentialDataInputCriteria(COVDetection):
 
     properties_tracked = (
@@ -343,6 +346,7 @@ class CredentialDataInputCriteria(COVDetection):
         'statusFlags',
         'updateTime',
         )
+
 
 class LoadControlCriteria(COVDetection):
 
@@ -363,6 +367,7 @@ class LoadControlCriteria(COVDetection):
         'dutyWindow',
         )
 
+
 class PulseConverterCriteria(COVDetection):
 
     properties_tracked = (
@@ -373,6 +378,7 @@ class PulseConverterCriteria(COVDetection):
         'presentValue',
         'statusFlags',
         )
+
 
 # mapping from object type to appropriate criteria class
 criteria_type_map = {
@@ -429,7 +435,7 @@ class ActiveCOVSubscriptions(Property):
         cov_subscriptions = SequenceOf(COVSubscription)()
 
         # loop through the object and detection list
-        for obj, cov_detection in self.cov_detections.items():
+        for obj, cov_detection in obj._app.cov_detections.items():
             for cov in cov_detection.cov_subscriptions:
                 # calculate time remaining
                 if not cov.lifetime:
@@ -441,15 +447,20 @@ class ActiveCOVSubscriptions(Property):
                     if not time_remaining:
                         time_remaining = 1
 
-                recipient_process = RecipientProcess(
-                    recipient=Recipient(
-                        address=DeviceAddress(
-                            networkNumber=cov.client_addr.addrNet or 0,
-                            macAddress=cov.client_addr.addrAddr,
-                            ),
+                recipient = Recipient(
+                    address=DeviceAddress(
+                        networkNumber=cov.client_addr.addrNet or 0,
+                        macAddress=cov.client_addr.addrAddr,
                         ),
+                    )
+                if _debug: ActiveCOVSubscriptions._debug("    - recipient: %r", recipient)
+                if _debug: ActiveCOVSubscriptions._debug("    - client MAC address: %r", cov.client_addr.addrAddr)
+
+                recipient_process = RecipientProcess(
+                    recipient=recipient,
                     processIdentifier=cov.proc_id,
                     )
+                if _debug: ActiveCOVSubscriptions._debug("    - recipient_process: %r", recipient_process)
 
                 cov_subscription = COVSubscription(
                     recipient=recipient_process,
@@ -466,9 +477,6 @@ class ActiveCOVSubscriptions(Property):
 
                 # add the list
                 cov_subscriptions.append(cov_subscription)
-
-            # add the list
-            cov_subscriptions.append(cov_subscription)
 
         return cov_subscriptions
 

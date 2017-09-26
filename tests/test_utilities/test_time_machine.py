@@ -10,8 +10,7 @@ import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.task import OneShotTask, FunctionTask, \
-    RecurringTask, RecurringFunctionTask
+from bacpypes.task import OneShotTask, FunctionTask, RecurringTask
 from ..time_machine import TimeMachine, reset_time_machine, run_time_machine
 
 # some debugging
@@ -20,6 +19,23 @@ _log = ModuleLogger(globals())
 
 # reference to time machine
 time_machine = None
+
+
+@bacpypes_debugging
+def almost_equal(x, y):
+    """Compare two arrays of floats."""
+    # must be the same length
+    if len(x) != len(y):
+        return False
+
+    # absolute value of the difference is tollerable
+    for xx, yy in zip(x, y):
+        if abs(xx - yy) > 0.000001:
+            return False
+
+    # good to go
+    return True
+
 
 @bacpypes_debugging
 def setup_module(module):
@@ -50,23 +66,26 @@ class SampleOneShotTask(OneShotTask):
         if _debug: SampleOneShotTask._debug("__init__")
         OneShotTask.__init__(self)
 
-        self.process_task_called = 0
+        self.process_task_called = []
 
     def process_task(self):
+        global time_machine
         if _debug: SampleOneShotTask._debug("process_task @ %r", time_machine.current_time)
-        self.process_task_called += 1
+
+        # add the current time
+        self.process_task_called.append(time_machine.current_time)
 
 
 # flag to make sure the function was called
-sample_task_function_called = 0
+sample_task_function_called = []
 
 @bacpypes_debugging
 def sample_task_function(*args, **kwargs):
+    global sample_task_function_called, time_machine
     if _debug: sample_task_function._debug("sample_task_function %r %r @ %r", args, kwargs, time_machine.current_time)
-    global sample_task_function_called
 
     # bump the counter
-    sample_task_function_called += 1
+    sample_task_function_called.append(time_machine.current_time)
 
 
 @bacpypes_debugging
@@ -76,11 +95,14 @@ class SampleRecurringTask(RecurringTask):
         if _debug: SampleRecurringTask._debug("__init__")
         RecurringTask.__init__(self)
 
-        self.process_task_called = 0
+        self.process_task_called = []
 
     def process_task(self):
+        global time_machine
         if _debug: SampleRecurringTask._debug("process_task @ %r", time_machine.current_time)
-        self.process_task_called += 1
+
+        # add the current time
+        self.process_task_called.append(time_machine.current_time)
 
 
 @bacpypes_debugging
@@ -116,7 +138,7 @@ class TestTimeMachine(unittest.TestCase):
         run_time_machine(60.0)
 
         # function called, no time has passed
-        assert ft.process_task_called == 1
+        assert almost_equal(ft.process_task_called, [0.0])
         assert time_machine.current_time == 0.0
 
     def test_function_task_immediate(self):
@@ -125,7 +147,7 @@ class TestTimeMachine(unittest.TestCase):
 
         # create a function task
         ft = FunctionTask(sample_task_function)
-        sample_task_function_called = 0
+        sample_task_function_called = []
 
         # reset the time machine, install the task, let it run
         reset_time_machine()
@@ -133,7 +155,7 @@ class TestTimeMachine(unittest.TestCase):
         run_time_machine(60.0)
 
         # function called, no time has passed
-        assert sample_task_function_called == 1
+        assert almost_equal(sample_task_function_called, [0.0])
         assert time_machine.current_time == 0.0
 
     def test_function_task_delay(self):
@@ -144,7 +166,7 @@ class TestTimeMachine(unittest.TestCase):
 
         # create a function task
         ft = FunctionTask(sample_task_function)
-        sample_task_function_called = 0
+        sample_task_function_called = []
 
         # reset the time machine, install the task, let it run
         reset_time_machine()
@@ -152,7 +174,7 @@ class TestTimeMachine(unittest.TestCase):
         run_time_machine(60.0)
 
         # function called, no time has passed
-        assert sample_task_function_called == 1
+        assert almost_equal(sample_task_function_called, [sample_delay])
         assert time_machine.current_time == sample_delay
 
     def test_recurring_task_1(self):
@@ -167,7 +189,7 @@ class TestTimeMachine(unittest.TestCase):
         run_time_machine(5.0)
 
         # function called, no time has passed
-        assert ft.process_task_called == 4
+        assert almost_equal(ft.process_task_called, [1.0, 2.0, 3.0, 4.0])
         assert time_machine.current_time == 5.0
 
     def test_recurring_task_2(self):
@@ -184,6 +206,37 @@ class TestTimeMachine(unittest.TestCase):
         run_time_machine(5.0)
 
         # function called, no time has passed
-        assert ft1.process_task_called == 4
-        assert ft2.process_task_called == 3
+        assert almost_equal(ft1.process_task_called, [1.0, 2.0, 3.0, 4.0])
+        assert almost_equal(ft2.process_task_called, [1.5, 3.0, 4.5])
         assert time_machine.current_time == 5.0
+
+    def test_recurring_task_3(self):
+        if _debug: TestTimeMachine._debug("test_recurring_task_3")
+
+        # create a function task
+        ft = SampleRecurringTask()
+
+        # reset the time machine, install the task, let it run
+        reset_time_machine()
+        ft.install_task(1000.0, offset=100.0)
+        run_time_machine(5.0)
+
+        # function called, no time has passed
+        assert almost_equal(ft.process_task_called, [0.1, 1.1, 2.1, 3.1, 4.1])
+        assert time_machine.current_time == 5.0
+
+    def test_recurring_task_4(self):
+        if _debug: TestTimeMachine._debug("test_recurring_task_4")
+
+        # create a function task
+        ft = SampleRecurringTask()
+
+        # reset the time machine, install the task, let it run
+        reset_time_machine()
+        ft.install_task(1000.0, offset=-100.0)
+        run_time_machine(5.0)
+
+        # function called, no time has passed
+        assert almost_equal(ft.process_task_called, [0.9, 1.9, 2.9, 3.9, 4.9])
+        assert time_machine.current_time == 5.0
+
