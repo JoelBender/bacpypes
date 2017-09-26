@@ -81,32 +81,11 @@ class FauxMultiplexer(Client, Server):
         self.response(PDU(pdu, source=src, destination=dest))
 
 #
-#   _repr
-#
-
-class _repr:
-
-    def __repr__(self):
-        if not self.running:
-            state_text = "idle "
-        else:
-            state_text = "in "
-        state_text += repr(self.current_state)
-
-        return "<%s(%s) %s at %s>" % (
-            self.__class__.__name__,
-            getattr(self, 'address', '?'),
-            state_text,
-            hex(id(self)),
-        )
-
-
-#
 #   SnifferNode
 #
 
 @bacpypes_debugging
-class SnifferNode(_repr, ClientStateMachine):
+class SnifferNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: SnifferNode._debug("__init__ %r %r", address, vlan)
@@ -129,7 +108,7 @@ class SnifferNode(_repr, ClientStateMachine):
 #
 
 @bacpypes_debugging
-class CodecNode(_repr, ClientStateMachine):
+class CodecNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: CodecNode._debug("__init__ %r %r", address, vlan)
@@ -154,7 +133,7 @@ class CodecNode(_repr, ClientStateMachine):
 #
 
 @bacpypes_debugging
-class SimpleNode(_repr, ClientStateMachine):
+class SimpleNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: SimpleNode._debug("__init__ %r %r", address, vlan)
@@ -180,7 +159,7 @@ class SimpleNode(_repr, ClientStateMachine):
 #
 
 @bacpypes_debugging
-class ForeignNode(_repr, ClientStateMachine):
+class ForeignNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: ForeignNode._debug("__init__ %r %r", address, vlan)
@@ -205,7 +184,7 @@ class ForeignNode(_repr, ClientStateMachine):
 #
 
 @bacpypes_debugging
-class BBMDNode(_repr, ClientStateMachine):
+class BBMDNode(ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: BBMDNode._debug("__init__ %r %r", address, vlan)
