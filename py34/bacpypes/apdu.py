@@ -4,7 +4,7 @@
 Application Layer Protocol Data Units
 """
 
-from .errors import DecodingError
+from .errors import DecodingError, TooManyArguments
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .pdu import PCI, PDUData
@@ -683,6 +683,7 @@ class APCISequence(APCI, Sequence):
         # create a tag list and decode the rest of the data
         self._tag_list = TagList()
         self._tag_list.decode(apdu)
+        if _debug: APCISequence._debug("    - tag list: %r", self._tag_list)
 
         # pass the taglist to the Sequence for additional decoding
         Sequence.decode(self, self._tag_list)
@@ -690,6 +691,7 @@ class APCISequence(APCI, Sequence):
         # trailing unmatched tags
         if self._tag_list:
             if _debug: APCISequence._debug("    - trailing unmatched tags")
+            raise TooManyArguments()
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -1484,9 +1486,9 @@ register_confirmed_request_type(RemoveListElementRequest)
 
 class DeviceCommunicationControlRequestEnableDisable(Enumerated):
     enumerations = \
-        { 'enable':0
-        , 'disable':1
-        , 'defaultInitiation':2
+        { 'enable': 0
+        , 'disable': 1
+        , 'disableInitiation': 2
         }
 
 class DeviceCommunicationControlRequest(ConfirmedRequestSequence):

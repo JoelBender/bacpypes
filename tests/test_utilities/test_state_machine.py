@@ -262,6 +262,26 @@ class TestStateMachine(unittest.TestCase):
         assert tsm.transaction_log[0][1] is bad_pdu
         if _debug: TestStateMachine._debug("    - passed")
 
+    def test_state_machine_call(self):
+        if _debug: TestStateMachine._debug("test_state_machine_call")
+
+        # simple hook
+        self._called = False
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine()
+
+        # make a send transition from start to success, run the machine
+        tsm.start_state.call(setattr, self, '_called', True).success()
+        tsm.run()
+
+        # check for success
+        assert not tsm.running
+        assert tsm.current_state.is_success_state
+
+        # check for the call
+        assert self._called
+
     def test_state_machine_loop_01(self):
         if _debug: TestStateMachine._debug("test_state_machine_loop_01")
 
@@ -447,6 +467,7 @@ class TestStateMachineGroup(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachine._debug("    - passed")
 
@@ -475,6 +496,7 @@ class TestStateMachineGroup(unittest.TestCase):
         # check for success
         assert not tsm.running
         assert tsm.current_state.is_fail_state
+        assert not smg.is_running
         assert smg.is_fail_state
         if _debug: TestStateMachine._debug("    - passed")
 
@@ -510,6 +532,7 @@ class TestStateMachineEvents(unittest.TestCase):
         # check for success
         assert tsm1.current_state.is_success_state
         assert tsm2.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachineEvents._debug("    - passed")
 
@@ -541,6 +564,7 @@ class TestStateMachineEvents(unittest.TestCase):
         # check for success
         assert tsm1.current_state.is_success_state
         assert tsm2.current_state.is_success_state
+        assert not smg.is_running
         assert smg.is_success_state
         if _debug: TestStateMachineEvents._debug("    - passed")
 

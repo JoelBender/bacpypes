@@ -209,7 +209,7 @@ class IOCB(DebugContents):
             self.ioTimeout = FunctionTask(self.abort, err)
 
         # (re)schedule it
-        self.ioTimeout.install_task(_time() + delay)
+        self.ioTimeout.install_task(delta=delay)
 
     def __repr__(self):
         xid = id(self)
@@ -763,7 +763,7 @@ class IOQController(IOController):
 
             # schedule a call in the future
             task = FunctionTask(IOQController._wait_trigger, self)
-            task.install_task(_time() + self.wait_time)
+            task.install_task(delta=self.wait_time)
 
         else:
             # change our state

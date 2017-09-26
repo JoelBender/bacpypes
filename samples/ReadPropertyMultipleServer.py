@@ -17,7 +17,7 @@ from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.service.device import LocalDeviceObject, DeviceCommunicationControlServices
 from bacpypes.service.object import ReadWritePropertyMultipleServices
 
 # some debugging
@@ -29,7 +29,11 @@ _log = ModuleLogger(globals())
 #
 
 @bacpypes_debugging
-class ReadPropertyMultipleApplication(BIPSimpleApplication, ReadWritePropertyMultipleServices):
+class ReadPropertyMultipleApplication(
+        BIPSimpleApplication,
+        ReadWritePropertyMultipleServices,
+        DeviceCommunicationControlServices,
+        ):
     pass
 
 #
@@ -95,6 +99,7 @@ def main():
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
+        _dcc_password="xyzzy",
         )
 
     # make a sample application
