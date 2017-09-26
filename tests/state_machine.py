@@ -16,6 +16,8 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.comm import Client, Server
 from bacpypes.task import OneShotTask
 
+from .time_machine import current_time
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -1259,4 +1261,30 @@ class ServerStateMachine(Server, StateMachine):
     def indication(self, pdu):
         if _debug: ServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
+
+
+#
+#   TrafficLog
+#
+
+class TrafficLog:
+
+    def __init__(self):
+        """Initialize with no traffic."""
+        self.traffic = []
+
+    def __call__(self, *args):
+        """Capture the current time and the arguments."""
+        self.traffic.append((current_time(),) + args)
+
+    def dump(self, handler_fn):
+        """Dump the traffic, pass the correct handler like SomeClass._debug"""
+        for args in self.traffic:
+            arg_format = "   %6.3f:"
+            for arg in args[1:]:
+                if hasattr(arg, 'debug_contents'):
+                    arg_format += " %r"
+                else:
+                    arg_format += " %s"
+            handler_fn(arg_format, *args)
 
