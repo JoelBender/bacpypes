@@ -135,8 +135,12 @@ class DeviceInfoCache:
                 current_info = DeviceInfo()
                 current_info.address = key
                 current_info._cache_keys = (None, key)
+                current_info._ref_count = 1
 
                 self.cache[key] = current_info
+            else:
+                if _debug: DeviceInfoCache._debug("    - reference bump")
+                current_info._ref_count += 1
 
         if _debug: DeviceInfoCache._debug("    - current_info: %r", current_info)
 
@@ -177,11 +181,18 @@ class DeviceInfoCache:
         has finished with the device information."""
         if _debug: DeviceInfoCache._debug("release_device_info %r", info)
 
+        # this information record might be used by more than one SSM
+        if info._ref_count > 1:
+            if _debug: DeviceInfoCache._debug("    - multiple references")
+            info._ref_count -= 1
+            return
+
         cache_id, cache_address = info._cache_keys
         if cache_id is not None:
             del self.cache[cache_id]
         if cache_address is not None:
             del self.cache[cache_address]
+        if _debug: DeviceInfoCache._debug("    - released")
 
 #
 #   Application
