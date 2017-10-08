@@ -93,6 +93,13 @@ class TestCharacterString(unittest.TestCase):
         assert obj.value == "hello"
         assert str(obj) == "CharacterString(0,X'68656c6c6f')"
 
+    def test_character_string_unicode(self):
+        if _debug: TestCharacterString._debug("test_character_string_unicode")
+
+        obj = CharacterString(u"hello")
+        assert obj.value == u"hello"
+        assert str(obj) == "CharacterString(0,X'68656c6c6f')"
+
     def test_character_string_tag(self):
         if _debug: TestCharacterString._debug("test_character_string_tag")
 
