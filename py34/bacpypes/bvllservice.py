@@ -103,6 +103,7 @@ class UDPMultiplexer:
             bind(self.direct, self.broadcastPort)
         else:
             self.broadcast = None
+            self.broadcastPort = None
 
         # create and bind the Annex H and J servers
         self.annexH = _MultiplexServer(self)
@@ -113,8 +114,10 @@ class UDPMultiplexer:
 
         # pass along the close to the director(s)
         self.directPort.close_socket()
+        self.directPort.close()
         if self.broadcastPort:
             self.broadcastPort.close_socket()
+            self.broadcastPort.close()
 
     def indication(self, server, pdu):
         if _debug: UDPMultiplexer._debug("indication %r %r", server, pdu)
