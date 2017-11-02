@@ -497,7 +497,7 @@ class Object:
         a Property or one of its derived classes, but only the property
         is relavent.  Deleting a property disconnects it from the collection of
         properties common to all of the objects of its class."""
-        if _debug: Object._debug("delete_property %r", value)
+        if _debug: Object._debug("delete_property %r", prop)
 
         # make a copy of the properties dictionary
         self._properties = _copy(self._properties)
