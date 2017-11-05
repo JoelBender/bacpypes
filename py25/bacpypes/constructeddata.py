@@ -565,7 +565,7 @@ def ArrayOf(klass):
 
         def __setitem__(self, item, value):
             # no wrapping index
-            if (item < 1) or (item > self.value[0]):
+            if (item < 0) or (item > self.value[0]):
                 raise IndexError("index out of range")
 
             # special length handling for index 0
