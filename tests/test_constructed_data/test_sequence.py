@@ -14,17 +14,12 @@ from bacpypes.errors import MissingRequiredParameter
 from bacpypes.primitivedata import Boolean, Integer, Tag, TagList
 from bacpypes.constructeddata import Element, Sequence
 
+from .helpers import EmptySequence, SimpleSequence, CompoundSequence1, \
+    CompoundSequence2
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
-
-
-@bacpypes_debugging
-class EmptySequence(Sequence):
-
-    def __init__(self, *args, **kwargs):
-        if _debug: EmptySequence._debug("__init__ %r %r", args, kwargs)
-        Sequence.__init__(self, *args, **kwargs)
 
 
 @bacpypes_debugging
@@ -56,22 +51,10 @@ class TestEmptySequence(unittest.TestCase):
 
 
 @bacpypes_debugging
-class SimpleSequence(Sequence):
-
-    sequenceElements = [
-        Element('hydrogen', Boolean),
-        ]
-
-    def __init__(self, *args, **kwargs):
-        if _debug: SimpleSequence._debug("__init__ %r %r", args, kwargs)
-        Sequence.__init__(self, *args, **kwargs)
-
-
-@bacpypes_debugging
 class TestSimpleSequence(unittest.TestCase):
 
-    def test_simple_sequence_missing(self):
-        if _debug: TestSimpleSequence._debug("test_simple_sequence_missing")
+    def test_missing_element(self):
+        if _debug: TestSimpleSequence._debug("test_missing_element")
 
         # create a sequence with a missing required element
         seq = SimpleSequence()
@@ -82,8 +65,17 @@ class TestSimpleSequence(unittest.TestCase):
         with self.assertRaises(MissingRequiredParameter):
             seq.encode(tag_list)
 
-    def test_simple_sequence(self):
-        if _debug: TestSimpleSequence._debug("test_simple_sequence")
+    def test_wrong_type(self):
+        if _debug: TestSimpleSequence._debug("test_wrong_type")
+
+        # create a sequence with wrong element value type
+        seq = SimpleSequence(hydrogen=12)
+        with self.assertRaises(TypeError):
+            tag_list = TagList()
+            seq.encode(tag_list)
+
+    def test_codec(self):
+        if _debug: TestSimpleSequence._debug("test_codec")
 
         # create a sequence
         seq = SimpleSequence(hydrogen=False)
@@ -99,26 +91,114 @@ class TestSimpleSequence(unittest.TestCase):
         seq.decode(tag_list)
         if _debug: TestSimpleSequence._debug("    - seq: %r", seq)
 
-    def test_simple_sequence_wrong_type(self):
-        if _debug: TestSimpleSequence._debug("test_simple_sequence_wrong_type")
 
-        # create a sequence with wrong element value type
-        seq = SimpleSequence(hydrogen=12)
-        with self.assertRaises(TypeError):
-            tag_list = TagList()
+@bacpypes_debugging
+class TestCompoundSequence1(unittest.TestCase):
+
+    def test_missing_element(self):
+        if _debug: TestCompoundSequence1._debug("test_missing_element")
+
+        # create a sequence with a missing required element
+        seq = CompoundSequence1()
+        if _debug: TestSimpleSequence._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        with self.assertRaises(MissingRequiredParameter):
             seq.encode(tag_list)
+
+        # create a sequence with a missing required element
+        seq = CompoundSequence1(hydrogen=True)
+        if _debug: TestSimpleSequence._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        with self.assertRaises(MissingRequiredParameter):
+            seq.encode(tag_list)
+
+        # create a sequence with a missing required element
+        seq = CompoundSequence1(helium=2)
+        if _debug: TestSimpleSequence._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        with self.assertRaises(MissingRequiredParameter):
+            seq.encode(tag_list)
+
+    def test_codec(self):
+        if _debug: TestCompoundSequence1._debug("test_codec")
+
+        # create a sequence
+        seq = CompoundSequence1(hydrogen=True, helium=2)
+        if _debug: TestCompoundSequence1._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        seq.encode(tag_list)
+        if _debug: TestCompoundSequence1._debug("    - tag_list: %r", tag_list)
+
+        # create another sequence and decode the tag list
+        seq = CompoundSequence1()
+        seq.decode(tag_list)
+        if _debug: TestCompoundSequence1._debug("    - seq: %r", seq)
 
 
 @bacpypes_debugging
-class CompoundSequenceOne(Sequence):
+class TestCompoundSequence2(unittest.TestCase):
 
-    sequenceElements = [
-        Element('hydrogen', Boolean),
-        Element('helium', Integer),
-        ]
+    def test_missing_element(self):
+        if _debug: TestCompoundSequence2._debug("test_missing_element")
 
-    def __init__(self, *args, **kwargs):
-        if _debug: CompoundSequenceOne._debug("__init__ %r %r", args, kwargs)
-        Sequence.__init__(self, *args, **kwargs)
+        # create a sequence with a missing required element
+        seq = CompoundSequence2()
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        with self.assertRaises(MissingRequiredParameter):
+            seq.encode(tag_list)
+
+        # create a sequence with a missing required element
+        seq = CompoundSequence2(lithium=True)
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        with self.assertRaises(MissingRequiredParameter):
+            seq.encode(tag_list)
+
+    def test_codec_1(self):
+        if _debug: TestCompoundSequence2._debug("test_codec_1")
+
+        # create a sequence
+        seq = CompoundSequence2(beryllium=2)
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        seq.encode(tag_list)
+        if _debug: TestCompoundSequence2._debug("    - tag_list: %r", tag_list)
+
+        # create another sequence and decode the tag list
+        seq = CompoundSequence2()
+        seq.decode(tag_list)
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
+
+    def test_codec_2(self):
+        if _debug: TestCompoundSequence2._debug("test_codec_2")
+
+        # create a sequence
+        seq = CompoundSequence2(lithium=True, beryllium=3)
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
+
+        # encode it in a tag list
+        tag_list = TagList()
+        seq.encode(tag_list)
+        if _debug: TestCompoundSequence2._debug("    - tag_list: %r", tag_list)
+
+        # create another sequence and decode the tag list
+        seq = CompoundSequence2()
+        seq.decode(tag_list)
+        if _debug: TestCompoundSequence2._debug("    - seq: %r", seq)
 
 
