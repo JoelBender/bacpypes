@@ -118,6 +118,27 @@ class TestIntegerArray(unittest.TestCase):
         ary[0] = 4
         assert ary.value[1:] == [1, 2, None, None]
 
+    def test_get_item(self):
+        if _debug: TestIntegerArray._debug("test_get_item")
+
+        # create an array
+        ary = IntegerArray([1, 2, 3])
+        if _debug: TestIntegerArray._debug("    - ary: %r", ary)
+
+        # BACnet semantics
+        assert ary[1] == 1
+
+    def test_set_item(self):
+        if _debug: TestIntegerArray._debug("test_set_item")
+
+        # create an array
+        ary = IntegerArray([1, 2, 3])
+        if _debug: TestIntegerArray._debug("    - ary: %r", ary)
+
+        # BACnet semantics, no type checking
+        ary[1] = 10
+        assert ary[1] == 10
+
     def test_codec(self):
         if _debug: TestIntegerArray._debug("test_codec")
 
