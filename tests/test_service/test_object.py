@@ -187,7 +187,7 @@ class TestWritableArray(unittest.TestCase):
         obj = SampleWritableArray(location=ArrayOfCharacterString())
         if _debug: TestWritableArray._debug("    - obj.location: %r", obj.location)
 
-        # change the length of the array
+        # replace the array
         obj.WriteProperty('location', ["home", "work"])
         assert obj.ReadProperty('location', 0) == 2
         assert obj.ReadProperty('location', 1) == "home"
