@@ -42,7 +42,7 @@ class LocalObject(Object):
         if _debug: LocalObject._debug("    - property_list: %r", property_list)
 
         # store the value
-        self._values['propertyList'] = ArrayOf(PropertyIdentifier)([property_list])
+        self._values['propertyList'] = ArrayOf(PropertyIdentifier)(property_list)
 
     def add_property(self, prop):
         """Add a property to an object."""
