@@ -3,19 +3,76 @@
 from ..debugging import bacpypes_debugging, ModuleLogger
 from ..capability import Capability
 
-from ..basetypes import ErrorType
+from ..basetypes import ErrorType, PropertyIdentifier
 from ..primitivedata import Atomic, Null, Unsigned
-from ..constructeddata import Any, Array
+from ..constructeddata import Any, Array, ArrayOf
 
 from ..apdu import Error, \
     SimpleAckPDU, ReadPropertyACK, ReadPropertyMultipleACK, \
     ReadAccessResult, ReadAccessResultElement, ReadAccessResultElementChoice
 from ..errors import ExecutionError
-from ..object import PropertyError
+from ..object import Object, PropertyError
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+#
+#   LocalObject
+#
+
+@bacpypes_debugging
+class LocalObject(Object):
+
+    def __init__(self, **kwargs):
+        if _debug: LocalObject._debug("__init__ %r", kwargs)
+
+        # check for property list
+        if 'propertyList' in kwargs:
+            raise RuntimeError("propertyList is provided by LocalObject and cannot be overridden")
+
+        # proceed as usual
+        Object.__init__(self, **kwargs)
+
+        # make a list of the properties that were provided
+        property_list = [k for k, v in self._values.items()
+            if v is not None
+                and k not in ('objectName', 'objectType', 'objectIdentifier', 'propertyList')
+            ]
+        if _debug: LocalObject._debug("    - property_list: %r", property_list)
+
+        # store the value
+        self._values['propertyList'] = ArrayOf(PropertyIdentifier)([property_list])
+
+    def add_property(self, prop):
+        """Add a property to an object."""
+        if _debug: LocalObject._debug("add_property %r", prop)
+
+        # let the Object class do its thing
+        Object.add_property(self, prop)
+
+        # update the property list
+        property_list = self.propertyList
+        property_identifier = prop.identifier
+        if property_identifier in ('objectName', 'objectType', 'objectIdentifier', 'propertyList'):
+            pass
+        elif property_identifier not in property_list:
+            if _debug: LocalObject._debug("    - adding to property list")
+            property_list.append(property_identifier)
+
+    def delete_property(self, prop):
+        """Delete a property from an object."""
+        if _debug: LocalObject._debug("delete_property %r", prop)
+
+        # let the Object class do its thing
+        Object.delete_property(self, prop)
+
+        # remove the property identifier from its list of know properties
+        property_list = self.propertyList
+        property_identifier = prop.identifier
+        if property_identifier in property_list:
+            if _debug: LocalObject._debug("    - removing from property list")
+            property_list.remove(property_identifier)
 
 #
 #   ReadProperty and WriteProperty Services
