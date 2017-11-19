@@ -573,7 +573,11 @@ def ArrayOf(klass):
                     self.value = self.value[0:value + 1]
                 elif value > self.value[0]:
                     # extend
-                    self.value.extend( [None] * (value - self.value[0]) )
+                    if issubclass(self.subtype, Atomic):
+                        self.value.extend( [self.subtype().value] * (value - self.value[0]) )
+                    else:
+                        for i in range(value - self.value[0]):
+                            self.value.append(self.subtype())
                 else:
                     return
                 self.value[0] = value

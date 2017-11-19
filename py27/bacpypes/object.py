@@ -168,6 +168,7 @@ class Property:
 
         # get the value
         value = obj._values[self.identifier]
+        if _debug: Property._debug("    - value: %r", value)
 
         # access an array
         if arrayIndex is not None:
