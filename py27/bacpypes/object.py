@@ -81,6 +81,7 @@ def register_object_type(cls=None, vendor_id=0):
     # build a property dictionary by going through the class and all its parents
     _properties = {}
     for c in cls.__mro__:
+        if _debug: register_object_type._debug("    - c: %r", c)
         for prop in getattr(c, 'properties', []):
             if prop.identifier not in _properties:
                 _properties[prop.identifier] = prop

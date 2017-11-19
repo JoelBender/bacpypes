@@ -11,11 +11,54 @@ from ..apdu import Error, \
     SimpleAckPDU, ReadPropertyACK, ReadPropertyMultipleACK, \
     ReadAccessResult, ReadAccessResultElement, ReadAccessResultElementChoice
 from ..errors import ExecutionError
-from ..object import Object, PropertyError
+from ..object import Property, Object, PropertyError
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+# handy reference
+ArrayOfPropertyIdentifier = ArrayOf(PropertyIdentifier)
+
+#
+#   CurrentPropertyList
+#
+
+@bacpypes_debugging
+class CurrentPropertyList(Property):
+
+    def __init__(self):
+        if _debug: CurrentPropertyList._debug("__init__")
+        Property.__init__(self, 'propertyList', ArrayOfPropertyIdentifier, default=None, optional=True, mutable=False)
+
+    def ReadProperty(self, obj, arrayIndex=None):
+        if _debug: CurrentPropertyList._debug("ReadProperty %r %r", obj, arrayIndex)
+
+        # make a list of the properties that have values
+        property_list = [k for k, v in obj._values.items()
+            if v is not None
+                and k not in ('objectName', 'objectType', 'objectIdentifier', 'propertyList')
+            ]
+        if _debug: LocalObject._debug("    - property_list: %r", property_list)
+
+        # sort the list so it's stable
+        property_list.sort()
+
+        # asking for the whole thing
+        if arrayIndex is None:
+            return ArrayOfPropertyIdentifier(property_list)
+
+        # asking for the length
+        if arrayIndex == 0:
+            return len(property_list)
+
+        # asking for an index
+        if arrayIndex > len(property_list):
+            raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
+        return property_list[arrayIndex - 1]
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
 #   LocalObject
@@ -24,55 +67,9 @@ _log = ModuleLogger(globals())
 @bacpypes_debugging
 class LocalObject(Object):
 
-    def __init__(self, **kwargs):
-        if _debug: LocalObject._debug("__init__ %r", kwargs)
-
-        # check for property list
-        if 'propertyList' in kwargs:
-            raise RuntimeError("propertyList is provided by LocalObject and cannot be overridden")
-
-        # proceed as usual
-        Object.__init__(self, **kwargs)
-
-        # make a list of the properties that were provided
-        property_list = [k for k, v in self._values.items()
-            if v is not None
-                and k not in ('objectName', 'objectType', 'objectIdentifier', 'propertyList')
-            ]
-        if _debug: LocalObject._debug("    - property_list: %r", property_list)
-
-        # store the value
-        self._values['propertyList'] = ArrayOf(PropertyIdentifier)(property_list)
-
-    def add_property(self, prop):
-        """Add a property to an object."""
-        if _debug: LocalObject._debug("add_property %r", prop)
-
-        # let the Object class do its thing
-        Object.add_property(self, prop)
-
-        # update the property list
-        property_list = self.propertyList
-        property_identifier = prop.identifier
-        if property_identifier in ('objectName', 'objectType', 'objectIdentifier', 'propertyList'):
-            pass
-        elif property_identifier not in property_list:
-            if _debug: LocalObject._debug("    - adding to property list")
-            property_list.append(property_identifier)
-
-    def delete_property(self, prop):
-        """Delete a property from an object."""
-        if _debug: LocalObject._debug("delete_property %r", prop)
-
-        # let the Object class do its thing
-        Object.delete_property(self, prop)
-
-        # remove the property identifier from its list of know properties
-        property_list = self.propertyList
-        property_identifier = prop.identifier
-        if property_identifier in property_list:
-            if _debug: LocalObject._debug("    - removing from property list")
-            property_list.remove(property_identifier)
+    properties = [
+        CurrentPropertyList(),
+        ]
 
 #
 #   ReadProperty and WriteProperty Services
