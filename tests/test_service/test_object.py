@@ -159,7 +159,7 @@ class TestWritableArray(unittest.TestCase):
         assert obj.ReadProperty('location', 0) == 2
 
         # array extended with none, should get property default value
-        assert obj.ReadProperty('location', 2) == None
+        assert obj.ReadProperty('location', 2) == ""
 
         # wrong datatype
         with self.assertRaises(InvalidParameterDatatype):
@@ -184,11 +184,11 @@ class TestWritableArray(unittest.TestCase):
         if _debug: TestWritableArray._debug("test_replacing_array")
 
         # create an object with a location
-        obj = SampleWritableArray(location=ArrayOfCharacterString())
+        obj = SampleWritableArray()
         if _debug: TestWritableArray._debug("    - obj.location: %r", obj.location)
 
         # replace the array
-        obj.WriteProperty('location', ["home", "work"])
+        obj.WriteProperty('location', ArrayOfCharacterString(["home", "work"]))
         assert obj.ReadProperty('location', 0) == 2
         assert obj.ReadProperty('location', 1) == "home"
         assert obj.ReadProperty('location', 2) == "work"

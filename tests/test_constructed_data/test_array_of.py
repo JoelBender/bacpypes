@@ -116,7 +116,7 @@ class TestIntegerArray(unittest.TestCase):
 
         # make it longer
         ary[0] = 4
-        assert ary.value[1:] == [1, 2, None, None]
+        assert ary.value[1:] == [1, 2, 0, 0]
 
     def test_get_item(self):
         if _debug: TestIntegerArray._debug("test_get_item")
