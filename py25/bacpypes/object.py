@@ -167,6 +167,7 @@ class Property(Logging):
 
         # get the value
         value = obj._values[self.identifier]
+        if _debug: Property._debug("    - value: %r", value)
 
         # access an array
         if arrayIndex is not None:
@@ -200,14 +201,61 @@ class Property(Logging):
             if not self.mutable:
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
+            # if changing the length of the array, the value is unsigned
+            if arrayIndex == 0:
+                if not Unsigned.is_valid(value):
+                    raise InvalidParameterDatatype("length of %s must be unsigned" % (
+                            self.identifier,
+                            ))
+
             # if it's atomic, make sure it's valid
-            if issubclass(self.datatype, Atomic):
+            elif issubclass(self.datatype, Atomic):
                 if _debug: Property._debug("    - property is atomic, checking value")
                 if not self.datatype.is_valid(value):
                     raise InvalidParameterDatatype("%s must be of type %s" % (
                             self.identifier, self.datatype.__name__,
                             ))
 
+            # if it's an array, make sure it's valid regarding arrayIndex provided
+            elif issubclass(self.datatype, Array):
+                if _debug: Property._debug("    - property is array, checking subtype and index")
+
+                # changing a single element
+                if arrayIndex is not None:
+                    # if it's atomic, make sure it's valid
+                    if issubclass(self.datatype.subtype, Atomic):
+                        if _debug: Property._debug("    - subtype is atomic, checking value")
+                        if not self.datatype.subtype.is_valid(value):
+                            raise InvalidParameterDatatype("%s must be of type %s" % (
+                                    self.identifier, self.datatype.__name__,
+                                    ))
+                    # constructed type
+                    elif not isinstance(value, self.datatype.subtype):
+                        raise InvalidParameterDatatype("%s must be of type %s" % (
+                                self.identifier, self.datatype.subtype.__name__
+                                ))
+
+                # replacing the array
+                elif isinstance(value, list):
+                    # check validity regarding subtype
+                    for item in value:
+                        # if it's atomic, make sure it's valid
+                        if issubclass(self.datatype.subtype, Atomic):
+                            if _debug: Property._debug("    - subtype is atomic, checking value")
+                            if not self.datatype.subtype.is_valid(item):
+                                raise InvalidParameterDatatype("elements of %s must be of type %s" % (
+                                        self.identifier, self.datatype.subtype.__name__,
+                                        ))
+                        # constructed type
+                        elif not isinstance(item, self.datatype.subtype):
+                            raise InvalidParameterDatatype("elements of %s must be of type %s" % (
+                                    self.identifier, self.datatype.subtype.__name__
+                                    ))
+
+                    # value is mutated into a new array
+                    value = self.datatype(value)
+
+            # some kind of constructed data
             elif not isinstance(value, self.datatype):
                 if _debug: Property._debug("    - property is not atomic and wrong type")
                 raise InvalidParameterDatatype("%s must be of type %s" % (
