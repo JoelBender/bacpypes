@@ -14,7 +14,7 @@ from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
 from ..task import FunctionTask
 
-from .object import LocalObject
+from .object import CurrentPropertyListMixIn
 
 # some debugging
 _debug = 0
@@ -69,7 +69,7 @@ class CurrentTimeProperty(Property):
 #
 
 @bacpypes_debugging
-class LocalDeviceObject(LocalObject, DeviceObject):
+class LocalDeviceObject(CurrentPropertyListMixIn, DeviceObject):
 
     properties = \
         [ CurrentTimeProperty('localTime')
@@ -130,7 +130,7 @@ class LocalDeviceObject(LocalObject, DeviceObject):
         if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
 
         # proceed as usual
-        LocalObject.__init__(self, **kwargs)
+        super(LocalDeviceObject, self).__init__(**kwargs)
 
 #
 #   Who-Is I-Am Services

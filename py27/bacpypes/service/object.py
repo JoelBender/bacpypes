@@ -39,7 +39,7 @@ class CurrentPropertyList(Property):
             if v is not None
                 and k not in ('objectName', 'objectType', 'objectIdentifier', 'propertyList')
             ]
-        if _debug: LocalObject._debug("    - property_list: %r", property_list)
+        if _debug: CurrentPropertyList._debug("    - property_list: %r", property_list)
 
         # sort the list so it's stable
         property_list.sort()
@@ -61,11 +61,11 @@ class CurrentPropertyList(Property):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
 #
-#   LocalObject
+#   CurrentPropertyListMixIn
 #
 
 @bacpypes_debugging
-class LocalObject(Object):
+class CurrentPropertyListMixIn(Object):
 
     properties = [
         CurrentPropertyList(),
