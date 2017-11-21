@@ -928,7 +928,7 @@ class Choice(object):
                 # check for the correct closing tag
                 tag = taglist.Pop()
                 if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                    raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                    raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
                 # done
                 if _debug: Choice._debug("    - found choice (structure)")
