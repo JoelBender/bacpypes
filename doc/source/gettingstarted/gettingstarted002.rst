@@ -125,7 +125,7 @@ be specified, so this limits the output to one hundred files::
 
 .. caution::
 
-    The traffice.txt file will be saved in the local directory (pwd)
+    The traffic.txt file will be saved in the local directory (pwd)
 
 The definition of debug::
 
