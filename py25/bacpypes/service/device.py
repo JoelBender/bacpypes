@@ -27,7 +27,7 @@ _log = ModuleLogger(globals())
 class CurrentDateProperty(Property):
 
     def __init__(self, identifier):
-        Property.__init__(self, identifier, Date, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Date, default=(), optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
@@ -49,7 +49,7 @@ class CurrentDateProperty(Property):
 class CurrentTimeProperty(Property):
 
     def __init__(self, identifier):
-        Property.__init__(self, identifier, Time, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Time, default=(), optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
