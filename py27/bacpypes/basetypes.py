@@ -897,6 +897,7 @@ class EventType(Enumerated):
         , 'unsignedOutOfRange':16
         , 'changeOfCharacterstring':17
         , 'changeOfStatusFlags':18
+        , 'changeOfReliability':19
         }
 
 class FaultType(Enumerated):
@@ -2260,6 +2261,13 @@ class NotificationParametersChangeOfStatusFlagsType(Sequence):
         , Element('referencedFlags', StatusFlags, 1)
         ]
 
+class NotificationParametersChangeOfReliabilityType(Sequence):
+    sequenceElements = \
+        [ Element('reliability', Reliability, 0)
+        , Element('statusFlags', StatusFlags, 1)
+        , Element('propertyValues', SequenceOf(PropertyValue), 2)
+        ]
+
 class NotificationParameters(Choice):
     choiceElements = \
         [ Element('changeOfBitstring', NotificationParametersChangeOfBitstring, 0)
@@ -2279,6 +2287,7 @@ class NotificationParameters(Choice):
         , Element('unsignedOutOfRange', NotificationParametersUnsignedOutOfRangeType, 16)
         , Element('changeOfCharacterString', NotificationParametersChangeOfCharacterStringType, 17)
         , Element('changeOfStatusFlags', NotificationParametersChangeOfStatusFlagsType, 18)
+        , Element('changeOfReliability', NotificationParametersChangeOfReliabilityType, 19)
         ]
 
 class ObjectPropertyValue(Sequence):
