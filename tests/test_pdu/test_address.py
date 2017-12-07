@@ -74,8 +74,8 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
         with self.assertRaises(ValueError):
             Address(256)
 
-    def test_address_ipv4(self):
-        if _debug: TestAddress._debug("test_address_ipv4")
+    def test_address_ipv4_str(self):
+        if _debug: TestAddress._debug("test_address_ipv4_str")
 
         # test IPv4 local station address
         test_addr = Address("1.2.3.4")
@@ -92,16 +92,42 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
         self.match_address(test_addr, 2, None, 6, '01020304bb7f')
         assert str(test_addr) == "0x01020304bb7f"
 
-    def test_address_eth(self):
-        if _debug: TestAddress._debug("test_address_eth")
+    def test_address_ipv4_unicode(self):
+        if _debug: TestAddress._debug("test_address_ipv4_unicode")
+
+        # test IPv4 local station address
+        test_addr = Address(u"1.2.3.4")
+        self.match_address(test_addr, 2, None, 6, '01020304BAC0')
+        assert str(test_addr) == u"1.2.3.4"
+
+        # test IPv4 local station address with non-standard port
+        test_addr = Address(u"1.2.3.4:47809")
+        self.match_address(test_addr, 2, None, 6, '01020304BAC1')
+        assert str(test_addr) == u"1.2.3.4:47809"
+
+        # test IPv4 local station address with unrecognized port
+        test_addr = Address(u"1.2.3.4:47999")
+        self.match_address(test_addr, 2, None, 6, '01020304bb7f')
+        assert str(test_addr) == u"0x01020304bb7f"
+
+    def test_address_eth_str(self):
+        if _debug: TestAddress._debug("test_address_eth_str")
 
         # test Ethernet local station address
         test_addr = Address("01:02:03:04:05:06")
         self.match_address(test_addr, 2, None, 6, '010203040506')
         assert str(test_addr) == "0x010203040506"
 
-    def test_address_local_station(self):
-        if _debug: TestAddress._debug("test_address_local_station")
+    def test_address_eth_unicode(self):
+        if _debug: TestAddress._debug("test_address_eth_unicode")
+
+        # test Ethernet local station address
+        test_addr = Address(u"01:02:03:04:05:06")
+        self.match_address(test_addr, 2, None, 6, '010203040506')
+        assert str(test_addr) == u"0x010203040506"
+
+    def test_address_local_station_str(self):
+        if _debug: TestAddress._debug("test_address_local_station_str")
 
         # test integer local station
         test_addr = Address("1")
@@ -134,16 +160,58 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
         self.match_address(test_addr, 2, None, 2, '0102')
         assert str(test_addr) == "0x0102"
 
-    def test_address_local_broadcast(self):
-        if _debug: TestAddress._debug("test_address_local_broadcast")
+    def test_address_local_station_unicode(self):
+        if _debug: TestAddress._debug("test_address_local_station_unicode")
+
+        # test integer local station
+        test_addr = Address(u"1")
+        self.match_address(test_addr, 2, None, 1, '01')
+        assert str(test_addr) == u"1"
+
+        test_addr = Address(u"254")
+        self.match_address(test_addr, 2, None, 1, 'fe')
+        assert str(test_addr) == u"254"
+
+        # test bad integer string
+        with self.assertRaises(ValueError):
+            Address("256")
+
+        # test modern hex string
+        test_addr = Address(u"0x01")
+        self.match_address(test_addr, 2, None, 1, '01')
+        assert str(test_addr) == u"1"
+
+        test_addr = Address(u"0x0102")
+        self.match_address(test_addr, 2, None, 2, '0102')
+        assert str(test_addr) == u"0x0102"
+
+        # test old school hex string
+        test_addr = Address(u"X'01'")
+        self.match_address(test_addr, 2, None, 1, '01')
+        assert str(test_addr) == u"1"
+
+        test_addr = Address(u"X'0102'")
+        self.match_address(test_addr, 2, None, 2, '0102')
+        assert str(test_addr) == u"0x0102"
+
+    def test_address_local_broadcast_str(self):
+        if _debug: TestAddress._debug("test_address_local_broadcast_str")
 
         # test local broadcast
         test_addr = Address("*")
         self.match_address(test_addr, 1, None, None, None)
         assert str(test_addr) == "*"
 
-    def test_address_remote_broadcast(self):
-        if _debug: TestAddress._debug("test_address_remote_broadcast")
+    def test_address_local_broadcast_unicode(self):
+        if _debug: TestAddress._debug("test_address_local_broadcast_unicode")
+
+        # test local broadcast
+        test_addr = Address(u"*")
+        self.match_address(test_addr, 1, None, None, None)
+        assert str(test_addr) == u"*"
+
+    def test_address_remote_broadcast_str(self):
+        if _debug: TestAddress._debug("test_address_remote_broadcast_str")
 
         # test remote broadcast
         test_addr = Address("1:*")
@@ -154,8 +222,20 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
         with self.assertRaises(ValueError):
             Address("65536:*")
 
-    def test_address_remote_station(self):
-        if _debug: TestAddress._debug("test_address_remote_station")
+    def test_address_remote_broadcast_unicode(self):
+        if _debug: TestAddress._debug("test_address_remote_broadcast_unicode")
+
+        # test remote broadcast
+        test_addr = Address(u"1:*")
+        self.match_address(test_addr, 3, 1, None, None)
+        assert str(test_addr) == u"1:*"
+
+        # test remote broadcast bad network
+        with self.assertRaises(ValueError):
+            Address("65536:*")
+
+    def test_address_remote_station_str(self):
+        if _debug: TestAddress._debug("test_address_remote_station_str")
 
         # test integer remote station
         test_addr = Address("1:2")
@@ -198,13 +278,65 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
         with self.assertRaises(ValueError):
             Address("65536:X'02'")
 
-    def test_address_global_broadcast(self):
-        if _debug: TestAddress._debug("test_address_global_broadcast")
+    def test_address_remote_station_unicode(self):
+        if _debug: TestAddress._debug("test_address_remote_station_unicode")
+
+        # test integer remote station
+        test_addr = Address(u"1:2")
+        self.match_address(test_addr, 4, 1, 1, '02')
+        assert str(test_addr) == u"1:2"
+
+        test_addr = Address(u"1:254")
+        self.match_address(test_addr, 4, 1, 1, 'fe')
+        assert str(test_addr) == u"1:254"
+
+        # test bad network and node
+        with self.assertRaises(ValueError):
+            Address(u"65536:2")
+        with self.assertRaises(ValueError):
+            Address(u"1:256")
+
+        # test modern hex string
+        test_addr = Address(u"1:0x02")
+        self.match_address(test_addr, 4, 1, 1, '02')
+        assert str(test_addr) == u"1:2"
+
+        # test bad network
+        with self.assertRaises(ValueError):
+            Address(u"65536:0x02")
+
+        test_addr = Address(u"1:0x0203")
+        self.match_address(test_addr, 4, 1, 2, '0203')
+        assert str(test_addr) == u"1:0x0203"
+
+        # test old school hex string
+        test_addr = Address(u"1:X'02'")
+        self.match_address(test_addr, 4, 1, 1, '02')
+        assert str(test_addr) == u"1:2"
+
+        test_addr = Address(u"1:X'0203'")
+        self.match_address(test_addr, 4, 1, 2, '0203')
+        assert str(test_addr) == u"1:0x0203"
+
+        # test bad network
+        with self.assertRaises(ValueError):
+            Address(u"65536:X'02'")
+
+    def test_address_global_broadcast_str(self):
+        if _debug: TestAddress._debug("test_address_global_broadcast_str")
 
         # test local broadcast
         test_addr = Address("*:*")
         self.match_address(test_addr, 5, None, None, None)
         assert str(test_addr) == "*:*"
+
+    def test_address_global_broadcast_unicode(self):
+        if _debug: TestAddress._debug("test_address_global_broadcast_unicode")
+
+        # test local broadcast
+        test_addr = Address(u"*:*")
+        self.match_address(test_addr, 5, None, None, None)
+        assert str(test_addr) == u"*:*"
 
 
 @bacpypes_debugging
@@ -368,8 +500,8 @@ class TestGlobalBroadcast(unittest.TestCase, MatchAddressMixin):
 @bacpypes_debugging
 class TestAddressEquality(unittest.TestCase, MatchAddressMixin):
 
-    def test_address_equality(self):
-        if _debug: TestAddressEquality._debug("test_address_equality")
+    def test_address_equality_str(self):
+        if _debug: TestAddressEquality._debug("test_address_equality_str")
 
         assert Address(1) == LocalStation(1)
         assert Address("2") == LocalStation(2)
@@ -377,3 +509,14 @@ class TestAddressEquality(unittest.TestCase, MatchAddressMixin):
         assert Address("3:4") == RemoteStation(3, 4)
         assert Address("5:*") == RemoteBroadcast(5)
         assert Address("*:*") == GlobalBroadcast()
+
+    def test_address_equality_unicode(self):
+        if _debug: TestAddressEquality._debug("test_address_equality_unicode")
+
+        assert Address(1) == LocalStation(1)
+        assert Address(u"2") == LocalStation(2)
+        assert Address(u"*") == LocalBroadcast()
+        assert Address(u"3:4") == RemoteStation(3, 4)
+        assert Address(u"5:*") == RemoteBroadcast(5)
+        assert Address(u"*:*") == GlobalBroadcast()
+

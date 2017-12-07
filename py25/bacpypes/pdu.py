@@ -91,7 +91,7 @@ class Address:
             self.addrAddr = struct.pack('B', addr)
             self.addrLen = 1
 
-        elif isinstance(addr, str):
+        elif isinstance(addr, basestring):
             if _debug: Address._debug("    - str")
 
             m = ip_address_mask_port_re.match(addr)
@@ -263,7 +263,7 @@ class Address:
             addr, port = addr
             self.addrPort = int(port)
 
-            if isinstance(addr, str):
+            if isinstance(addr, basestring):
                 if not addr:
                     # when ('', n) is passed it is the local host address, but that
                     # could be more than one on a multihomed machine, the empty string

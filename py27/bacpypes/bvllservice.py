@@ -103,6 +103,7 @@ class UDPMultiplexer:
             bind(self.direct, self.broadcastPort)
         else:
             self.broadcast = None
+            self.broadcastPort = None
 
         # create and bind the Annex H and J servers
         self.annexH = _MultiplexServer(self)

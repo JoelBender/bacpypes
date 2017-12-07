@@ -513,6 +513,7 @@ class EngineeringUnits(Enumerated):
         , 'megavoltAmpereHoursReactive':244 #Mvarh
         , 'voltsPerDegreeKelvin':176
         , 'voltsPerMeter':177
+        , 'voltsSquareHours':245
         , 'degreesPhase':14
         , 'powerFactor':15
         , 'webers':178
@@ -897,6 +898,7 @@ class EventType(Enumerated):
         , 'unsignedOutOfRange':16
         , 'changeOfCharacterstring':17
         , 'changeOfStatusFlags':18
+        , 'changeOfReliability':19
         }
 
 class FaultType(Enumerated):
@@ -1470,7 +1472,18 @@ class Reliability(Enumerated):
         , 'multiStateFault':9
         , 'configurationError':10
         , 'communicationFailure':12
-        , 'numberFault':13
+        , 'memberFault': 13
+        , 'monitoredObjectFault': 14
+        , 'tripped': 15
+        , 'lampFailure': 16
+        , 'activationFailure': 17
+        , 'renewDHCPFailure': 18
+        , 'renewFDRegistration-failure': 19
+        , 'restartAutoNegotiationFailure': 20
+        , 'restartFailure': 21
+        , 'proprietaryCommandFailure': 22
+        , 'faultsListed': 23
+        , 'referencedObjectFault': 24
         }
 
 class RestartReason(Enumerated):
@@ -2260,6 +2273,13 @@ class NotificationParametersChangeOfStatusFlagsType(Sequence):
         , Element('referencedFlags', StatusFlags, 1)
         ]
 
+class NotificationParametersChangeOfReliabilityType(Sequence):
+    sequenceElements = \
+        [ Element('reliability', Reliability, 0)
+        , Element('statusFlags', StatusFlags, 1)
+        , Element('propertyValues', SequenceOf(PropertyValue), 2)
+        ]
+
 class NotificationParameters(Choice):
     choiceElements = \
         [ Element('changeOfBitstring', NotificationParametersChangeOfBitstring, 0)
@@ -2279,6 +2299,7 @@ class NotificationParameters(Choice):
         , Element('unsignedOutOfRange', NotificationParametersUnsignedOutOfRangeType, 16)
         , Element('changeOfCharacterString', NotificationParametersChangeOfCharacterStringType, 17)
         , Element('changeOfStatusFlags', NotificationParametersChangeOfStatusFlagsType, 18)
+        , Element('changeOfReliability', NotificationParametersChangeOfReliabilityType, 19)
         ]
 
 class ObjectPropertyValue(Sequence):

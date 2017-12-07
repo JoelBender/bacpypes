@@ -1,59 +1,60 @@
 #!/usr/bin/env python
 
 """
-This sample application shows how to extend the basic functionality of a device
-to support the ReadPropertyMultiple service.
+Random Value Property with Sleep
+
+This application is a server of analog value objects that return a random
+number when the present value is read.  This version has an additional
+'sleep' time that slows down its performance.
 """
 
+import os
 import random
+import time
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.primitivedata import Real, CharacterString
-from bacpypes.constructeddata import ArrayOf
+from bacpypes.primitivedata import Real
 from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject, DeviceCommunicationControlServices
-from bacpypes.service.object import ReadWritePropertyMultipleServices
+from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
 
-#
-#   ReadPropertyMultipleApplication
-#
+# settings
+SLEEP_TIME = float(os.getenv('SLEEP_TIME', 0.1))
+RANDOM_OBJECT_COUNT = int(os.getenv('RANDOM_OBJECT_COUNT', 10))
 
-@bacpypes_debugging
-class ReadPropertyMultipleApplication(
-        BIPSimpleApplication,
-        ReadWritePropertyMultipleServices,
-        DeviceCommunicationControlServices,
-        ):
-    pass
+# globals
+args = None
 
 #
 #   RandomValueProperty
 #
 
-@bacpypes_debugging
 class RandomValueProperty(Property):
 
     def __init__(self, identifier):
         if _debug: RandomValueProperty._debug("__init__ %r", identifier)
-        Property.__init__(self, identifier, Real, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Real, default=0.0, optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         if _debug: RandomValueProperty._debug("ReadProperty %r arrayIndex=%r", obj, arrayIndex)
+        global args
 
         # access an array
         if arrayIndex is not None:
             raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
+
+        # sleep a little
+        time.sleep(args.sleep)
 
         # return a random value
         value = random.random() * 100.0
@@ -65,22 +66,23 @@ class RandomValueProperty(Property):
         if _debug: RandomValueProperty._debug("WriteProperty %r %r arrayIndex=%r priority=%r direct=%r", obj, value, arrayIndex, priority, direct)
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
+bacpypes_debugging(RandomValueProperty)
+
 #
 #   Random Value Object Type
 #
 
-@bacpypes_debugging
 class RandomAnalogValueObject(AnalogValueObject):
 
     properties = [
         RandomValueProperty('presentValue'),
-        Property('eventMessageTexts', ArrayOf(CharacterString), mutable=True),
         ]
 
     def __init__(self, **kwargs):
         if _debug: RandomAnalogValueObject._debug("__init__ %r", kwargs)
         AnalogValueObject.__init__(self, **kwargs)
 
+bacpypes_debugging(RandomAnalogValueObject)
 register_object_type(RandomAnalogValueObject)
 
 #
@@ -88,8 +90,19 @@ register_object_type(RandomAnalogValueObject)
 #
 
 def main():
+    global args
+
     # parse the command line arguments
-    args = ConfigArgumentParser(description=__doc__).parse_args()
+    parser = ConfigArgumentParser(description=__doc__)
+
+    # add an option to override the sleep time
+    parser.add_argument('--sleep', type=float,
+        help="sleep before returning the value",
+        default=SLEEP_TIME,
+        )
+
+    # parse the command line arguments
+    args = parser.parse_args()
 
     if _debug: _log.debug("initialization")
     if _debug: _log.debug("    - args: %r", args)
@@ -97,32 +110,14 @@ def main():
     # make a device object
     this_device = LocalDeviceObject(
         objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
+        objectIdentifier=('device', int(args.ini.objectidentifier)),
         maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
-        _dcc_password="xyzzy",
         )
 
     # make a sample application
-    this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)
-
-    # make a random input object
-    ravo1 = RandomAnalogValueObject(
-        objectIdentifier=('analogValue', 1), objectName='Random1',
-        eventMessageTexts=ArrayOf(CharacterString)(["hello"]),
-        )
-    _log.debug("    - ravo1: %r", ravo1)
-
-    ravo2 = RandomAnalogValueObject(
-        objectIdentifier=('analogValue', 2), objectName='Random2'
-        )
-    _log.debug("    - ravo2: %r", ravo2)
-
-    # add it to the device
-    this_application.add_object(ravo1)
-    this_application.add_object(ravo2)
-    _log.debug("    - object list: %r", this_device.objectList)
+    this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # get the services supported
     services_supported = this_application.get_services_supported()
@@ -131,12 +126,23 @@ def main():
     # let the device object know
     this_device.protocolServicesSupported = services_supported.value
 
+    # make some random input objects
+    for i in range(1, RANDOM_OBJECT_COUNT+1):
+        ravo = RandomAnalogValueObject(
+            objectIdentifier=('analogValue', i),
+            objectName='Random-%d' % (i,),
+            )
+        _log.debug("    - ravo: %r", ravo)
+        this_application.add_object(ravo)
+
+    # make sure they are all there
+    _log.debug("    - object list: %r", this_device.objectList)
+
     _log.debug("running")
 
     run()
 
     _log.debug("fini")
-
 
 if __name__ == "__main__":
     main()

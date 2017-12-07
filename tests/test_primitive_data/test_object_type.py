@@ -23,7 +23,7 @@ class MyObjectType(ObjectType):
         'myAnalogInput': 128,
         'myAnalogOutput': 129,
         'myAnalogValue': 130,
-    }
+        }
 
 expand_enumerations(MyObjectType)
 
@@ -113,6 +113,13 @@ class TestObjectType(unittest.TestCase):
         obj = ObjectType('analogInput')
         assert obj.value == 'analogInput'
 
+    def test_object_type_unicode(self):
+        if _debug: TestObjectType._debug("test_object_type_unicode")
+
+        # known strings are accepted
+        obj = ObjectType(u'analogInput')
+        assert obj.value == u'analogInput'
+
     def test_extended_object_type_int(self):
         if _debug: TestObjectType._debug("test_extended_object_type_int")
 
@@ -136,6 +143,17 @@ class TestObjectType(unittest.TestCase):
         # unknown strings are rejected
         with self.assertRaises(ValueError):
             MyObjectType('snork')
+
+    def test_extended_object_type_unicode(self):
+        if _debug: TestObjectType._debug("test_extended_object_type_unicode")
+
+        # known strings are accepted
+        obj = MyObjectType(u'myAnalogInput')
+        assert obj.value == u'myAnalogInput'
+
+        # unknown strings are rejected
+        with self.assertRaises(ValueError):
+            MyObjectType(u'snork')
 
     def test_object_type_tag(self):
         if _debug: TestObjectType._debug("test_object_type_tag")
