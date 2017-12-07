@@ -12,7 +12,8 @@ from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
-from bacpypes.primitivedata import Real
+from bacpypes.primitivedata import Real, CharacterString
+from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
@@ -73,6 +74,7 @@ class RandomAnalogValueObject(AnalogValueObject):
 
     properties = [
         RandomValueProperty('presentValue'),
+        Property('eventMessageTexts', ArrayOf(CharacterString), mutable=True),
         ]
 
     def __init__(self, **kwargs):
@@ -107,7 +109,8 @@ def main():
 
     # make a random input object
     ravo1 = RandomAnalogValueObject(
-        objectIdentifier=('analogValue', 1), objectName='Random1'
+        objectIdentifier=('analogValue', 1), objectName='Random1',
+        eventMessageTexts=ArrayOf(CharacterString)(["hello"]),
         )
     _log.debug("    - ravo1: %r", ravo1)
 

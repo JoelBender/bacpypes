@@ -14,6 +14,8 @@ from ..object import register_object_type, registered_object_types, \
     Property, DeviceObject
 from ..task import FunctionTask
 
+from .object import CurrentPropertyListMixIn
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -25,7 +27,7 @@ _log = ModuleLogger(globals())
 class CurrentDateProperty(Property):
 
     def __init__(self, identifier):
-        Property.__init__(self, identifier, Date, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Date, default=(), optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
@@ -47,7 +49,7 @@ class CurrentDateProperty(Property):
 class CurrentTimeProperty(Property):
 
     def __init__(self, identifier):
-        Property.__init__(self, identifier, Time, default=None, optional=True, mutable=False)
+        Property.__init__(self, identifier, Time, default=(), optional=True, mutable=False)
 
     def ReadProperty(self, obj, arrayIndex=None):
         # access an array
@@ -66,7 +68,7 @@ class CurrentTimeProperty(Property):
 #   LocalDeviceObject
 #
 
-class LocalDeviceObject(DeviceObject):
+class LocalDeviceObject(CurrentPropertyListMixIn, DeviceObject):
 
     properties = \
         [ CurrentTimeProperty('localTime')
@@ -107,6 +109,18 @@ class LocalDeviceObject(DeviceObject):
         if 'localTime' in kwargs:
             raise RuntimeError("localTime is provided by LocalDeviceObject and cannot be overridden")
 
+        # the object identifier is required for the object list
+        if 'objectIdentifier' not in kwargs:
+            raise RuntimeError("objectIdentifier is required")
+
+        # the object list is provided
+        if 'objectList' in kwargs:
+            raise RuntimeError("objectList is provided by LocalDeviceObject and cannot be overridden")
+        else:
+            kwargs['objectList'] = ArrayOf(ObjectIdentifier)([
+                kwargs['objectIdentifier'],
+                ])
+
         # check for a minimum value
         if kwargs['maxApduLengthAccepted'] < 50:
             raise ValueError("invalid max APDU length accepted")
@@ -115,20 +129,7 @@ class LocalDeviceObject(DeviceObject):
         if _debug: LocalDeviceObject._debug("    - updated kwargs: %r", kwargs)
 
         # proceed as usual
-        DeviceObject.__init__(self, **kwargs)
-
-        # create a default implementation of an object list for local devices.
-        # If it is specified in the kwargs, that overrides this default.
-        if ('objectList' not in kwargs):
-            self.objectList = ArrayOf(ObjectIdentifier)([self.objectIdentifier])
-
-            # if the object has a property list and one wasn't provided
-            # in the kwargs, then it was created by default and the objectList
-            # property should be included
-            if ('propertyList' not in kwargs) and self.propertyList:
-                # make sure it's not already there
-                if 'objectList' not in self.propertyList:
-                    self.propertyList.append('objectList')
+        super(LocalDeviceObject, self).__init__(**kwargs)
 
 bacpypes_debugging(LocalDeviceObject)
 
