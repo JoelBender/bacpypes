@@ -210,7 +210,7 @@ class Property(Logging):
                             ))
 
             # if it's atomic, make sure it's valid
-            if issubclass(self.datatype, AnyAtomic):
+            elif issubclass(self.datatype, AnyAtomic):
                 if _debug: Property._debug("    - property is any atomic, checking value")
                 if not isinstance(value, Atomic):
                     raise InvalidParameterDatatype("%s must be an atomic instance" % (
