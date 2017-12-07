@@ -449,6 +449,8 @@ class Atomic(object):
     _app_tag = None
 
     def __cmp__(self, other):
+        # sys.stderr.write("__cmp__ %r %r\n" % (self, other))
+
         # hoop jump it
         if not isinstance(other, self.__class__):
             other = self.__class__(other)
@@ -460,6 +462,26 @@ class Atomic(object):
             return 1
         else:
             return 0
+
+    def __lt__(self, other):
+        # sys.stderr.write("__lt__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return (self.value < other.value)
+
+    def __eq__(self, other):
+        # sys.stderr.write("__eq__ %r %r\n" % (self, other))
+
+        # hoop jump it
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+
+        # now compare the values
+        return self.value == other.value
 
     @classmethod
     def coerce(cls, arg):

@@ -81,6 +81,7 @@ def register_object_type(cls=None, vendor_id=0):
     # build a property dictionary by going through the class and all its parents
     _properties = {}
     for c in cls.__mro__:
+        if _debug: register_object_type._debug("    - c: %r", c)
         for prop in getattr(c, 'properties', []):
             if prop.identifier not in _properties:
                 _properties[prop.identifier] = prop
@@ -210,6 +211,13 @@ class Property:
                             ))
 
             # if it's atomic, make sure it's valid
+            if issubclass(self.datatype, AnyAtomic):
+                if _debug: Property._debug("    - property is any atomic, checking value")
+                if not isinstance(value, Atomic):
+                    raise InvalidParameterDatatype("%s must be an atomic instance" % (
+                            self.identifier,
+                            ))
+
             elif issubclass(self.datatype, Atomic):
                 if _debug: Property._debug("    - property is atomic, checking value")
                 if not self.datatype.is_valid(value):

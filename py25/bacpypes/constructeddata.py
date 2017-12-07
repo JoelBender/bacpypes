@@ -405,6 +405,9 @@ def SequenceOf(klass):
         def __getitem__(self, item):
             return self.value[item]
 
+        def __iter__(self):
+            return iter(self.value)
+
         def encode(self, taglist):
             if _debug: _SequenceOf._debug("(%r)encode %r", self.__class__.__name__, taglist)
             for value in self.value:
@@ -594,6 +597,9 @@ def ArrayOf(klass):
             # delete the item and update the length
             del self.value[item]
             self.value[0] -= 1
+
+        def __iter__(self):
+            return iter(self.value[1:])
 
         def index(self, value):
             # only search through values

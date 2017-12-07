@@ -104,7 +104,7 @@ class LocalDeviceObject(CurrentPropertyListMixIn, DeviceObject):
                 raise RuntimeError("vendorIdentifier required to auto-register the LocalDeviceObject class")
             register_object_type(self.__class__, vendor_id=kwargs['vendorIdentifier'])
 
-        # check for local time
+        # check for properties this class implements
         if 'localDate' in kwargs:
             raise RuntimeError("localDate is provided by LocalDeviceObject and cannot be overridden")
         if 'localTime' in kwargs:
