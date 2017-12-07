@@ -1472,7 +1472,18 @@ class Reliability(Enumerated):
         , 'multiStateFault':9
         , 'configurationError':10
         , 'communicationFailure':12
-        , 'numberFault':13
+        , 'memberFault': 13
+        , 'monitoredObjectFault': 14
+        , 'tripped': 15
+        , 'lampFailure': 16
+        , 'activationFailure': 17
+        , 'renewDHCPFailure': 18
+        , 'renewFDRegistration-failure': 19
+        , 'restartAutoNegotiationFailure': 20
+        , 'restartFailure': 21
+        , 'proprietaryCommandFailure': 22
+        , 'faultsListed': 23
+        , 'referencedObjectFault': 24
         }
 
 class RestartReason(Enumerated):
