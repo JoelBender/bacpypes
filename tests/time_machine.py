@@ -5,6 +5,8 @@ Testing Time Machine
 --------------------
 """
 
+import re
+import time
 from heapq import heappop
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
@@ -18,6 +20,11 @@ _log = ModuleLogger(globals())
 
 # time machine
 time_machine = None
+
+# some patterns
+_date_regex = re.compile("^(\d{4})[-](0?[1-9]|1[0-4])[-]([0-3]?\d)$")
+_time_regex = re.compile("^(\d+)[:](\d+)(?:[:](\d+)(?:[.](\d+))?)?$")
+_deltatime_regex = re.compile("^(\d+(?:[.]\d+))?$")
 
 
 # @bacpypes_debugging - implicit via metaclass
@@ -142,20 +149,105 @@ class TimeMachine(_TaskManager):
 
 
 @bacpypes_debugging
-def reset_time_machine():
+def xdatetime(s, now):
+    """
+    Given a string of the form "[YYYY-MM-DD] [HR:MN[:SC[.HN]]]" where the
+    date or time or both are provided, return the seconds since the epoch.
+
+    If the date is provided and the time is not, assume the time is
+    midnight, e.g., 0:0:0.0.
+
+    If the time is provided but the date is not, assume the date is the same
+    as the date in 'now'.
+
+    If the time is provided as a floating point number, it is a deltatime
+    from 'now'.
+    """
+    if _debug: xdatetime._debug("xdatetime %r", s)
+
+    # assume there is no offset and nothing matches
+    seconds_offset = 0.0
+    date_match = time_match = deltatime_match = None
+
+    # split the string into two pieces
+    h, _, t = s.strip().partition(" ")
+    if not h:
+        raise RuntimeError("date and/or time required")
+    if _debug: xdatetime._debug("    - h, t: %r, %r", h, t)
+
+    if h and t:
+        date_match = _date_regex.match(h)
+        if not date_match:
+            raise RuntimeError("date not matching")
+
+        time_match = _time_regex.match(t)
+        if not time_match:
+            raise RuntimeError("time not matching")
+    else:
+        date_match = _date_regex.match(h)
+        if not date_match:
+            time_match = _time_regex.match(h)
+            if not time_match:
+                deltatime_match = _deltatime_regex.match(h)
+                if not deltatime_match:
+                    raise RuntimeError("no match")
+                seconds_offset = float(deltatime_match.groups()[0])
+                if _debug: xdatetime._debug("    - seconds_offset: %r", seconds_offset)
+
+                return now + seconds_offset
+
+    xtuple = []
+    if date_match:
+        xtuple.extend(int(v) for v in date_match.groups())
+    else:
+        xtuple.extend(time.localtime(now)[:3])
+    if _debug: xdatetime._debug("    - xtuple: %r", xtuple)
+
+    if time_match:
+        time_tuple = list(int(v or "0") for v in time_match.groups())
+        if _debug: xdatetime._debug("    - time_tuple: %r", time_tuple)
+
+        xtuple.extend(time_tuple[:3])
+
+        seconds_offset = float(time_tuple[3])
+        if seconds_offset:
+            seconds_offset /= 10.0 ** len(time_match.groups()[3])
+        if _debug: xdatetime._debug("    - seconds_offset: %r", seconds_offset)
+    else:
+        xtuple.extend([0, 0, 0])
+    if _debug: xdatetime._debug("    - xtuple: %r", xtuple)
+
+    # fill it out to length nine, unknown dst
+    xtuple.extend([0, 0, -1])
+    if _debug: xdatetime._debug("    - xtuple: %r", xtuple)
+
+    # convert it back to seconds since the epoch
+    xtime = time.mktime(xtuple) + seconds_offset
+    if _debug: xdatetime._debug("    - xtime: %r", xtime)
+
+    return xtime
+
+
+@bacpypes_debugging
+def reset_time_machine(start_time=0.0):
     """This function is called to reset the clock before running a set
     of tests.
     """
-    if _debug: reset_time_machine._debug("reset_time_machine")
+    if _debug: reset_time_machine._debug("reset_time_machine %r", start_time)
     global time_machine
 
     # a little error checking
     if not time_machine:
         raise RuntimeError("no time machine")
 
+    # the start might be a special string
+    if isinstance(start_time, str):
+        start_time = xdatetime(start_time, 0.0)
+        if _debug: reset_time_machine._debug("    - start_time: %r", start_time)
+
     # begin time at the beginning
     time_machine.tasks = []
-    time_machine.current_time = 0.0
+    time_machine.current_time = start_time
     time_machine.time_limit = None
 
 
@@ -172,10 +264,15 @@ def run_time_machine(time_limit):
     # a little error checking
     if not time_machine:
         raise RuntimeError("no time machine")
-    if time_limit <= 0.0:
-        raise ValueError("time limit required")
     if time_machine.current_time is None:
         raise RuntimeError("reset the time machine before running")
+
+    # the start might be a special string
+    if isinstance(time_limit, str):
+        time_limit = xdatetime(time_limit, time_machine.current_time)
+        if _debug: reset_time_machine._debug("    - time_limit: %r", time_limit)
+    if time_limit <= 0.0:
+        raise ValueError("time limit required")
 
     # pass the limit to the time machine
     time_machine.time_limit = time_machine.current_time + time_limit

@@ -22,8 +22,9 @@ from bacpypes.object import get_object_class, get_datatype
 
 from bacpypes.apdu import SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
-from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
-from bacpypes.constructeddata import Array, Any
+from bacpypes.primitivedata import Null, Atomic, Boolean, Unsigned, Integer, \
+    Real, Double, OctetString, CharacterString, BitString, Date, Time
+from bacpypes.constructeddata import Array, Any, AnyAtomic
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import LocalDeviceObject
@@ -149,6 +150,27 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             # change atomic values into something encodeable, null is a special case
             if (value == 'null'):
                 value = Null()
+            elif issubclass(datatype, AnyAtomic):
+                dtype, dvalue = value.split(':')
+                if _debug: ReadWritePropertyConsoleCmd._debug("    - dtype, dvalue: %r, %r", dtype, dvalue)
+
+                datatype = {
+                    'b': Boolean,
+                    'u': lambda x: Unsigned(int(x)),
+                    'i': lambda x: Integer(int(x)),
+                    'r': lambda x: Real(float(x)),
+                    'd': lambda x: Double(float(x)),
+                    'o': OctetString,
+                    'c': CharacterString,
+                    'bs': BitString,
+                    'date': Date,
+                    'time': Time,
+                    }[dtype]
+                if _debug: ReadWritePropertyConsoleCmd._debug("    - datatype: %r", datatype)
+
+                value = datatype(dvalue)
+                if _debug: ReadWritePropertyConsoleCmd._debug("    - value: %r", value)
+
             elif issubclass(datatype, Atomic):
                 if datatype is Integer:
                     value = int(value)
