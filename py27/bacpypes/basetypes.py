@@ -513,6 +513,7 @@ class EngineeringUnits(Enumerated):
         , 'megavoltAmpereHoursReactive':244 #Mvarh
         , 'voltsPerDegreeKelvin':176
         , 'voltsPerMeter':177
+        , 'voltsSquareHours':245
         , 'degreesPhase':14
         , 'powerFactor':15
         , 'webers':178

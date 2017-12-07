@@ -16,6 +16,8 @@ from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import register_object_type, ReadableProperty, \
     WritableProperty, Object
 
+from bacpypes.service.object import CurrentPropertyListMixIn
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -192,4 +194,63 @@ class TestWritableArray(unittest.TestCase):
         assert obj.ReadProperty('location', 0) == 2
         assert obj.ReadProperty('location', 1) == "home"
         assert obj.ReadProperty('location', 2) == "work"
+
+
+@bacpypes_debugging
+@register_object_type(vendor_id=999)
+class SampleLocationObject(CurrentPropertyListMixIn, Object):
+
+    objectType = 'sampleLocationObject'
+    properties = [
+        WritableProperty('location', CharacterString),
+        ]
+
+    def __init__(self, **kwargs):
+        if _debug: SampleWritableArray._debug("__init__ %r", kwargs)
+        Object.__init__(self, **kwargs)
+
+
+@bacpypes_debugging
+class TestCurrentPropertyListMixIn(unittest.TestCase):
+
+    def test_with_location(self):
+        if _debug: TestCurrentPropertyListMixIn._debug("test_with_location")
+
+        # create an object without a location
+        obj = SampleLocationObject(location="home")
+        if _debug: TestCurrentPropertyListMixIn._debug("    - obj.location: %r", obj.location)
+
+        assert obj.propertyList.value == [1, "location"]
+
+    def test_without_location(self):
+        if _debug: TestCurrentPropertyListMixIn._debug("test_property_list_1")
+
+        # create an object without a location
+        obj = SampleLocationObject()
+        if _debug: TestCurrentPropertyListMixIn._debug("    - obj.location: %r", obj.location)
+
+        assert obj.propertyList.value == [0]
+
+    def test_location_appears(self):
+        if _debug: TestCurrentPropertyListMixIn._debug("test_location_appears")
+
+        # create an object without a location
+        obj = SampleLocationObject()
+        if _debug: TestCurrentPropertyListMixIn._debug("    - obj.location: %r", obj.location)
+
+        # give it a location
+        obj.location = "away"
+        assert obj.propertyList.value == [1, "location"]
+
+    def test_location_disappears(self):
+        if _debug: TestCurrentPropertyListMixIn._debug("test_location_disappears")
+
+        # create an object without a location
+        obj = SampleLocationObject(location="home")
+        if _debug: TestCurrentPropertyListMixIn._debug("    - obj.location: %r", obj.location)
+
+        # location 'removed'
+        obj.location = None
+
+        assert obj.propertyList.value == [0]
 
