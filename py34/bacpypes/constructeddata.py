@@ -563,7 +563,7 @@ def ArrayOf(klass):
 
         def __setitem__(self, item, value):
             # no wrapping index
-            if (item < 1) or (item > self.value[0]):
+            if (item < 0) or (item > self.value[0]):
                 raise IndexError("index out of range")
 
             # special length handling for index 0
@@ -573,7 +573,11 @@ def ArrayOf(klass):
                     self.value = self.value[0:value + 1]
                 elif value > self.value[0]:
                     # extend
-                    self.value.extend( [None] * (value - self.value[0]) )
+                    if issubclass(self.subtype, Atomic):
+                        self.value.extend( [self.subtype().value] * (value - self.value[0]) )
+                    else:
+                        for i in range(value - self.value[0]):
+                            self.value.append(self.subtype())
                 else:
                     return
                 self.value[0] = value
@@ -924,7 +928,7 @@ class Choice(object):
                 # check for the correct closing tag
                 tag = taglist.Pop()
                 if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
-                    raise DecodingError("'%s' expected closing tag %d" % (element.name, element.context))
+                    raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
                 # done
                 if _debug: Choice._debug("    - found choice (structure)")

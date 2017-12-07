@@ -253,6 +253,8 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
         if _debug: UDPDirector._debug("close_socket")
 
         self.socket.close()
+        self.close()
+        self.socket = None
 
     def handle_close(self):
         """Remove this from the monitor when it's closed."""
