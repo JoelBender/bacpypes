@@ -142,6 +142,7 @@ class Sequence(object):
 
         for element in self.sequenceElements:
             tag = taglist.Peek()
+            if _debug: Sequence._debug("    - element, tag: %r, %r", element, tag)
 
             # no more elements
             if tag is None:
@@ -188,7 +189,29 @@ class Sequence(object):
                     if tag.tagClass != Tag.closingTagClass or tag.tagNumber != element.context:
                         raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
-            # check for an atomic element
+            # check for an any atomic element
+            elif issubclass(element.klass, AnyAtomic):
+                # convert it to application encoding
+                if element.context is not None:
+                    raise InvalidTag("%s any atomic with context tag %d" % (element.name, element.context))
+
+                if tag.tagClass != Tag.applicationTagClass:
+                    if not element.optional:
+                        raise InvalidParameterDatatype("%s expected any atomic application tag" % (element.name,))
+                    else:
+                        setattr(self, element.name, None)
+                        continue
+
+                # consume the tag
+                taglist.Pop()
+
+                # a helper cooperates between the atomic value and the tag
+                helper = element.klass(tag)
+
+                # now save the value
+                setattr(self, element.name, helper.value)
+
+            # check for specific kind of atomic element, or the context says what kind
             elif issubclass(element.klass, Atomic):
                 # convert it to application encoding
                 if element.context is not None:
