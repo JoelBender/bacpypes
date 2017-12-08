@@ -152,7 +152,7 @@ of the sample configuration file, and edit it for your site::
     communicate as peers, so it is not unusual for an application to 
     act as both a client and a server at the same time.
 
-A typical BACpypes.ini file contains 
+A typical BACpypes.ini file contains::
 
     [BACpypes]
     objectName: Betelgeuse
@@ -172,7 +172,7 @@ UDP Communications Issues
 
 BACnet devices communicate using UDP rather than TCP.  This is so 
 devices do not need to implement a full IP stack (although 
-many of them do becuase they support multiple protocols, including
+many of them do because they support multiple protocols, including
 having embedded web servers).
 
 There are two types of UDP messages; *unicast* which is a message 
