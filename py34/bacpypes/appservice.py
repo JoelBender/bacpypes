@@ -765,7 +765,7 @@ class ServerSSM(SSM):
                 if self.ssmSAP.segmentationSupported not in ('segmentedTransmit', 'segmentedBoth'):
                     if _debug: ServerSSM._debug("    - server can't send segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
-                    self.reponse(abort)
+                    self.response(abort)
                     return
 
                 # make sure client supports segmented receive
