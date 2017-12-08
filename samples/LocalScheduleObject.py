@@ -22,6 +22,7 @@ from bacpypes.basetypes import CalendarEntry, DailySchedule, DateRange, \
 from bacpypes.object import register_object_type, get_datatype, WritableProperty, ScheduleObject
 
 from bacpypes.app import BIPSimpleApplication
+from bacpypes.service.object import CurrentPropertyListMixIn
 from bacpypes.service.device import LocalDeviceObject
 
 # some debugging
@@ -246,7 +247,7 @@ def datetime_to_time(date, time):
 
 @bacpypes_debugging
 @register_object_type(vendor_id=999)
-class LocalScheduleObject(ScheduleObject):
+class LocalScheduleObject(CurrentPropertyListMixIn, ScheduleObject):
 
     properties = [
         WritableProperty('presentValue', AnyAtomic),
