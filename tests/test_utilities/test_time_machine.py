@@ -6,12 +6,14 @@ Test Utilities Time Machine
 ----------------------------
 """
 
+import time
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.task import OneShotTask, FunctionTask, RecurringTask
-from ..time_machine import TimeMachine, reset_time_machine, run_time_machine
+from ..time_machine import TimeMachine, reset_time_machine, run_time_machine, \
+    xdatetime
 
 # some debugging
 _debug = 0
@@ -99,7 +101,10 @@ class SampleRecurringTask(RecurringTask):
 
     def process_task(self):
         global time_machine
-        if _debug: SampleRecurringTask._debug("process_task @ %r", time_machine.current_time)
+        if _debug: SampleRecurringTask._debug("process_task @ %r %s",
+            time_machine.current_time,
+            time.strftime("%x %X", time.gmtime(time_machine.current_time)),
+            )
 
         # add the current time
         self.process_task_called.append(time_machine.current_time)
@@ -126,8 +131,8 @@ class TestTimeMachine(unittest.TestCase):
         # no time has passed
         assert time_machine.current_time == 0.0
 
-    def test_one_shot_immediate(self):
-        if _debug: TestTimeMachine._debug("test_one_shot_immediate")
+    def test_one_shot_immediate_1(self):
+        if _debug: TestTimeMachine._debug("test_one_shot_immediate_1")
 
         # create a function task
         ft = SampleOneShotTask()
@@ -140,6 +145,24 @@ class TestTimeMachine(unittest.TestCase):
         # function called, no time has passed
         assert almost_equal(ft.process_task_called, [0.0])
         assert time_machine.current_time == 0.0
+
+    def test_one_shot_immediate_2(self):
+        if _debug: TestTimeMachine._debug("test_one_shot_immediate_2")
+
+        # create a function task
+        ft = SampleOneShotTask()
+
+        # run the function sometime later
+        t1 = xdatetime("2000-06-06")
+        if _debug: TestTimeMachine._debug("    - t1: %r", t1)
+
+        # reset the time machine to midnight, install the task, let it run
+        reset_time_machine(start_time="2000-01-01")
+        ft.install_task(t1)
+        run_time_machine(stop_time="2001-01-01")
+
+        # function called at correct time
+        assert almost_equal(ft.process_task_called, [t1])
 
     def test_function_task_immediate(self):
         if _debug: TestTimeMachine._debug("test_function_task_immediate")
@@ -239,4 +262,18 @@ class TestTimeMachine(unittest.TestCase):
         # function called, no time has passed
         assert almost_equal(ft.process_task_called, [0.9, 1.9, 2.9, 3.9, 4.9])
         assert time_machine.current_time == 5.0
+
+    def test_recurring_task_5(self):
+        if _debug: TestTimeMachine._debug("test_recurring_task_5")
+
+        # create a function task
+        ft = SampleRecurringTask()
+
+        # reset the time machine, install the task, let it run
+        reset_time_machine(start_time="2000-01-01")
+        ft.install_task(86400.0 * 1000.0)
+        run_time_machine(stop_time="2000-02-01")
+
+        # function called every day
+        assert len(ft.process_task_called) == 31
 

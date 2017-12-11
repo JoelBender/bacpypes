@@ -149,7 +149,7 @@ class TimeMachine(_TaskManager):
 
 
 @bacpypes_debugging
-def xdatetime(s, now):
+def xdatetime(s, now=None):
     """
     Given a string of the form "[YYYY-MM-DD] [HR:MN[:SC[.HN]]]" where the
     date or time or both are provided, return the seconds since the epoch.
@@ -194,12 +194,18 @@ def xdatetime(s, now):
                 seconds_offset = float(deltatime_match.groups()[0])
                 if _debug: xdatetime._debug("    - seconds_offset: %r", seconds_offset)
 
+                if now is None:
+                    raise RuntimeError("'now' required for deltatime")
+
                 return now + seconds_offset
 
     xtuple = []
     if date_match:
         xtuple.extend(int(v) for v in date_match.groups())
     else:
+        if now is None:
+            raise RuntimeError("'now' required for deltatime")
+
         xtuple.extend(time.localtime(now)[:3])
     if _debug: xdatetime._debug("    - xtuple: %r", xtuple)
 
@@ -222,7 +228,7 @@ def xdatetime(s, now):
     if _debug: xdatetime._debug("    - xtuple: %r", xtuple)
 
     # convert it back to seconds since the epoch
-    xtime = time.mktime(xtuple) + seconds_offset
+    xtime = time.mktime(tuple(xtuple)) + seconds_offset
     if _debug: xdatetime._debug("    - xtime: %r", xtime)
 
     return xtime
@@ -242,7 +248,7 @@ def reset_time_machine(start_time=0.0):
 
     # the start might be a special string
     if isinstance(start_time, str):
-        start_time = xdatetime(start_time, 0.0)
+        start_time = xdatetime(start_time)
         if _debug: reset_time_machine._debug("    - start_time: %r", start_time)
 
     # begin time at the beginning
@@ -252,13 +258,13 @@ def reset_time_machine(start_time=0.0):
 
 
 @bacpypes_debugging
-def run_time_machine(time_limit):
+def run_time_machine(duration=None, stop_time=None):
     """This function is called after a set of tasks have been installed
-    and they should run.  The machine will stop when the limit has been
+    and they should run.  The machine will stop when the stop time has been
     reached (maybe the middle of some tests) and can be called again to
     continue running.
     """
-    if _debug: run_time_machine._debug("run_time_machine %r", time_limit)
+    if _debug: run_time_machine._debug("run_time_machine %r %r", duration, stop_time)
     global time_machine
 
     # a little error checking
@@ -267,15 +273,21 @@ def run_time_machine(time_limit):
     if time_machine.current_time is None:
         raise RuntimeError("reset the time machine before running")
 
-    # the start might be a special string
-    if isinstance(time_limit, str):
-        time_limit = xdatetime(time_limit, time_machine.current_time)
-        if _debug: reset_time_machine._debug("    - time_limit: %r", time_limit)
-    if time_limit <= 0.0:
-        raise ValueError("time limit required")
+    # check for duration, calculate the time limit
+    if duration is not None:
+        # pass the limit to the time machine
+        time_machine.time_limit = time_machine.current_time + duration
 
-    # pass the limit to the time machine
-    time_machine.time_limit = time_machine.current_time + time_limit
+    elif stop_time is not None:
+        # the start might be a special string
+        if isinstance(stop_time, str):
+            stop_time = xdatetime(stop_time, time_machine.current_time)
+            if _debug: reset_time_machine._debug("    - stop_time: %r", stop_time)
+
+        # pass the limit to the time machine
+        time_machine.time_limit = stop_time
+    else:
+        raise RuntimeError("duration or stop_time required")
 
     # check if there are deferred functions
     if _core.deferredFns:
