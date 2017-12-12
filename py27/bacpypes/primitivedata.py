@@ -14,6 +14,9 @@ from .debugging import ModuleLogger, btox
 from .errors import DecodingError, InvalidTag, InvalidParameterDatatype
 from .pdu import PDUData
 
+# import the task manager to get the "current" date and time
+from .task import TaskManager as _TaskManager
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -1366,6 +1369,9 @@ class Date(Atomic):
         elif isinstance(arg, Date):
             self.value = arg.value
 
+        elif isinstance(arg, float):
+            self.now(arg)
+
         else:
             raise TypeError("invalid constructor datatype")
 
@@ -1394,10 +1400,30 @@ class Date(Atomic):
         # put it back together
         self.value = (year, month, day, day_of_week)
 
-    def now(self):
-        tup = time.localtime()
+    def now(self, when=None):
+        """Set the current value to the correct tuple based on the seconds
+        since the epoch.  If 'when' is not provided, get the current time
+        from the task manager.
+        """
+        if when is None:
+            when = _TaskManager().get_time()
+        tup = time.localtime(when)
+
         self.value = (tup[0]-1900, tup[1], tup[2], tup[6] + 1)
+
         return self
+
+    def __float__(self):
+        """Convert to seconds since the epoch."""
+        # rip apart the value
+        year, month, day, day_of_week = self.value
+
+        # check for special values
+        if (year == 255) or (month in _special_mon_inv) or (day in _special_day_inv):
+            raise ValueError("no wildcard values")
+
+        # convert to time.time() value
+        return time.mktime( (year + 1900, month, day, 0, 0, 0, 0, 0, -1) )
 
     def encode(self, tag):
         # encode the tag
@@ -1478,18 +1504,39 @@ class Time(Atomic):
                 tup_list[3] = tup_list[3] * 10
 
             self.value = tuple(tup_list)
+
         elif isinstance(arg, Time):
             self.value = arg.value
+
+        elif isinstance(arg, float):
+            self.now(arg)
+
         else:
             raise TypeError("invalid constructor datatype")
 
-    def now(self):
-        now = time.time()
-        tup = time.localtime(now)
+    def now(self, when=None):
+        """Set the current value to the correct tuple based on the seconds
+        since the epoch.  If 'when' is not provided, get the current time
+        from the task manager.
+        """
+        if when is None:
+            when = _TaskManager().get_time()
+        tup = time.localtime(when)
 
-        self.value = (tup[3], tup[4], tup[5], int((now - int(now)) * 100))
+        self.value = (tup[3], tup[4], tup[5], int((when - int(when)) * 100))
 
         return self
+
+    def __float__(self):
+        """Return the current value as an offset from midnight."""
+        if 255 in self.value:
+            raise ValueError("no wildcard values")
+
+        # rip it apart
+        hour, minute, second, hundredth = self.value
+
+        # put it together
+        return (hour * 3600.0) + (minute * 60.0) + second + (hundredth / 100.0)
 
     def encode(self, tag):
         # encode the tag
