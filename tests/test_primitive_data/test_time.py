@@ -81,8 +81,6 @@ class TestTime(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Time("some string")
-        with self.assertRaises(TypeError):
-            Time(1.0)
 
     def test_time_tuple(self):
         if _debug: TestTime._debug("test_time_tuple")

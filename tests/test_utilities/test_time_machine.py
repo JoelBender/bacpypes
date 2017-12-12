@@ -128,8 +128,8 @@ class TestTimeMachine(unittest.TestCase):
         # let it run
         run_time_machine(60.0)
 
-        # no time has passed
-        assert time_machine.current_time == 0.0
+        # 60 seconds have passed
+        assert time_machine.current_time == 60.0
 
     def test_one_shot_immediate_1(self):
         if _debug: TestTimeMachine._debug("test_one_shot_immediate_1")
@@ -142,9 +142,9 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(0.0)
         run_time_machine(60.0)
 
-        # function called, no time has passed
+        # function called, 60 seconds have passed
         assert almost_equal(ft.process_task_called, [0.0])
-        assert time_machine.current_time == 0.0
+        assert time_machine.current_time == 60.0
 
     def test_one_shot_immediate_2(self):
         if _debug: TestTimeMachine._debug("test_one_shot_immediate_2")
@@ -177,9 +177,9 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(0.0)
         run_time_machine(60.0)
 
-        # function called, no time has passed
+        # function called, 60 seconds have passed
         assert almost_equal(sample_task_function_called, [0.0])
-        assert time_machine.current_time == 0.0
+        assert time_machine.current_time == 60.0
 
     def test_function_task_delay(self):
         if _debug: TestTimeMachine._debug("test_function_task_delay")
@@ -196,9 +196,9 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(sample_delay)
         run_time_machine(60.0)
 
-        # function called, no time has passed
+        # function called, 60 seconds have passed
         assert almost_equal(sample_task_function_called, [sample_delay])
-        assert time_machine.current_time == sample_delay
+        assert time_machine.current_time == 60.0
 
     def test_recurring_task_1(self):
         if _debug: TestTimeMachine._debug("test_recurring_task_1")
@@ -211,7 +211,7 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(1000.0)
         run_time_machine(5.0)
 
-        # function called, no time has passed
+        # function called, 5 seconds have passed
         assert almost_equal(ft.process_task_called, [1.0, 2.0, 3.0, 4.0])
         assert time_machine.current_time == 5.0
 
@@ -228,7 +228,7 @@ class TestTimeMachine(unittest.TestCase):
         ft2.install_task(1500.0)
         run_time_machine(5.0)
 
-        # function called, no time has passed
+        # function called, 5 seconds have passed
         assert almost_equal(ft1.process_task_called, [1.0, 2.0, 3.0, 4.0])
         assert almost_equal(ft2.process_task_called, [1.5, 3.0, 4.5])
         assert time_machine.current_time == 5.0
@@ -244,7 +244,7 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(1000.0, offset=100.0)
         run_time_machine(5.0)
 
-        # function called, no time has passed
+        # function called, 5 seconds have passed
         assert almost_equal(ft.process_task_called, [0.1, 1.1, 2.1, 3.1, 4.1])
         assert time_machine.current_time == 5.0
 
@@ -259,7 +259,7 @@ class TestTimeMachine(unittest.TestCase):
         ft.install_task(1000.0, offset=-100.0)
         run_time_machine(5.0)
 
-        # function called, no time has passed
+        # function called, 5 seconds have passed
         assert almost_equal(ft.process_task_called, [0.9, 1.9, 2.9, 3.9, 4.9])
         assert time_machine.current_time == 5.0
 

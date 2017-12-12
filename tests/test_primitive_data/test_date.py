@@ -81,8 +81,6 @@ class TestDate(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Date("some string")
-        with self.assertRaises(TypeError):
-            Date(1.0)
 
     def test_date_tuple(self):
         if _debug: TestDate._debug("test_date_tuple")
@@ -117,6 +115,12 @@ class TestDate(unittest.TestCase):
         obj1 = Date(value)
         obj2 = Date(obj1)
         assert obj2.value == value
+
+    def test_date_now(self):
+        if _debug: TestDate._debug("test_date_now")
+
+        # obj = Date().now()
+        ### how to test?
 
     def test_date_endec(self):
         if _debug: TestDate._debug("test_date_endec")
@@ -176,3 +180,4 @@ class TestDate(unittest.TestCase):
             with self.assertRaises(ValueError):        
                 for each in self.notEnoughPreciseOrWrong:
                     new_date = Date(each[0])
+

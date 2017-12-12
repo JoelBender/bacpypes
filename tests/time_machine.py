@@ -82,7 +82,7 @@ class TimeMachine(_TaskManager):
         if _debug: TimeMachine._debug("    - tasks: %r", self.tasks)
 
         if (self.time_limit is not None) and (self.current_time >= self.time_limit):
-            if _debug: TimeMachine._debug("    - time limit reached")
+            if _debug: TimeMachine._debug("    - time limit reached or exceeded")
             return False
 
         if not self.tasks:
@@ -92,11 +92,12 @@ class TimeMachine(_TaskManager):
         # peek at the next task and see when it is supposed to run
         when, task = self.tasks[0]
         if when >= self.time_limit:
-            if _debug: TimeMachine._debug("    - time limit reached")
+            if _debug: TimeMachine._debug("    - next task at or exceeds time limit")
             return False
-        if _debug: TimeMachine._debug("    - task: %r", task)
 
         # there is a task to run
+        if _debug: TimeMachine._debug("    - task: %r", task)
+
         return True
 
     def get_next_task(self):
@@ -301,4 +302,7 @@ def run_time_machine(duration=None, stop_time=None):
         if not time_machine.more_to_do():
             if _debug: run_time_machine._debug("    - no more to do")
             break
+
+    # update the current time to the time limit
+    time_machine.current_time = time_machine.time_limit
 
