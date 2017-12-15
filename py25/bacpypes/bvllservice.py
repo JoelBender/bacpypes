@@ -542,7 +542,7 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         self.bbmdTimeToLive = ttl
 
         # install this task to run when it gets a chance
-        self.install_task(delta=0)
+        self.install_task(when=0)
 
     def unregister(self):
         """Drop the registration with a BBMD."""
