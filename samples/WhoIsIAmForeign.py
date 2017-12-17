@@ -115,7 +115,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 
             # make an IOCB
             iocb = IOCB(request)
-            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+            if _debug: WhoIsIAmConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
             this_application.request_io(iocb)
@@ -142,7 +142,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 
             # make an IOCB
             iocb = IOCB(request)
-            if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
+            if _debug: WhoIsIAmConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
             this_application.request_io(iocb)
