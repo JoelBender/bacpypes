@@ -4,6 +4,16 @@
 This application presents a 'console' prompt to the user asking for Who-Is and I-Am
 commands which create the related APDUs, then lines up the coorresponding I-Am
 for incoming traffic and prints out the contents.
+
+In addition to the usual INI parameters that are common to BACpypes applications,
+this application references two additional parameters:
+
+    foreignBBMD: the BACpypes IP Address of the BBMD to register
+    foreignTTL: the time-to-live to keep the registration alive
+
+The BBMDForeign class will send the BVLL registration request after the core
+starts up and maintain it.  If the device does not get an 'ack' then it will
+not send requests, even to devices that it would be able to talk otherwise.
 """
 
 import sys
