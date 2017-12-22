@@ -142,6 +142,9 @@ def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
                 time.sleep(sleeptime)
                 delta -= sleeptime
 
+            # delta should be no more than the spin value
+            delta = min(delta, spin)
+
             # if there are deferred functions, use a small delta
             if deferredFns:
                 delta = min(delta, 0.001)
