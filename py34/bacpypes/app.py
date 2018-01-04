@@ -470,7 +470,7 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+        ApplicationIOController.__init__(self, localDevice, localAddress, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
