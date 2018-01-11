@@ -1604,6 +1604,16 @@ class ErrorType(Sequence):
         , Element('errorCode', ErrorCode)
         ]
 
+class LightingCommand(Sequence):
+    sequenceElements = \
+        [ Element('operation', LightingOperation, 0)
+        , Element('targetLevel', Real, 1, True)
+        , Element('rampRate', Real, 2, True)
+        , Element('stepIncrement', Real, 3, True)
+        , Element('fadeTime', Unsigned, 4, True)
+        , Element('priority', Unsigned, 5, True)
+        ]
+
 class ObjectPropertyReference(Sequence):
     sequenceElements = \
         [ Element('objectIdentifier', ObjectIdentifier, 0)
@@ -2079,16 +2089,6 @@ class KeyIdentifier(Sequence):
     sequenceElements = \
         [ Element('algorithm', Unsigned, 0)
         , Element('keyId', Unsigned, 1)
-        ]
-
-class LightingCommand(Sequence):
-    sequenceElements = \
-        [ Element('operation', LightingOperation, 0)
-        , Element('targetLevel', Real, 1) ### optional
-        , Element('rampRate', Real, 2)   ### optional
-        , Element('stepIncrement', Real, 3) ### optional
-        , Element('fadeTime', Unsigned, 4) ### optional
-        , Element('priority', Unsigned, 5) ### optional
         ]
 
 class LogDataLogData(Choice):
