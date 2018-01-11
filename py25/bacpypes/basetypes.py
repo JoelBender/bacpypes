@@ -1792,8 +1792,21 @@ class CalendarEntry(Choice):
         ]
 
 class ChannelValue(Choice):
-    choiceElements = [
-        ### needs help
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('real', Real)
+        , Element('enumerated', Enumerated)
+        , Element('unsigned', Unsigned)
+        , Element('boolean', Boolean)
+        , Element('integer', Integer)
+        , Element('double', Double)
+        , Element('time', Time)
+        , Element('characterString', CharacterString)
+        , Element('octetString', OctetString)
+        , Element('bitString', BitString)
+        , Element('date', Date)
+        , Element('objectidentifier', ObjectIdentifier)
+        , Element('lightingCommand', LightingCommand, 0)
         ]
 
 class ClientCOV(Choice):
@@ -2336,14 +2349,14 @@ class PriorityValue(Choice):
         , Element('enumerated', Enumerated)
         , Element('unsigned', Unsigned)
         , Element('boolean', Boolean)
-        , Element('signed', Integer)
+        , Element('integer', Integer)
         , Element('double', Double)
         , Element('time', Time)
         , Element('characterString', CharacterString)
         , Element('octetString', OctetString)
         , Element('bitString', BitString)
         , Element('date', Date)
-        , Element('objectid', ObjectIdentifier)
+        , Element('objectidentifier', ObjectIdentifier)
         , Element('constructedValue', Any, 0)
         , Element('datetime', DateTime, 1)
         ]
