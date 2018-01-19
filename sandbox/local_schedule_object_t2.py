@@ -439,7 +439,8 @@ class LocalScheduleInterpreter(OneShotTask):
                 obj.WriteProperty(
                     obj_prop_ref.propertyIdentifier,
                     new_value,
-                    obj_prop_ref.propertyArrayIndex,
+                    arrayIndex=obj_prop_ref.propertyArrayIndex,
+                    priority=self.sched_obj.priorityForWriting,
                     )
                 if _debug: LocalScheduleInterpreter._debug("    - success")
             except Exception as err:
@@ -697,6 +698,7 @@ def main():
 #               deviceIdentifier=('device', 999),
                 ),
             ],
+        priorityForWriting=7,
         scheduleDefault=Real(0.0),
         )
     _log.debug("    - so: %r", so)
