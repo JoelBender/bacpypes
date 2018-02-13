@@ -24,7 +24,6 @@ ArrayOfPropertyIdentifier = ArrayOf(PropertyIdentifier)
 #   CurrentPropertyList
 #
 
-@bacpypes_debugging
 class CurrentPropertyList(Property):
 
     def __init__(self):
@@ -60,16 +59,19 @@ class CurrentPropertyList(Property):
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
+bacpypes_debugging(CurrentPropertyList)
+
 #
 #   CurrentPropertyListMixIn
 #
 
-@bacpypes_debugging
 class CurrentPropertyListMixIn(Object):
 
     properties = [
         CurrentPropertyList(),
         ]
+
+bacpypes_debugging(CurrentPropertyListMixIn)
 
 #
 #   ReadProperty and WriteProperty Services
