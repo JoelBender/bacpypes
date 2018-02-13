@@ -15,8 +15,8 @@ from .debugging import bacpypes_debugging, ModuleLogger
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
     Double, Integer, ObjectIdentifier, ObjectType, OctetString, Real, Time, \
     Unsigned
-from .constructeddata import AnyAtomic, Array, ArrayOf, Choice, Element, \
-    Sequence, SequenceOf
+from .constructeddata import AnyAtomic, Array, ArrayOf, List, ListOf, \
+    Choice, Element, Sequence, SequenceOf
 from .basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
     AccessEvent, AccessPassbackMode, AccessRule, AccessThreatLevel, \
     AccessUserType, AccessZoneOccupancyState, AccumulatorRecord, Action, \
@@ -256,6 +256,38 @@ class Property:
 
                     # value is mutated into a new array
                     value = self.datatype(value)
+
+            # if it's an array, make sure it's valid regarding arrayIndex provided
+            elif issubclass(self.datatype, List):
+                if _debug: Property._debug("    - property is list, checking subtype")
+
+                # changing a single element
+                if arrayIndex is not None:
+                    raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
+
+                # replacing the array
+                if not isinstance(value, list):
+                    raise InvalidParameterDatatype("elements of %s must be of type %s" % (
+                            self.identifier, self.datatype.subtype.__name__
+                            ))
+
+                # check validity regarding subtype
+                for item in value:
+                    # if it's atomic, make sure it's valid
+                    if issubclass(self.datatype.subtype, Atomic):
+                        if _debug: Property._debug("    - subtype is atomic, checking value")
+                        if not self.datatype.subtype.is_valid(item):
+                            raise InvalidParameterDatatype("elements of %s must be of type %s" % (
+                                    self.identifier, self.datatype.subtype.__name__,
+                                    ))
+                    # constructed type
+                    elif not isinstance(item, self.datatype.subtype):
+                        raise InvalidParameterDatatype("elements of %s must be of type %s" % (
+                                self.identifier, self.datatype.subtype.__name__
+                                ))
+
+                # value is mutated into a new list
+                value = self.datatype(value)
 
             # some kind of constructed data
             elif not isinstance(value, self.datatype):
@@ -658,7 +690,7 @@ class AccessCredentialObject(Object):
         , ReadableProperty('statusFlags', StatusFlags)
         , ReadableProperty('reliability', Reliability)
         , ReadableProperty('credentialStatus', BinaryPV)
-        , ReadableProperty('reasonForDisable', SequenceOf(AccessCredentialDisableReason))
+        , ReadableProperty('reasonForDisable', ListOf(AccessCredentialDisableReason))
         , ReadableProperty('authenticationFactors', ArrayOf(CredentialAuthenticationFactor))
         , ReadableProperty('activationTime', DateTime)
         , ReadableProperty('expiryTime', DateTime)
@@ -674,7 +706,7 @@ class AccessCredentialObject(Object):
         , OptionalProperty('traceFlag', Boolean)
         , OptionalProperty('threatAuthority', AccessThreatLevel)
         , OptionalProperty('extendedTimeEnable', Boolean)
-        , OptionalProperty('authorizationExemptions', SequenceOf(AuthorizationException))
+        , OptionalProperty('authorizationExemptions', ListOf(AuthorizationException))
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
 #       , OptionalProperty('masterExemption', Boolean)
 #       , OptionalProperty('passbackExemption', Boolean)
@@ -701,12 +733,12 @@ class AccessDoorObject(Object):
         , OptionalProperty('doorUnlockDelayTime', Unsigned)
         , ReadableProperty('doorOpenTooLongTime', Unsigned)
         , OptionalProperty('doorAlarmState', DoorAlarmState)
-        , OptionalProperty('maskedAlarmValues', SequenceOf(DoorAlarmState))
+        , OptionalProperty('maskedAlarmValues', ListOf(DoorAlarmState))
         , OptionalProperty('maintenanceRequired', Maintenance)
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('alarmValues', SequenceOf(DoorAlarmState))
-        , OptionalProperty('faultValues', SequenceOf(DoorAlarmState))
+        , OptionalProperty('alarmValues', ListOf(DoorAlarmState))
+        , OptionalProperty('faultValues', ListOf(DoorAlarmState))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -736,7 +768,7 @@ class AccessPointObject(Object):
         , OptionalProperty('lockout', Boolean)
         , OptionalProperty('lockoutRelinquishTime', Unsigned)
         , OptionalProperty('failedAttempts', Unsigned)
-        , OptionalProperty('failedAttemptEvents', SequenceOf(AccessEvent))
+        , OptionalProperty('failedAttemptEvents', ListOf(AccessEvent))
         , OptionalProperty('maxFailedAttempts', Unsigned)
         , OptionalProperty('failedAttemptsTime', Unsigned)
         , OptionalProperty('threatLevel', AccessThreatLevel)
@@ -756,8 +788,8 @@ class AccessPointObject(Object):
         , OptionalProperty('zoneFrom', DeviceObjectReference)
         , OptionalProperty('notificationClass', Unsigned)
         , OptionalProperty('transactionNotificationClass', Unsigned)
-        , OptionalProperty('accessAlarmEvents', SequenceOf(AccessEvent))
-        , OptionalProperty('accessTransactionEvents', SequenceOf(AccessEvent))
+        , OptionalProperty('accessAlarmEvents', ListOf(AccessEvent))
+        , OptionalProperty('accessTransactionEvents', ListOf(AccessEvent))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -795,9 +827,9 @@ class AccessUserObject(Object):
         , OptionalProperty('userName', CharacterString)
         , OptionalProperty('userExternalIdentifier', CharacterString)
         , OptionalProperty('userInformationReference', CharacterString)
-        , OptionalProperty('members', SequenceOf(DeviceObjectReference))
-        , OptionalProperty('memberOf', SequenceOf(DeviceObjectReference))
-        , ReadableProperty('credentials', SequenceOf(DeviceObjectReference))
+        , OptionalProperty('members', ListOf(DeviceObjectReference))
+        , OptionalProperty('memberOf', ListOf(DeviceObjectReference))
+        , ReadableProperty('credentials', ListOf(DeviceObjectReference))
        ]
 
 @register_object_type
@@ -815,18 +847,18 @@ class AccessZoneObject(Object):
         , OptionalProperty('adjustValue', Integer)
         , OptionalProperty('occupancyUpperLimit', Unsigned)
         , OptionalProperty('occupancyLowerLimit', Unsigned)
-        , OptionalProperty('credentialsInZone', SequenceOf(DeviceObjectReference) )
+        , OptionalProperty('credentialsInZone', ListOf(DeviceObjectReference) )
         , OptionalProperty('lastCredentialAdded', DeviceObjectReference)
         , OptionalProperty('lastCredentialAddedTime', DateTime)
         , OptionalProperty('lastCredentialRemoved', DeviceObjectReference)
         , OptionalProperty('lastCredentialRemovedTime', DateTime)
         , OptionalProperty('passbackMode', AccessPassbackMode)
         , OptionalProperty('passbackTimeout', Unsigned)
-        , ReadableProperty('entryPoints', SequenceOf(DeviceObjectReference))
-        , ReadableProperty('exitPoints', SequenceOf(DeviceObjectReference))
+        , ReadableProperty('entryPoints', ListOf(DeviceObjectReference))
+        , ReadableProperty('exitPoints', ListOf(DeviceObjectReference))
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('alarmValues', SequenceOf(AccessZoneOccupancyState))
+        , OptionalProperty('alarmValues', ListOf(AccessZoneOccupancyState))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -1162,7 +1194,7 @@ class CalendarObject(Object):
     objectType = 'calendar'
     properties = \
         [ ReadableProperty('presentValue', Boolean)
-        , ReadableProperty('dateList', SequenceOf(CalendarEntry))
+        , ReadableProperty('dateList', ListOf(CalendarEntry))
         ]
 
 @register_object_type
@@ -1326,8 +1358,8 @@ class DeviceObject(Object):
         , OptionalProperty('structuredObjectList', ArrayOf(ObjectIdentifier))
         , ReadableProperty('maxApduLengthAccepted', Unsigned)
         , ReadableProperty('segmentationSupported', Segmentation)
-        , OptionalProperty('vtClassesSupported', SequenceOf(VTClass))
-        , OptionalProperty('activeVtSessions', SequenceOf(VTSession))
+        , OptionalProperty('vtClassesSupported', ListOf(VTClass))
+        , OptionalProperty('activeVtSessions', ListOf(VTSession))
         , OptionalProperty('localTime', Time)
         , OptionalProperty('localDate', Date)
         , OptionalProperty('utcOffset', Integer)
@@ -1335,10 +1367,10 @@ class DeviceObject(Object):
         , OptionalProperty('apduSegmentTimeout', Unsigned)
         , ReadableProperty('apduTimeout', Unsigned)
         , ReadableProperty('numberOfApduRetries', Unsigned)
-        , OptionalProperty('timeSynchronizationRecipients', SequenceOf(Recipient))
+        , OptionalProperty('timeSynchronizationRecipients', ListOf(Recipient))
         , OptionalProperty('maxMaster', Unsigned)
         , OptionalProperty('maxInfoFrames', Unsigned)
-        , ReadableProperty('deviceAddressBinding', SequenceOf(AddressBinding))
+        , ReadableProperty('deviceAddressBinding', ListOf(AddressBinding))
         , ReadableProperty('databaseRevision', Unsigned)
         , OptionalProperty('configurationFiles', ArrayOf(ObjectIdentifier))
         , OptionalProperty('lastRestoreTime', TimeStamp)
@@ -1347,16 +1379,16 @@ class DeviceObject(Object):
         , OptionalProperty('restorePreparationTime', Unsigned)
         , OptionalProperty('restoreCompletionTime', Unsigned)
         , OptionalProperty('backupAndRestoreState', BackupState)
-        , OptionalProperty('activeCovSubscriptions', SequenceOf(COVSubscription))
+        , OptionalProperty('activeCovSubscriptions', ListOf(COVSubscription))
         , OptionalProperty('maxSegmentsAccepted', Unsigned)
         , OptionalProperty('slaveProxyEnable', ArrayOf(Boolean))
         , OptionalProperty('autoSlaveDiscovery', ArrayOf(Boolean))
-        , OptionalProperty('slaveAddressBinding', SequenceOf(AddressBinding))
-        , OptionalProperty('manualSlaveAddressBinding', SequenceOf(AddressBinding))
+        , OptionalProperty('slaveAddressBinding', ListOf(AddressBinding))
+        , OptionalProperty('manualSlaveAddressBinding', ListOf(AddressBinding))
         , OptionalProperty('lastRestartReason', RestartReason)
         , OptionalProperty('timeOfDeviceRestart', TimeStamp)
-        , OptionalProperty('restartNotificationRecipients', SequenceOf(Recipient))
-        , OptionalProperty('utcTimeSynchronizationRecipients', SequenceOf(Recipient))
+        , OptionalProperty('restartNotificationRecipients', ListOf(Recipient))
+        , OptionalProperty('utcTimeSynchronizationRecipients', ListOf(Recipient))
         , OptionalProperty('timeSynchronizationInterval', Unsigned)
         , OptionalProperty('alignIntervals', Boolean)
         , OptionalProperty('intervalOffset', Unsigned)
@@ -1416,7 +1448,7 @@ class EventLogObject(Object):
         , OptionalProperty('stopTime', DateTime)
         , ReadableProperty('stopWhenFull', Boolean)
         , ReadableProperty('bufferSize', Unsigned)
-        , ReadableProperty('logBuffer', SequenceOf(EventLogRecord))
+        , ReadableProperty('logBuffer', ListOf(EventLogRecord))
         , WritableProperty('recordCount', Unsigned)
         , ReadableProperty('totalRecordCount', Unsigned)
         , OptionalProperty('notificationThreshold', Unsigned)
@@ -1480,7 +1512,7 @@ class GlobalGroupObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('timeDelayNormal', Unsigned)
         , OptionalProperty('covuPeriod', Unsigned)
-        , OptionalProperty('covuRecipients', SequenceOf(Recipient))
+        , OptionalProperty('covuRecipients', ListOf(Recipient))
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         ]
 
@@ -1488,8 +1520,8 @@ class GlobalGroupObject(Object):
 class GroupObject(Object):
     objectType = 'group'
     properties = \
-        [ ReadableProperty('listOfGroupMembers', SequenceOf(ReadAccessSpecification))
-        , ReadableProperty('presentValue', SequenceOf(ReadAccessResult))
+        [ ReadableProperty('listOfGroupMembers', ListOf(ReadAccessSpecification))
+        , ReadableProperty('presentValue', ListOf(ReadAccessResult))
         ]
 
 @register_object_type
@@ -1574,12 +1606,12 @@ class LifeSafetyPointObject(Object):
         , ReadableProperty('reliability', Reliability)
         , ReadableProperty('outOfService', Boolean)
         , WritableProperty('mode', LifeSafetyMode)
-        , ReadableProperty('acceptedModes', SequenceOf(LifeSafetyMode))
+        , ReadableProperty('acceptedModes', ListOf(LifeSafetyMode))
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('lifeSafetyAlarmValues', SequenceOf(LifeSafetyState))
-        , OptionalProperty('alarmValues', SequenceOf(LifeSafetyState))
-        , OptionalProperty('faultValues', SequenceOf(LifeSafetyState))
+        , OptionalProperty('lifeSafetyAlarmValues', ListOf(LifeSafetyState))
+        , OptionalProperty('alarmValues', ListOf(LifeSafetyState))
+        , OptionalProperty('faultValues', ListOf(LifeSafetyState))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -1597,7 +1629,7 @@ class LifeSafetyPointObject(Object):
         , OptionalProperty('setting', Unsigned)
         , OptionalProperty('directReading', Real)
         , OptionalProperty('units', EngineeringUnits)
-        , OptionalProperty('memberOf', SequenceOf(DeviceObjectReference))
+        , OptionalProperty('memberOf', ListOf(DeviceObjectReference))
         ]
 
 @register_object_type
@@ -1612,12 +1644,12 @@ class LifeSafetyZoneObject(Object):
         , ReadableProperty('reliability', Reliability)
         , ReadableProperty('outOfService', Boolean)
         , WritableProperty('mode', LifeSafetyMode)
-        , ReadableProperty('acceptedModes', SequenceOf(LifeSafetyMode))
+        , ReadableProperty('acceptedModes', ListOf(LifeSafetyMode))
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('lifeSafetyAlarmValues', SequenceOf(LifeSafetyState))
-        , OptionalProperty('alarmValues', SequenceOf(LifeSafetyState))
-        , OptionalProperty('faultValues', SequenceOf(LifeSafetyState))
+        , OptionalProperty('lifeSafetyAlarmValues', ListOf(LifeSafetyState))
+        , OptionalProperty('alarmValues', ListOf(LifeSafetyState))
+        , OptionalProperty('faultValues', ListOf(LifeSafetyState))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -1632,8 +1664,8 @@ class LifeSafetyZoneObject(Object):
         , ReadableProperty('silenced', SilencedState)
         , ReadableProperty('operationExpected', LifeSafetyOperation)
         , OptionalProperty('maintenanceRequired', Boolean)
-        , ReadableProperty('zoneMembers', SequenceOf(DeviceObjectReference))
-        , OptionalProperty('memberOf', SequenceOf(DeviceObjectReference))
+        , ReadableProperty('zoneMembers', ListOf(DeviceObjectReference))
+        , OptionalProperty('memberOf', ListOf(DeviceObjectReference))
         ]
 
 @register_object_type
@@ -1760,8 +1792,8 @@ class MultiStateInputObject(Object):
         , OptionalProperty('stateText', ArrayOf(CharacterString))
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('alarmValues', SequenceOf(Unsigned))
-        , OptionalProperty('faultValues', SequenceOf(Unsigned))
+        , OptionalProperty('alarmValues', ListOf(Unsigned))
+        , OptionalProperty('faultValues', ListOf(Unsigned))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -1820,8 +1852,8 @@ class MultiStateValueObject(Object):
         , OptionalProperty('relinquishDefault', Unsigned)
         , OptionalProperty('timeDelay', Unsigned)
         , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('alarmValues', SequenceOf(Unsigned))
-        , OptionalProperty('faultValues', SequenceOf(Unsigned))
+        , OptionalProperty('alarmValues', ListOf(Unsigned))
+        , OptionalProperty('faultValues', ListOf(Unsigned))
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)
         , OptionalProperty('notifyType', NotifyType)
@@ -1848,7 +1880,7 @@ class NetworkSecurityObject(Object):
         , WritableProperty('lastKeyServer', AddressBinding)
         , WritableProperty('securityPDUTimeout', Unsigned)
         , ReadableProperty('updateKeySetTimeout', Unsigned)
-        , ReadableProperty('supportedSecurityAlgorithms', SequenceOf(Unsigned))
+        , ReadableProperty('supportedSecurityAlgorithms', ListOf(Unsigned))
         , WritableProperty('doNotHide', Boolean)
         ]
 
@@ -1859,7 +1891,7 @@ class NotificationClassObject(Object):
         [ ReadableProperty('notificationClass', Unsigned)
         , ReadableProperty('priority', ArrayOf(Unsigned))
         , ReadableProperty('ackRequired', EventTransitionBits)
-        , ReadableProperty('recipientList', SequenceOf(Destination))
+        , ReadableProperty('recipientList', ListOf(Destination))
         ]
 
 @register_object_type
@@ -1869,8 +1901,8 @@ class NotificationForwarderObject(Object):
         [ ReadableProperty('statusFlags', StatusFlags)
         , ReadableProperty('reliability', Reliability)
         , ReadableProperty('outOfService', Boolean)
-        , ReadableProperty('recipientList', SequenceOf(Destination))
-        , WritableProperty('subscribedRecipients', SequenceOf(EventNotificationSubscription))
+        , ReadableProperty('recipientList', ListOf(Destination))
+        , WritableProperty('subscribedRecipients', ListOf(EventNotificationSubscription))
         , ReadableProperty('processIdentifierFilter', ProcessIdSelection)
         , OptionalProperty('portFilter', ArrayOf(PortPermission))
         , ReadableProperty('localForwardingOnly', Boolean)
@@ -1996,7 +2028,7 @@ class ScheduleObject(Object):
         , OptionalProperty('weeklySchedule', ArrayOf(DailySchedule))
         , OptionalProperty('exceptionSchedule', ArrayOf(SpecialEvent))
         , ReadableProperty('scheduleDefault', AnyAtomic)
-        , ReadableProperty('listOfObjectPropertyReferences', SequenceOf(DeviceObjectPropertyReference))
+        , ReadableProperty('listOfObjectPropertyReferences', ListOf(DeviceObjectPropertyReference))
         , ReadableProperty('priorityForWriting', Unsigned)
         , ReadableProperty('statusFlags', StatusFlags)
         , ReadableProperty('reliability', Reliability)
@@ -2065,7 +2097,7 @@ class TrendLogObject(Object):
         , OptionalProperty('clientCovIncrement', ClientCOV)
         , ReadableProperty('stopWhenFull', Boolean)
         , ReadableProperty('bufferSize', Unsigned)
-        , ReadableProperty('logBuffer', SequenceOf(LogRecord))
+        , ReadableProperty('logBuffer', ListOf(LogRecord))
         , WritableProperty('recordCount', Unsigned)
         , ReadableProperty('totalRecordCount', Unsigned)
         , ReadableProperty('loggingType', LoggingType)
@@ -2109,7 +2141,7 @@ class TrendLogMultipleObject(Object):
         , OptionalProperty('trigger', Boolean)
         , ReadableProperty('stopWhenFull', Boolean)
         , ReadableProperty('bufferSize', Unsigned)
-        , ReadableProperty('logBuffer', SequenceOf(LogMultipleRecord))
+        , ReadableProperty('logBuffer', ListOf(LogMultipleRecord))
         , WritableProperty('recordCount', Unsigned)
         , ReadableProperty('totalRecordCount', Unsigned)
         , OptionalProperty('notificationThreshold', Unsigned)
