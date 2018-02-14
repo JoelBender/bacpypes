@@ -16,7 +16,7 @@ from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
     Double, Integer, ObjectIdentifier, ObjectType, OctetString, Real, Time, \
     Unsigned
 from .constructeddata import AnyAtomic, Array, ArrayOf, List, ListOf, \
-    Choice, Element, Sequence, SequenceOf
+    Choice, Element, Sequence
 from .basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
     AccessEvent, AccessPassbackMode, AccessRule, AccessThreatLevel, \
     AccessUserType, AccessZoneOccupancyState, AccumulatorRecord, Action, \
