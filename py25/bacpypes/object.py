@@ -154,7 +154,12 @@ class Property(Logging):
 
         # keep the arguments
         self.identifier = identifier
+
+        # check the datatype
         self.datatype = datatype
+        if not issubclass(datatype, (Atomic, Sequence, Choice, Array, List, AnyAtomic)):
+            raise TypeError("invalid datatype for property: %s" % (identifier,))
+
         self.optional = optional
         self.mutable = mutable
         self.default = default
