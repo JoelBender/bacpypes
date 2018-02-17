@@ -403,6 +403,54 @@ class BIPSimple(BIPSAP, Client, Server):
             # send it upstream
             self.response(xpdu)
 
+        elif isinstance(pdu, WriteBroadcastDistributionTable):
+            # build a response
+            xpdu = Result(code=0x0010, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, ReadBroadcastDistributionTable):
+            # build a response
+            xpdu = Result(code=0x0020, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, RegisterForeignDevice):
+            # build a response
+            xpdu = Result(code=0x0030, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, ReadForeignDeviceTable):
+            # build a response
+            xpdu = Result(code=0x0040, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, DeleteForeignDeviceTableEntry):
+            # build a response
+            xpdu = Result(code=0x0050, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, DistributeBroadcastToNetwork):
+            # build a response
+            xpdu = Result(code=0x0060, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
         else:
             BIPSimple._warning("invalid pdu type: %s", type(pdu))
 
@@ -441,11 +489,6 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
     def indication(self, pdu):
         if _debug: BIPForeign._debug("indication %r", pdu)
 
-        # check the BBMD registration status, we may not be registered
-        if self.registrationStatus != 0:
-            if _debug: BIPForeign._debug("    - packet dropped, unregistered")
-            return
-
         # check for local stations
         if pdu.pduDestination.addrType == Address.localStationAddr:
             # make an original unicast PDU
@@ -457,6 +500,11 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
         # check for broadcasts
         elif pdu.pduDestination.addrType == Address.localBroadcastAddr:
+            # check the BBMD registration status, we may not be registered
+            if self.registrationStatus != 0:
+                if _debug: BIPForeign._debug("    - packet dropped, unregistered")
+                return
+
             # make an original broadcast PDU
             xpdu = DistributeBroadcastToNetwork(pdu, user_data=pdu.pduUserData)
             xpdu.pduDestination = self.bbmdAddress
@@ -493,6 +541,13 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             return
 
+        elif isinstance(pdu, OriginalUnicastNPDU):
+            # build a vanilla PDU
+            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
+
+            # send it upstream
+            self.response(xpdu)
+
         # check the BBMD registration status, we may not be registered
         if self.registrationStatus != 0:
             if _debug: BIPForeign._debug("    - packet dropped, unregistered")
@@ -506,19 +561,60 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             # send this to the service access point
             self.sap_response(pdu)
 
-        elif isinstance(pdu, OriginalUnicastNPDU):
-            # build a vanilla PDU
-            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
-
-            # send it upstream
-            self.response(xpdu)
-
         elif isinstance(pdu, ForwardedNPDU):
             # build a PDU with the source from the real source
             xpdu = PDU(pdu.pduData, source=pdu.bvlciAddress, destination=LocalBroadcast(), user_data=pdu.pduUserData)
 
             # send it upstream
             self.response(xpdu)
+
+        elif isinstance(pdu, WriteBroadcastDistributionTable):
+            # build a response
+            xpdu = Result(code=0x0010, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, ReadBroadcastDistributionTable):
+            # build a response
+            xpdu = Result(code=0x0020, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, RegisterForeignDevice):
+            # build a response
+            xpdu = Result(code=0x0030, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, ReadForeignDeviceTable):
+            # build a response
+            xpdu = Result(code=0x0040, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, DeleteForeignDeviceTableEntry):
+            # build a response
+            xpdu = Result(code=0x0050, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
+
+        elif isinstance(pdu, DistributeBroadcastToNetwork):
+            # build a response
+            xpdu = Result(code=0x0060, user_data=pdu.pduUserData)
+            xpdu.pduDestination = pdu.pduSource
+
+            # send it downstream
+            self.request(xpdu)
 
         else:
             BIPForeign._warning("invalid pdu type: %s", type(pdu))

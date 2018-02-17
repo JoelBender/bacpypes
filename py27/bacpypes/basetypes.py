@@ -1604,6 +1604,16 @@ class ErrorType(Sequence):
         , Element('errorCode', ErrorCode)
         ]
 
+class LightingCommand(Sequence):
+    sequenceElements = \
+        [ Element('operation', LightingOperation, 0)
+        , Element('targetLevel', Real, 1, True)
+        , Element('rampRate', Real, 2, True)
+        , Element('stepIncrement', Real, 3, True)
+        , Element('fadeTime', Unsigned, 4, True)
+        , Element('priority', Unsigned, 5, True)
+        ]
+
 class ObjectPropertyReference(Sequence):
     sequenceElements = \
         [ Element('objectIdentifier', ObjectIdentifier, 0)
@@ -1792,8 +1802,21 @@ class CalendarEntry(Choice):
         ]
 
 class ChannelValue(Choice):
-    choiceElements = [
-        ### needs help
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('real', Real)
+        , Element('enumerated', Enumerated)
+        , Element('unsigned', Unsigned)
+        , Element('boolean', Boolean)
+        , Element('integer', Integer)
+        , Element('double', Double)
+        , Element('time', Time)
+        , Element('characterString', CharacterString)
+        , Element('octetString', OctetString)
+        , Element('bitString', BitString)
+        , Element('date', Date)
+        , Element('objectidentifier', ObjectIdentifier)
+        , Element('lightingCommand', LightingCommand, 0)
         ]
 
 class ClientCOV(Choice):
@@ -2068,16 +2091,6 @@ class KeyIdentifier(Sequence):
         , Element('keyId', Unsigned, 1)
         ]
 
-class LightingCommand(Sequence):
-    sequenceElements = \
-        [ Element('operation', LightingOperation, 0)
-        , Element('targetLevel', Real, 1) ### optional
-        , Element('rampRate', Real, 2)   ### optional
-        , Element('stepIncrement', Real, 3) ### optional
-        , Element('fadeTime', Unsigned, 4) ### optional
-        , Element('priority', Unsigned, 5) ### optional
-        ]
-
 class LogDataLogData(Choice):
     choiceElements = \
         [ Element('booleanValue', Boolean, 0)
@@ -2336,14 +2349,14 @@ class PriorityValue(Choice):
         , Element('enumerated', Enumerated)
         , Element('unsigned', Unsigned)
         , Element('boolean', Boolean)
-        , Element('signed', Integer)
+        , Element('integer', Integer)
         , Element('double', Double)
         , Element('time', Time)
         , Element('characterString', CharacterString)
         , Element('octetString', OctetString)
         , Element('bitString', BitString)
         , Element('date', Date)
-        , Element('objectid', ObjectIdentifier)
+        , Element('objectidentifier', ObjectIdentifier)
         , Element('constructedValue', Any, 0)
         , Element('datetime', DateTime, 1)
         ]

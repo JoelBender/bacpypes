@@ -113,13 +113,15 @@ class LocalDeviceObject(CurrentPropertyListMixIn, DeviceObject):
         if 'objectIdentifier' not in kwargs:
             raise RuntimeError("objectIdentifier is required")
 
+        # coerce the object identifier
+        object_identifier = kwargs['objectIdentifier']
+        if isinstance(object_identifier, (int, long)):
+            object_identifier = ('device', object_identifier)
+
         # the object list is provided
         if 'objectList' in kwargs:
             raise RuntimeError("objectList is provided by LocalDeviceObject and cannot be overridden")
-        else:
-            kwargs['objectList'] = ArrayOf(ObjectIdentifier)([
-                kwargs['objectIdentifier'],
-                ])
+        kwargs['objectList'] = ArrayOf(ObjectIdentifier)([object_identifier])
 
         # check for a minimum value
         if kwargs['maxApduLengthAccepted'] < 50:
