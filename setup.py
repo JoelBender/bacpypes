@@ -11,22 +11,32 @@ except ImportError:
     from distutils.core import setup
 
 # different source folders
-version_info = sys.version_info[:2]
-source_folder = {
-    (2, 5): 'py25',
-    (2, 6): 'py25',
-    (2, 7): 'py27',
-    (3, 4): 'py34',
-    (3, 5): 'py34',
-    (3, 6): 'py34',
-    }.get(version_info, None)
+python2_supported = range(5, 6)
+python3_supported = range(4, 7)
+
+#version_info = sys.version_info[:2]
+major, minor = sys.version_info[:2]
+if major == 3:
+    if minor in python3_supported:
+        source_folder = 'py34'
+elif major == 2:
+    if minor in python2_supported:
+        source_folder = 'py25'
+    elif minor == 7:
+        source_folder = 'py27'
+# source_folder = {
+#    (2, 5): 'py25',
+#    (2, 6): 'py25',
+#   (2, 7): 'py27',
+#    (3, 'x'): 'py34',
+#}.get(version_info, None)
 if not source_folder:
     raise EnvironmentError("unsupported version of Python")
 if not os.path.exists(source_folder):
     raise EnvironmentError("broken distirbution, looking for " +
-        repr(source_folder) + " in " +
-        os.getcwd()
-        )
+                           repr(source_folder) + " in " +
+                           os.getcwd()
+                           )
 
 # load in the project metadata
 init_py = open(os.path.join(source_folder, 'bacpypes', '__init__.py')).read()
@@ -38,7 +48,7 @@ requirements = [
 
 setup_requirements = [
     'pytest-runner',
-    ]
+]
 
 test_requirements = [
     'pytest',
