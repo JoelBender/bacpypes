@@ -470,7 +470,7 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
 
     def __init__(self, localDevice, localAddress, deviceInfoCache=None, aseID=None):
         if _debug: BIPSimpleApplication._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
-        ApplicationIOController.__init__(self, localDevice, deviceInfoCache, aseID=aseID)
+        ApplicationIOController.__init__(self, localDevice, localAddress, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
@@ -524,9 +524,14 @@ class BIPSimpleApplication(ApplicationIOController, WhoIsIAmServices, ReadWriteP
 @bacpypes_debugging
 class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePropertyServices):
 
-    def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, aseID=None):
-        if _debug: BIPForeignApplication._debug("__init__ %r %r %r %r aseID=%r", localDevice, localAddress, bbmdAddress, bbmdTTL, aseID)
-        ApplicationIOController.__init__(self, localDevice, aseID=aseID)
+    def __init__(self, localDevice, localAddress, bbmdAddress, bbmdTTL, deviceInfoCache=None, aseID=None):
+        if _debug:
+            BIPForeignApplication._debug(
+                "__init__ %r %r %r %r deviceInfoCache=%r aseID=%r",
+                localDevice, localAddress, bbmdAddress, bbmdTTL,
+                deviceInfoCache, aseID,
+                )
+        ApplicationIOController.__init__(self, localDevice, localAddress, deviceInfoCache, aseID=aseID)
 
         # local address might be useful for subclasses
         if isinstance(localAddress, Address):
