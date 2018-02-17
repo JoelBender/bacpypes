@@ -11,25 +11,20 @@ except ImportError:
     from distutils.core import setup
 
 # different source folders
-python2_supported = range(5, 6)
-python3_supported = range(4, 7)
+python2_supported = [5, 6, 7]
+python3_supported = [4, 5, 6, 7]
 
-#version_info = sys.version_info[:2]
 major, minor = sys.version_info[:2]
 if major == 3:
     if minor in python3_supported:
         source_folder = 'py34'
+
 elif major == 2:
     if minor in python2_supported:
         source_folder = 'py25'
     elif minor == 7:
         source_folder = 'py27'
-# source_folder = {
-#    (2, 5): 'py25',
-#    (2, 6): 'py25',
-#   (2, 7): 'py27',
-#    (3, 'x'): 'py34',
-#}.get(version_info, None)
+
 if not source_folder:
     raise EnvironmentError("unsupported version of Python")
 if not os.path.exists(source_folder):
