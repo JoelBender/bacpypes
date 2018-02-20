@@ -77,7 +77,7 @@ class Sequence(object):
         """
         """
         if _debug: Sequence._debug("encode %r", taglist)
-        global _sequence_of_classes
+        global _sequence_of_classes, _list_of_classes
 
         # make sure we're dealing with a tag list
         if not isinstance(taglist, TagList):
@@ -89,7 +89,7 @@ class Sequence(object):
                 continue
             if not element.optional and value is None:
                 raise MissingRequiredParameter("%s is a missing required element of %s" % (element.name, self.__class__.__name__))
-            if element.klass in _sequence_of_classes:
+            if (element.klass in _sequence_of_classes) or (element.klass in _list_of_classes):
                 # might need to encode an opening tag
                 if element.context is not None:
                     taglist.append(OpeningTag(element.context))
@@ -133,7 +133,10 @@ class Sequence(object):
                 raise TypeError("%s must be of type %s" % (element.name, element.klass.__name__))
 
     def decode(self, taglist):
+        """
+        """
         if _debug: Sequence._debug("decode %r", taglist)
+        global _sequence_of_classes, _list_of_classes
 
         # make sure we're dealing with a tag list
         if not isinstance(taglist, TagList):
@@ -147,7 +150,7 @@ class Sequence(object):
                 if element.optional:
                     # omitted optional element
                     setattr(self, element.name, None)
-                elif element.klass in _sequence_of_classes:
+                elif (element.klass in _sequence_of_classes) or (element.klass in _list_of_classes):
                     # empty list
                     setattr(self, element.name, [])
                 else:
@@ -284,7 +287,7 @@ class Sequence(object):
                         raise InvalidTag("%s expected closing tag %d" % (element.name, element.context))
 
     def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
-        global _sequence_of_classes
+        global _sequence_of_classes, _list_of_classes
 
         for element in self.sequenceElements:
             value = getattr(self, element.name, None)
@@ -294,7 +297,7 @@ class Sequence(object):
                 file.write("%s%s is a missing required element of %s\n" % ("    " * indent, element.name, self.__class__.__name__))
                 continue
 
-            if element.klass in _sequence_of_classes:
+            if (element.klass in _sequence_of_classes) or (element.klass in _list_of_classes):
                 file.write("%s%s\n" % ("    " * indent, element.name))
                 helper = element.klass(value)
                 helper.debug_contents(indent+1, file, _ids)
@@ -312,6 +315,7 @@ class Sequence(object):
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
         if _debug: Sequence._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
+        global _sequence_of_classes, _list_of_classes
 
         # make/extend the dictionary of content
         if use_dict is None:
@@ -323,7 +327,7 @@ class Sequence(object):
             if value is None:
                 continue
 
-            if element.klass in _sequence_of_classes:
+            if (element.klass in _sequence_of_classes) or (element.klass in _list_of_classes):
                 helper = element.klass(value)
                 mapped_value = helper.dict_contents(as_class=as_class)
 
@@ -494,6 +498,160 @@ def SequenceOf(klass):
     return _SequenceOf
 
 bacpypes_debugging(SequenceOf)
+
+#
+#   List
+#
+
+class List(object):
+    pass
+
+#
+#   ListOf
+#
+
+_list_of_map = {}
+_list_of_classes = {}
+
+def ListOf(klass):
+    """Function to return a class that can encode and decode a list of
+    some other type."""
+    if _debug: ListOf._debug("ListOf %r", klass)
+
+    global _list_of_map
+    global _list_of_classes, _array_of_classes
+
+    # if this has already been built, return the cached one
+    if klass in _list_of_map:
+        if _debug: SequenceOf._debug("    - found in cache")
+        return _list_of_map[klass]
+
+    # no ListOf(ListOf(...)) allowed
+    if klass in _list_of_classes:
+        raise TypeError("nested lists disallowed")
+    # no ListOf(ArrayOf(...)) allowed
+    if klass in _array_of_classes:
+        raise TypeError("lists of arrays disallowed")
+
+    # define a generic class for lists
+    class _ListOf(List):
+
+        subtype = None
+
+        def __init__(self, value=None):
+            if _debug: _ListOf._debug("(%r)__init__ %r (subtype=%r)", self.__class__.__name__, value, self.subtype)
+
+            if value is None:
+                self.value = []
+            elif isinstance(value, list):
+                self.value = value
+            else:
+                raise TypeError("invalid constructor datatype")
+
+        def append(self, value):
+            if issubclass(self.subtype, Atomic):
+                pass
+            elif issubclass(self.subtype, AnyAtomic) and not isinstance(value, Atomic):
+                raise TypeError("instance of an atomic type required")
+            elif not isinstance(value, self.subtype):
+                raise TypeError("%s value required" % (self.subtype.__name__,))
+            self.value.append(value)
+
+        def __len__(self):
+            return len(self.value)
+
+        def __getitem__(self, item):
+            return self.value[item]
+
+        def encode(self, taglist):
+            if _debug: _ListOf._debug("(%r)encode %r", self.__class__.__name__, taglist)
+            for value in self.value:
+                if issubclass(self.subtype, (Atomic, AnyAtomic)):
+                    # a helper cooperates between the atomic value and the tag
+                    helper = self.subtype(value)
+
+                    # build a tag and encode the data into it
+                    tag = Tag()
+                    helper.encode(tag)
+
+                    # now encode the tag
+                    taglist.append(tag)
+                elif isinstance(value, self.subtype):
+                    # it must have its own encoder
+                    value.encode(taglist)
+                else:
+                    raise TypeError("%s must be a %s" % (value, self.subtype.__name__))
+
+        def decode(self, taglist):
+            if _debug: _ListOf._debug("(%r)decode %r", self.__class__.__name__, taglist)
+
+            while len(taglist) != 0:
+                tag = taglist.Peek()
+                if tag.tagClass == Tag.closingTagClass:
+                    return
+
+                if issubclass(self.subtype, (Atomic, AnyAtomic)):
+                    if _debug: _ListOf._debug("    - building helper: %r %r", self.subtype, tag)
+                    taglist.Pop()
+
+                    # a helper cooperates between the atomic value and the tag
+                    helper = self.subtype(tag)
+
+                    # save the value
+                    self.value.append(helper.value)
+                else:
+                    if _debug: _ListOf._debug("    - building value: %r", self.subtype)
+                    # build an element
+                    value = self.subtype()
+
+                    # let it decode itself
+                    value.decode(taglist)
+
+                    # save what was built
+                    self.value.append(value)
+
+        def debug_contents(self, indent=1, file=sys.stdout, _ids=None):
+            i = 0
+            for value in self.value:
+                if issubclass(self.subtype, (Atomic, AnyAtomic)):
+                    file.write("%s[%d] = %r\n" % ("    " * indent, i, value))
+                elif isinstance(value, self.subtype):
+                    file.write("%s[%d]" % ("    " * indent, i))
+                    value.debug_contents(indent+1, file, _ids)
+                else:
+                    file.write("%s[%d] %s must be a %s" % ("    " * indent, i, value, self.subtype.__name__))
+                i += 1
+
+        def dict_contents(self, use_dict=None, as_class=dict):
+            # return sequences as arrays
+            mapped_value = []
+
+            for value in self.value:
+                if issubclass(self.subtype, Atomic):
+                    mapped_value.append(value)              ### ambiguous
+                elif issubclass(self.subtype, AnyAtomic):
+                    mapped_value.append(value.value)        ### ambiguous
+                elif isinstance(value, self.subtype):
+                    mapped_value.append(value.dict_contents(as_class=as_class))
+
+            # return what we built
+            return mapped_value
+
+    bacpypes_debugging(_ListOf)
+
+    # constrain it to a list of a specific type of item
+    setattr(_ListOf, 'subtype', klass)
+    _ListOf.__name__ = 'ListOf' + klass.__name__
+    if _debug: ListOf._debug("    - build this class: %r", _ListOf)
+
+    # cache this type
+    _list_of_map[klass] = _ListOf
+    _list_of_classes[_ListOf] = 1
+
+    # return this new type
+    return _ListOf
+
+@bacpypes_debugging(ListOf)
 
 #
 #   Array
@@ -847,6 +1005,7 @@ class Choice(object):
 
     def decode(self, taglist):
         if _debug: Choice._debug("(%r)decode %r", self.__class__.__name__, taglist)
+        global _sequence_of_classes, _list_of_classes
 
         # peek at the element
         tag = taglist.Peek()
@@ -863,7 +1022,7 @@ class Choice(object):
             if _debug: Choice._debug("    - checking choice: %s", element.name)
 
             # check for a sequence element
-            if element.klass in _sequence_of_classes:
+            if (element.klass in _sequence_of_classes) or (element.klass in _list_of_classes):
                 # check for context encoding
                 if element.context is None:
                     raise NotImplementedError("choice of a SequenceOf must be context encoded")
@@ -1049,9 +1208,10 @@ class Any:
     def cast_out(self, klass):
         """Interpret the content as a particular class."""
         if _debug: Any._debug("cast_out %r", klass)
+        global _sequence_of_classes, _list_of_classes
 
         # check for a sequence element
-        if klass in _sequence_of_classes:
+        if (klass in _sequence_of_classes) or (klass in _list_of_classes):
             # build a sequence helper
             helper = klass()
 
