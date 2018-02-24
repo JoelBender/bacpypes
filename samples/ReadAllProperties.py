@@ -23,7 +23,7 @@ from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -167,13 +167,6 @@ def main():
 
     # make a simple application
     this_application = ReadPropertyApplication(this_device, args.ini.address)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # fire off a request when the core has a chance
     deferred(this_application.next_request)

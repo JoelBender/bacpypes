@@ -15,7 +15,7 @@ from bacpypes.basetypes import DateTime, Scale
 from bacpypes.object import AccumulatorObject
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.object import ReadWritePropertyMultipleServices
 
 # some debugging
@@ -83,13 +83,6 @@ def main():
 
     # add the additional service
     this_application.add_capability(ReadWritePropertyMultipleServices)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a random input object
     accumulator = AccumulatorObject(

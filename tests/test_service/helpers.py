@@ -13,7 +13,7 @@ from bacpypes.vlan import Network, Node
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 from ..state_machine import StateMachine, StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine

@@ -24,7 +24,8 @@ from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
-from bacpypes.service.device import LocalDeviceObject, WhoIsIAmServices
+from bacpypes.local.device import LocalDeviceObject
+from bacpypes.service.device import WhoIsIAmServices
 from bacpypes.service.object import ReadWritePropertyServices
 
 from bacpypes.primitivedata import Real

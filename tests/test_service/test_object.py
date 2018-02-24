@@ -16,7 +16,7 @@ from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import register_object_type, ReadableProperty, \
     WritableProperty, Object
 
-from bacpypes.service.object import CurrentPropertyListMixIn
+from bacpypes.local.object import CurrentPropertyListMixIn
 
 # some debugging
 _debug = 0

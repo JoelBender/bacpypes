@@ -23,8 +23,8 @@ from bacpypes.object import register_object_type, get_datatype, \
     WritableProperty, ScheduleObject, AnalogValueObject
 
 from bacpypes.app import Application
-from bacpypes.service.object import CurrentPropertyListMixIn
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.object import CurrentPropertyListMixIn
+from bacpypes.local.device import LocalDeviceObject
 
 ### testing
 import time
@@ -660,13 +660,6 @@ def main():
 
     # make a floating application, no network interface
     this_application = Application(this_device)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     #
     #   Simple daily schedule (actually a weekly schedule with every day

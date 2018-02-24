@@ -18,7 +18,7 @@ from bacpypes.task import RecurringTask
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, BinaryValueObject
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.cov import ChangeOfValueServices
 
 # some debugging

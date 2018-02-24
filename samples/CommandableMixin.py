@@ -26,8 +26,8 @@ from bacpypes.object import Property, ReadableProperty, WritableProperty, \
     TimeValueObject, TimePatternValueObject, ChannelObject
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.object import CurrentPropertyListMixIn
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.object import CurrentPropertyListMixIn
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0

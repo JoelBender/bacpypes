@@ -22,8 +22,8 @@ from bacpypes.basetypes import CalendarEntry, DailySchedule, DateRange, \
 from bacpypes.object import register_object_type, get_datatype, WritableProperty, ScheduleObject
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.object import CurrentPropertyListMixIn
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.object import CurrentPropertyListMixIn
+from bacpypes.local.device import LocalDeviceObject
 
 ### testing
 import time
