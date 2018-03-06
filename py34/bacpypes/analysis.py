@@ -358,13 +358,13 @@ def decode_file(fname):
     # create a pcap object
     p = pcap.pcap(fname)
 
-    for timestamp, data in p:
+    for i, (timestamp, data) in enumerate(p):
         pkt = decode_packet(data)
         if not pkt:
             continue
 
-        # save the index and timestamp in the packet
-        # pkt._index = i
+        # save the packet number (as viewed in Wireshark) and timestamp
+        pkt._number = i + 1
         pkt._timestamp = timestamp
 
         yield pkt
