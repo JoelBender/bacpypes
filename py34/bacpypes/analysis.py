@@ -355,9 +355,10 @@ def decode_file(fname):
     if not pcap:
         raise RuntimeError("failed to import pcap")
 
-    # create a pcap object
+    # create a pcap object, reading from the file
     p = pcap.pcap(fname)
 
+    # loop through the packets
     for i, (timestamp, data) in enumerate(p):
         pkt = decode_packet(data)
         if not pkt:
