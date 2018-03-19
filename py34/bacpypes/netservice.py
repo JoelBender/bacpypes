@@ -404,6 +404,8 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         if npdu.npduNetMessage is None:
             if processLocally and self.serverPeer:
                 # decode as a generic APDU
+                if _debug: NetworkServiceAccessPoint._debug("    - processing APDU locally")
+
                 apdu = _APDU(user_data=npdu.pduUserData)
                 apdu.decode(_copy(npdu))
                 if _debug: NetworkServiceAccessPoint._debug("    - apdu: %r", apdu)
@@ -452,6 +454,8 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     if _debug: NetworkServiceAccessPoint._debug("    - unknown npdu type: %r", npdu.npduNetMessage)
                     return
 
+                if _debug: NetworkServiceAccessPoint._debug("    - processing NPDU locally")
+
                 # do a deeper decode of the NPDU
                 xpdu = npdu_types[npdu.npduNetMessage](user_data=npdu.pduUserData)
                 xpdu.decode(_copy(npdu))
@@ -492,6 +496,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
             for xadapter in self.adapters:
                 if (xadapter is not adapter):
+                    if _debug: NetworkServiceAccessPoint._debug("    - forwarding newpdu to %s", repr(xadapter))
                     xadapter.process_npdu(_copy(newpdu))
             return
 
@@ -524,7 +529,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
                 ### check to make sure the network is OK, may need to connect
 
-                if _debug: NetworkServiceAccessPoint._debug("    - newpdu: %r", newpdu)
+                if _debug: NetworkServiceAccessPoint._debug("    - forwarding newpdu to rref %s", repr(rref.adapter))
 
                 # send the packet downstream
                 rref.adapter.process_npdu(_copy(newpdu))
