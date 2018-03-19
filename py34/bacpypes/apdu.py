@@ -7,6 +7,8 @@ Application Layer Protocol Data Units
 from .errors import DecodingError, TooManyArguments
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
+from .core import dump_stack
+
 from .pdu import PCI, PDUData
 from .primitivedata import Boolean, CharacterString, Enumerated, Integer, \
     ObjectIdentifier, ObjectType, OctetString, Real, TagList, Unsigned, \
@@ -240,7 +242,9 @@ class APCI(PCI, DebugContents):
 
     def decode(self, pdu):
         """decode the contents of the PDU into the APCI."""
-        if _debug: APCI._debug("decode %r", pdu)
+        if _debug:
+            APCI._debug("decode %r", pdu)
+            dump_stack()
 
         PCI.update(self, pdu)
 
@@ -393,17 +397,24 @@ class APDU(APCI, PDUData):
 #   between PDU's.  Otherwise the APCI content would be decoded twice.
 #
 
+@bacpypes_debugging
 class _APDU(APDU):
 
     def encode(self, pdu):
+        if _debug: _APDU._debug("encode %r", pdu)
+
         APCI.update(pdu, self)
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
+        if _debug: _APDU._debug("decode %r", pdu)
+
         APCI.update(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
 
     def set_context(self, context):
+        if _debug: _APDU._debug("set_context %r", context)
+
         self.pduUserData = context.pduUserData
         self.pduDestination = context.pduSource
         self.pduExpectingReply = 0
