@@ -52,10 +52,10 @@ bacpypes_debugging(stop)
 #   dump_stack
 #
 
-def dump_stack():
-    if _debug: dump_stack._debug("dump_stack")
+def dump_stack(debug_handler):
+    if _debug: dump_stack._debug("dump_stack %r", debug_handler)
     for filename, lineno, fn, _ in traceback.extract_stack()[:-1]:
-        sys.stderr.write("    %-20s  %s:%s\n" % (fn, filename.split('/')[-1], lineno))
+        debug_handler("    %-20s  %s:%s", fn, filename.split('/')[-1], lineno)
 
 bacpypes_debugging(dump_stack)
 
