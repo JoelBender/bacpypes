@@ -492,7 +492,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
             for xadapter in self.adapters:
                 if (xadapter is not adapter):
-                    xadapter.process_npdu(newpdu)
+                    xadapter.process_npdu(_copy(newpdu))
             return
 
         if (npdu.npduDADR.addrType == Address.remoteBroadcastAddr) \
@@ -512,7 +512,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     newpdu.npduDADR = None
 
                     # send the packet downstream
-                    xadapter.process_npdu(newpdu)
+                    xadapter.process_npdu(_copy(newpdu))
                     return
 
             # see if we know how to get there
@@ -527,7 +527,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 if _debug: NetworkServiceAccessPoint._debug("    - newpdu: %r", newpdu)
 
                 # send the packet downstream
-                rref.adapter.process_npdu(newpdu)
+                rref.adapter.process_npdu(_copy(newpdu))
                 return
 
             ### queue this message for reprocessing when the response comes back
