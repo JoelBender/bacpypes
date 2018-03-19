@@ -242,9 +242,7 @@ class APCI(PCI, DebugContents):
 
     def decode(self, pdu):
         """decode the contents of the PDU into the APCI."""
-        if _debug:
-            APCI._debug("decode %r", pdu)
-            dump_stack(APCI._debug)
+        if _debug: APCI._debug("decode %r", pdu)
 
         PCI.update(self, pdu)
 
@@ -366,12 +364,11 @@ class APDU(APCI, PDUData):
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
-        if _debug:
-            APDU._debug("decode %s", str(pdu))
-            dump_stack(APDU._debug)
+        if _debug: APDU._debug("decode %s", str(pdu))
 
         APCI.decode(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
+        if _debug: APDU._debug("    - remaining data in %s consumed", str(pdu))
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         return PDUData.pdudata_contents(self, use_dict=use_dict, as_class=as_class)
