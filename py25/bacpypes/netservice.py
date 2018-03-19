@@ -4,7 +4,7 @@
 Network Service
 """
 
-from copy import copy as _copy
+from copy import copy as _deepcopy
 
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 from .errors import ConfigurationError
@@ -403,9 +403,11 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         # application or network layer message
         if npdu.npduNetMessage is None:
             if processLocally and self.serverPeer:
+                if _debug: NetworkServiceAccessPoint._debug("    - processing APDU locally")
+
                 # decode as a generic APDU
                 apdu = _APDU(user_data=npdu.pduUserData)
-                apdu.decode(_copy(npdu))
+                apdu.decode(_deepcopy(npdu))
                 if _debug: NetworkServiceAccessPoint._debug("    - apdu: %r", apdu)
 
                 # see if it needs to look routed
@@ -444,26 +446,29 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 # pass upstream to the application layer
                 self.response(apdu)
 
-            if not forwardMessage:
-                return
         else:
             if processLocally:
                 if npdu.npduNetMessage not in npdu_types:
                     if _debug: NetworkServiceAccessPoint._debug("    - unknown npdu type: %r", npdu.npduNetMessage)
                     return
 
+                if _debug: NetworkServiceAccessPoint._debug("    - processing NPDU locally")
+
                 # do a deeper decode of the NPDU
                 xpdu = npdu_types[npdu.npduNetMessage](user_data=npdu.pduUserData)
-                xpdu.decode(_copy(npdu))
+                xpdu.decode(_deepcopy(npdu))
 
                 # pass to the service element
                 self.sap_request(adapter, xpdu)
 
-            if not forwardMessage:
-                return
+        # maybe local processing only
+        if not forwardMessage:
+            if _debug: NetworkServiceAccessPoint._debug("    - no forwarding")
+            return
 
         # make sure we're really a router
         if (len(self.adapters) == 1):
+            if _debug: NetworkServiceAccessPoint._debug("    - not really a router")
             return
 
         # make sure it hasn't looped
@@ -471,7 +476,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
             return
 
         # build a new NPDU to send to other adapters
-        newpdu = _copy(npdu)
+        newpdu = _deepcopy(npdu)
 
         # clear out the source and destination
         newpdu.pduSource = None
@@ -492,7 +497,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
             for xadapter in self.adapters:
                 if (xadapter is not adapter):
-                    xadapter.process_npdu(newpdu)
+                    xadapter.process_npdu(_deepcopy(newpdu))
             return
 
         if (npdu.npduDADR.addrType == Address.remoteBroadcastAddr) \
@@ -512,7 +517,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     newpdu.npduDADR = None
 
                     # send the packet downstream
-                    xadapter.process_npdu(newpdu)
+                    xadapter.process_npdu(_deepcopy(newpdu))
                     return
 
             # see if we know how to get there
@@ -527,7 +532,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 if _debug: NetworkServiceAccessPoint._debug("    - newpdu: %r", newpdu)
 
                 # send the packet downstream
-                rref.adapter.process_npdu(newpdu)
+                rref.adapter.process_npdu(_deepcopy(newpdu))
                 return
 
             ### queue this message for reprocessing when the response comes back
