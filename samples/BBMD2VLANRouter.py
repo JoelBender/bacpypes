@@ -18,7 +18,7 @@ from bacpypes.consolelogging import ArgumentParser
 from bacpypes.core import run
 from bacpypes.comm import bind
 
-from bacpypes.pdu import Address
+from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.bvllservice import BIPBBMD, AnnexJCodec, UDPMultiplexer
 
@@ -209,7 +209,7 @@ def main():
     router = VLANRouter(local_address, local_network)
 
     # create a VLAN
-    vlan = Network()
+    vlan = Network(broadcast_address=LocalBroadcast())
 
     # create a node for the router, address 1 on the VLAN
     router_node = Node(Address(1))
