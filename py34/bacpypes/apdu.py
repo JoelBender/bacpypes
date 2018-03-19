@@ -7,8 +7,6 @@ Application Layer Protocol Data Units
 from .errors import DecodingError, TooManyArguments
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
-from .core import dump_stack
-
 from .pdu import PCI, PDUData
 from .primitivedata import Boolean, CharacterString, Enumerated, Integer, \
     ObjectIdentifier, ObjectType, OctetString, Real, TagList, Unsigned, \
@@ -108,7 +106,7 @@ class APCI(PCI, DebugContents):
         )
 
     def __init__(self, *args, **kwargs):
-        if _debug: APCI._debug("__init__ %r %r at %s", args, kwargs, hex(id(self)))
+        if _debug: APCI._debug("__init__ %r %r", args, kwargs)
         super(APCI, self).__init__(*args, **kwargs)
 
         self.apduType = None
@@ -368,7 +366,6 @@ class APDU(APCI, PDUData):
 
         APCI.decode(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
-        if _debug: APDU._debug("    - remaining data in %s consumed", str(pdu))
 
     def apdu_contents(self, use_dict=None, as_class=dict):
         return PDUData.pdudata_contents(self, use_dict=use_dict, as_class=as_class)
