@@ -403,14 +403,11 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         # application or network layer message
         if npdu.npduNetMessage is None:
             if processLocally and self.serverPeer:
-                # decode as a generic APDU
                 if _debug: NetworkServiceAccessPoint._debug("    - processing APDU locally")
 
-                xnpdu = _deepcopy(npdu)
-                if _debug: NetworkServiceAccessPoint._debug("    - xnpdu at 0x%s, deepcopy of npdu at 0x%s", hex(id(xnpdu)), hex(id(npdu)))
-
+                # decode as a generic APDU
                 apdu = _APDU(user_data=npdu.pduUserData)
-                apdu.decode(xnpdu)
+                apdu.decode(_deepcopy(npdu))
                 if _debug: NetworkServiceAccessPoint._debug("    - apdu: %r", apdu)
 
                 # see if it needs to look routed
@@ -449,8 +446,6 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 # pass upstream to the application layer
                 self.response(apdu)
 
-            if not forwardMessage:
-                return
         else:
             if processLocally:
                 if npdu.npduNetMessage not in npdu_types:
@@ -459,21 +454,21 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
                 if _debug: NetworkServiceAccessPoint._debug("    - processing NPDU locally")
 
-                xnpdu = _deepcopy(npdu)
-                if _debug: NetworkServiceAccessPoint._debug("    - xnpdu at 0x%s, deepcopy of npdu at 0x%s", hex(id(xnpdu)), hex(id(npdu)))
-
                 # do a deeper decode of the NPDU
                 xpdu = npdu_types[npdu.npduNetMessage](user_data=npdu.pduUserData)
-                xpdu.decode(xnpdu)
+                xpdu.decode(_deepcopy(npdu))
 
                 # pass to the service element
                 self.sap_request(adapter, xpdu)
 
-            if not forwardMessage:
-                return
+        # maybe local processing only
+        if not forwardMessage:
+            if _debug: NetworkServiceAccessPoint._debug("    - no forwarding")
+            return
 
         # make sure we're really a router
         if (len(self.adapters) == 1):
+            if _debug: NetworkServiceAccessPoint._debug("    - not really a router")
             return
 
         # make sure it hasn't looped
@@ -502,7 +497,6 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
             for xadapter in self.adapters:
                 if (xadapter is not adapter):
-                    if _debug: NetworkServiceAccessPoint._debug("    - forwarding newpdu to %s", repr(xadapter))
                     xadapter.process_npdu(_deepcopy(newpdu))
             return
 
@@ -534,8 +528,6 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 ### check to make sure the router is OK
 
                 ### check to make sure the network is OK, may need to connect
-
-                if _debug: NetworkServiceAccessPoint._debug("    - forwarding newpdu to rref %s", repr(rref.adapter))
 
                 # send the packet downstream
                 rref.adapter.process_npdu(_deepcopy(newpdu))
