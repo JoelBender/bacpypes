@@ -244,7 +244,7 @@ class APCI(PCI, DebugContents):
         """decode the contents of the PDU into the APCI."""
         if _debug:
             APCI._debug("decode %r", pdu)
-            dump_stack()
+            dump_stack(APCI._debug)
 
         PCI.update(self, pdu)
 
