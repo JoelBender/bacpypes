@@ -106,7 +106,7 @@ class APCI(PCI, DebugContents):
         )
 
     def __init__(self, *args, **kwargs):
-        if _debug: APCI._debug("__init__ %r %r", args, kwargs)
+        if _debug: APCI._debug("__init__ %r %r at %s", args, kwargs, hex(id(self)))
         super(APCI, self).__init__(*args, **kwargs)
 
         self.apduType = None
@@ -356,12 +356,12 @@ class APDU(APCI, PDUData):
         super(APDU, self).__init__(*args, **kwargs)
 
     def encode(self, pdu):
-        if _debug: APCI._debug("encode %s", str(pdu))
+        if _debug: APDU._debug("encode %s", str(pdu))
         APCI.encode(self, pdu)
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
-        if _debug: APCI._debug("decode %s", str(pdu))
+        if _debug: APDU._debug("decode %s", str(pdu))
         APCI.decode(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
 
