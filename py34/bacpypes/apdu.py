@@ -353,6 +353,7 @@ class APCI(PCI, DebugContents):
 #   APDU
 #
 
+@bacpypes_debugging
 class APDU(APCI, PDUData):
 
     def __init__(self, *args, **kwargs):
@@ -365,7 +366,10 @@ class APDU(APCI, PDUData):
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
-        if _debug: APDU._debug("decode %s", str(pdu))
+        if _debug:
+            APDU._debug("decode %s", str(pdu))
+            dump_stack(APDU._debug)
+
         APCI.decode(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
 
