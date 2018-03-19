@@ -406,8 +406,11 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 # decode as a generic APDU
                 if _debug: NetworkServiceAccessPoint._debug("    - processing APDU locally")
 
+                xnpdu = _copy(npdu)
+                if _debug: NetworkServiceAccessPoint._debug("    - xnpdu at 0x%s, copy of npdu at 0x%s", hex(id(xnpdu)), hex(id(npdu)))
+
                 apdu = _APDU(user_data=npdu.pduUserData)
-                apdu.decode(_copy(npdu))
+                apdu.decode(xnpdu)
                 if _debug: NetworkServiceAccessPoint._debug("    - apdu: %r", apdu)
 
                 # see if it needs to look routed
@@ -456,9 +459,12 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
                 if _debug: NetworkServiceAccessPoint._debug("    - processing NPDU locally")
 
+                xnpdu = _copy(npdu)
+                if _debug: NetworkServiceAccessPoint._debug("    - xnpdu at 0x%s, copy of npdu at 0x%s", hex(id(xnpdu)), hex(id(npdu)))
+
                 # do a deeper decode of the NPDU
                 xpdu = npdu_types[npdu.npduNetMessage](user_data=npdu.pduUserData)
-                xpdu.decode(_copy(npdu))
+                xpdu.decode(xnpdu)
 
                 # pass to the service element
                 self.sap_request(adapter, xpdu)
