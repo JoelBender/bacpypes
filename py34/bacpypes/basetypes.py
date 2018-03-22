@@ -107,8 +107,12 @@ class ObjectTypesSupported(BitString):
         , 'positiveIntegerValue':48
         , 'timePatternValue':49
         , 'timeValue':50
+        , 'notificationForwarder':51
+        , 'alertEnrollment':52
+        , 'channel':53
+        , 'lightingOutput':54
         }
-    bitLen = 51
+    bitLen = 55
 
 class ResultFlags(BitString):
     bitNames = \
