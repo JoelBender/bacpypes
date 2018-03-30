@@ -1518,6 +1518,7 @@ class ObjectType(Enumerated):
         , 'accessUser':35
         , 'accessZone':36
         , 'accumulator':23
+        , 'alertEnrollment':52
         , 'analogInput':0
         , 'analogOutput':1
         , 'analogValue':2
@@ -1527,6 +1528,7 @@ class ObjectType(Enumerated):
         , 'binaryValue':5
         , 'bitstringValue':39
         , 'calendar':6
+        , 'channel':53
         , 'characterstringValue':40
         , 'command':7
         , 'credentialDataInput':37
@@ -1544,6 +1546,7 @@ class ObjectType(Enumerated):
         , 'largeAnalogValue':46
         , 'lifeSafetyPoint':21
         , 'lifeSafetyZone':22
+        , 'lightingOutput':54
         , 'loadControl':28
         , 'loop':12
         , 'multiStateInput':13
@@ -1551,6 +1554,7 @@ class ObjectType(Enumerated):
         , 'multiStateValue':19
         , 'networkSecurity':38
         , 'notificationClass':15
+        , 'notificationForwarder':51
         , 'octetstringValue':47
         , 'positiveIntegerValue':48
         , 'program':16

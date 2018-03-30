@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
 """
-Test Network Layer Functionality
+Test Network Layer Encoding and Decoding
 """
 
 from . import test_codec
-from . import test_net_1
-from . import test_net_2
 

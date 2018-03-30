@@ -1221,11 +1221,11 @@ class ClientStateMachine(Client, StateMachine):
     stack are fed as received PDU's.
     """
 
-    def __init__(self):
+    def __init__(self, name=''):
         if _debug: ClientStateMachine._debug("__init__")
 
         Client.__init__(self)
-        StateMachine.__init__(self)
+        StateMachine.__init__(self, name=name)
 
     def send(self, pdu):
         if _debug: ClientStateMachine._debug("send(%s) %r", self.name, pdu)
@@ -1248,11 +1248,11 @@ class ServerStateMachine(Server, StateMachine):
     stack are fed as received PDU's.
     """
 
-    def __init__(self):
+    def __init__(self, name=''):
         if _debug: ServerStateMachine._debug("__init__")
 
         Server.__init__(self)
-        StateMachine.__init__(self)
+        StateMachine.__init__(self, name=name)
 
     def send(self, pdu):
         if _debug: ServerStateMachine._debug("send %r", pdu)
