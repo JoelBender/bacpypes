@@ -6,12 +6,12 @@ Network VLAN Helper Classes
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.comm import Client, Server, bind
+from bacpypes.comm import Client, Server, ApplicationServiceElement, bind
 from bacpypes.pdu import Address, LocalBroadcast, PDU
 from bacpypes.npdu import npdu_types, NPDU
 from bacpypes.vlan import Node
 
-from bacpypes.app import Application
+from bacpypes.app import DeviceInfoCache, Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 
@@ -146,7 +146,7 @@ class RouterNode:
 
         # create a node, added to the network
         node = Node(address, vlan)
-        if _debug: RouterNode._debug("    - node: %r", self.node)
+        if _debug: RouterNode._debug("    - node: %r", node)
 
         # bind the BIP stack to the local network
         self.nsap.bind(node, net)
@@ -165,10 +165,7 @@ class TestDeviceObject(LocalDeviceObject):
 #
 
 @bacpypes_debugging
-class ApplicationLayerNode(Application,
-    WhoIsIAmServices, ReadWritePropertyServices,
-    ClientStateMachine,
-    ):
+class ApplicationLayerNode(ApplicationServiceElement, ClientStateMachine):
 
     def __init__(self, address, vlan):
         if _debug: ApplicationLayerNode._debug("__init__ %r %r", address, vlan)
@@ -189,8 +186,71 @@ class ApplicationLayerNode(Application,
         if _debug: ApplicationLayerNode._debug("    - address: %r", self.address)
 
         # continue with initialization
-        Application.__init__(self, local_device, self.address)
+        ApplicationServiceElement.__init__(self)
         ClientStateMachine.__init__(self, name=local_device.objectName)
+
+        # include a application decoder
+        self.asap = ApplicationServiceAccessPoint()
+
+        # pass the device object to the state machine access point so it
+        # can know if it should support segmentation
+        self.smap = StateMachineAccessPoint(local_device)
+
+        # the segmentation state machines need access to some device
+        # information cache, usually shared with the application
+        self.smap.deviceInfoCache = DeviceInfoCache()
+
+        # a network service access point will be needed
+        self.nsap = NetworkServiceAccessPoint()
+
+        # give the NSAP a generic network layer service element
+        self.nse = NetworkServiceElement()
+        bind(self.nse, self.nsap)
+
+        # bind the top layers
+        bind(self, self.asap, self.smap, self.nsap)
+
+        # create a node, added to the network
+        self.node = Node(self.address, vlan)
+        if _debug: ApplicationLayerNode._debug("    - node: %r", self.node)
+
+        # bind the stack to the local network
+        self.nsap.bind(self.node)
+
+    def indication(self, apdu):
+        if _debug: ApplicationLayerNode._debug("indication %r", apdu)
+        self.receive(apdu)
+
+    def confirmation(self, apdu):
+        if _debug: ApplicationLayerNode._debug("confirmation %r %r", apdu)
+        self.receive(apdu)
+
+#
+#   ApplicationNode
+#
+
+class ApplicationNode(Application, WhoIsIAmServices, ReadWritePropertyServices):
+
+    def __init__(self, address, vlan):
+        if _debug: ApplicationNode._debug("__init__ %r %r", address, vlan)
+
+        # build a name, save the address
+        self.name = "app @ %s" % (address,)
+        self.address = Address(address)
+
+        # build a local device object
+        local_device = TestDeviceObject(
+            objectName=self.name,
+            objectIdentifier=('device', int(address)),
+            vendorIdentifier=999,
+            )
+
+        # build an address and save it
+        self.address = Address(address)
+        if _debug: ApplicationNode._debug("    - address: %r", self.address)
+
+        # continue with initialization
+        Application.__init__(self, local_device, self.address)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -214,9 +274,9 @@ class ApplicationLayerNode(Application,
         bind(self, self.asap, self.smap, self.nsap)
 
         # create a node, added to the network
-        node = Node(self.address, vlan)
-        if _debug: ApplicationLayerNode._debug("    - node: %r", self.node)
+        self.node = Node(self.address, vlan)
+        if _debug: ApplicationNode._debug("    - node: %r", self.node)
 
         # bind the stack to the local network
-        self.nsap.bind(node)
+        self.nsap.bind(self.node)
 
