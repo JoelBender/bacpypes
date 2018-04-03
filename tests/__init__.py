@@ -24,4 +24,5 @@ from . import test_vlan
 from . import test_bvll
 
 from . import test_service
+from . import test_local
 
