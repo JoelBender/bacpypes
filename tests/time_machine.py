@@ -193,3 +193,10 @@ def run_time_machine(time_limit):
             if _debug: run_time_machine._debug("    - no more to do")
             break
 
+
+def current_time():
+    """Return the current time from the time machine."""
+    global time_machine
+
+    return time_machine.current_time
+
