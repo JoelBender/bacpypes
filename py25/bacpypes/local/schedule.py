@@ -193,7 +193,6 @@ def match_weeknday(date, weeknday):
 #   date_in_calendar_entry
 #
 
-@bacpypes_debugging
 def date_in_calendar_entry(date, calendar_entry):
     if _debug: date_in_calendar_entry._debug("date_in_calendar_entry %r %r", date, calendar_entry)
 
@@ -209,6 +208,8 @@ def date_in_calendar_entry(date, calendar_entry):
     if _debug: date_in_calendar_entry._debug("    - match: %r", match)
 
     return match
+
+bacpypes_debugging(date_in_calendar_entry)
 
 #
 #   datetime_to_time
@@ -231,7 +232,6 @@ def datetime_to_time(date, time):
 #   LocalScheduleObject
 #
 
-@bacpypes_debugging
 class LocalScheduleObject(CurrentPropertyListMixIn, ScheduleObject):
 
     def __init__(self, **kwargs):
@@ -342,11 +342,12 @@ class LocalScheduleObject(CurrentPropertyListMixIn, ScheduleObject):
             if _debug: LocalScheduleObject._debug("    - exception: %r", err)
             self.reliability = 'configurationError'
 
+bacpypes_debugging(LocalScheduleObject)
+
 #
 #   LocalScheduleInterpreter
 #
 
-@bacpypes_debugging
 class LocalScheduleInterpreter(OneShotTask):
 
     def __init__(self, sched_obj):
@@ -555,4 +556,6 @@ class LocalScheduleInterpreter(OneShotTask):
 
         # return what was matched, if anything
         return daily_value, earliest_transition
+
+bacpypes_debugging(LocalScheduleInterpreter)
 

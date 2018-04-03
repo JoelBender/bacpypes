@@ -118,7 +118,7 @@ def match_weeknday(date, weeknday):
     last_day = calendar.monthrange(year + 1900, month)[1]
 
     # unpack the date pattern octet string
-    weeknday_unpacked = [ord(c) for c in weeknday]
+    weeknday_unpacked = [c for c in weeknday]
     month_p, week_of_month_p, day_of_week_p = weeknday_unpacked
 
     # check the month
