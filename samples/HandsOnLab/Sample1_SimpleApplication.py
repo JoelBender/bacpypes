@@ -13,7 +13,7 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 1
@@ -71,13 +71,6 @@ def main():
     # make a sample application
     this_application = SampleApplication(this_device, args.ini.address)
     if _debug: _log.debug("    - this_application: %r", this_application)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     _log.debug("running")
 

@@ -18,7 +18,7 @@ from bacpypes.pdu import Address
 from bacpypes.apdu import DeviceCommunicationControlRequest
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -133,13 +133,6 @@ def main():
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = DCCConsoleCmd()

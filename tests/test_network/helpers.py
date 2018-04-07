@@ -7,7 +7,7 @@ Network VLAN Helper Classes
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.comm import Client, Server, ApplicationServiceElement, bind
-from bacpypes.pdu import Address, LocalBroadcast, PDU
+from bacpypes.pdu import Address, PDU
 from bacpypes.npdu import npdu_types, NPDU
 from bacpypes.vlan import Node
 
@@ -16,12 +16,9 @@ from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAcces
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 
 from bacpypes.object import register_object_type
-from bacpypes.service.device import (
-    LocalDeviceObject, WhoIsIAmServices,
-    )
-from bacpypes.service.object import (
-    ReadWritePropertyServices,
-    )
+from bacpypes.local.device import LocalDeviceObject
+from bacpypes.service.device import WhoIsIAmServices
+from bacpypes.service.object import ReadWritePropertyServices
 
 from ..state_machine import ClientStateMachine
 

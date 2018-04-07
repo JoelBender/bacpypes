@@ -15,9 +15,9 @@ from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.core import run
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
-from bacpypes.service.file import FileServices, \
-    LocalRecordAccessFileObject, LocalStreamAccessFileObject
+from bacpypes.local.device import LocalDeviceObject
+from bacpypes.local.file import FileServices, LocalRecordAccessFileObject, LocalStreamAccessFileObject
+from bacpypes.service.file import FileServices
 
 # some debugging
 _debug = 0
@@ -187,13 +187,6 @@ def main():
 
     # add the capability to server file content
     this_application.add_capability(FileServices)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a record access file, add to the device
     f1 = TestRecordFile(

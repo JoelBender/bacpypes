@@ -22,7 +22,7 @@ from bacpypes.apdu import ReadPropertyRequest, WhoIsRequest
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -189,13 +189,6 @@ try:
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # local host, special port
     HOST, PORT = "", int(args.port)

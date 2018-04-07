@@ -26,4 +26,5 @@ from . import test_npdu
 
 from . import test_network
 from . import test_service
+from . import test_local
 

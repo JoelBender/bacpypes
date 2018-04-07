@@ -237,13 +237,6 @@ def main():
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
 
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
-
     # extract the server address and port
     host = args.host
     if host == "any":
