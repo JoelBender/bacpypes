@@ -22,7 +22,7 @@ from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 from bacpypes.app import BIPForeignApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 1
@@ -214,13 +214,6 @@ def main():
         Address(args.ini.foreignbbmd),
         int(args.ini.foreignttl),
         )
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = DiscoveryConsoleCmd()

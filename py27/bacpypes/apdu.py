@@ -349,6 +349,7 @@ class APCI(PCI, DebugContents):
 #   APDU
 #
 
+@bacpypes_debugging
 class APDU(APCI, PDUData):
 
     def __init__(self, *args, **kwargs):
@@ -356,12 +357,13 @@ class APDU(APCI, PDUData):
         super(APDU, self).__init__(*args, **kwargs)
 
     def encode(self, pdu):
-        if _debug: APCI._debug("encode %s", str(pdu))
+        if _debug: APDU._debug("encode %s", str(pdu))
         APCI.encode(self, pdu)
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
-        if _debug: APCI._debug("decode %s", str(pdu))
+        if _debug: APDU._debug("decode %s", str(pdu))
+
         APCI.decode(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
 
@@ -393,17 +395,24 @@ class APDU(APCI, PDUData):
 #   between PDU's.  Otherwise the APCI content would be decoded twice.
 #
 
+@bacpypes_debugging
 class _APDU(APDU):
 
     def encode(self, pdu):
+        if _debug: _APDU._debug("encode %r", pdu)
+
         APCI.update(pdu, self)
         pdu.put_data(self.pduData)
 
     def decode(self, pdu):
+        if _debug: _APDU._debug("decode %r", pdu)
+
         APCI.update(self, pdu)
         self.pduData = pdu.get_data(len(pdu.pduData))
 
     def set_context(self, context):
+        if _debug: _APDU._debug("set_context %r", context)
+
         self.pduUserData = context.pduUserData
         self.pduDestination = context.pduSource
         self.pduExpectingReply = 0

@@ -12,7 +12,7 @@ from ..iocb import IOCB
 
 from ..basetypes import DeviceAddress, COVSubscription, PropertyValue, \
     Recipient, RecipientProcess, ObjectPropertyReference
-from ..constructeddata import SequenceOf, Any
+from ..constructeddata import ListOf, Any
 from ..apdu import ConfirmedCOVNotificationRequest, \
     UnconfirmedCOVNotificationRequest, \
     SimpleAckPDU, Error, RejectPDU, AbortPDU
@@ -420,7 +420,7 @@ class ActiveCOVSubscriptions(Property):
 
     def __init__(self):
         Property.__init__(
-            self, 'activeCovSubscriptions', SequenceOf(COVSubscription),
+            self, 'activeCovSubscriptions', ListOf(COVSubscription),
             default=None, optional=True, mutable=False,
             )
 
@@ -432,7 +432,7 @@ class ActiveCOVSubscriptions(Property):
         if _debug: ActiveCOVSubscriptions._debug("    - current_time: %r", current_time)
 
         # start with an empty sequence
-        cov_subscriptions = SequenceOf(COVSubscription)()
+        cov_subscriptions = ListOf(COVSubscription)()
 
         # loop through the object and detection list
         for obj, cov_detection in obj._app.cov_detections.items():

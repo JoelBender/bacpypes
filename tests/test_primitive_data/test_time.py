@@ -81,8 +81,6 @@ class TestTime(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             Time("some string")
-        with self.assertRaises(TypeError):
-            Time(1.0)
 
     def test_time_tuple(self):
         if _debug: TestTime._debug("test_time_tuple")
@@ -135,7 +133,7 @@ class TestTime(unittest.TestCase):
         if _debug: TestTime._debug("test_time_endec")
 
         with self.assertRaises(InvalidTag):
-            obj = Time(time_tag(''))
+            Time(time_tag(''))
 
         time_endec((0, 0, 0, 0), '00000000')
         time_endec((1, 0, 0, 0), '01000000')

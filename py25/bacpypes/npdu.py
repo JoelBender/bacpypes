@@ -479,7 +479,7 @@ class RouterBusyToNetwork(NPDU):
 
     def encode(self, npdu):
         NPCI.update(npdu, self)
-        for net in self.ratnNetworkList:
+        for net in self.rbtnNetworkList:
             npdu.put_short(net)
 
     def decode(self, npdu):
@@ -545,6 +545,12 @@ class RoutingTableEntry(DebugContents):
         self.rtDNET = dnet
         self.rtPortID = portID
         self.rtPortInfo = portInfo
+
+    def __eq__(self, other):
+        """Return true iff entries are identical."""
+        return (self.rtDNET == other.rtDNET) and \
+            (self.rtPortID == other.rtPortID) and \
+            (self.rtPortInfo == other.rtPortInfo)
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
@@ -738,6 +744,11 @@ class WhatIsNetworkNumber(NPDU):
 
     messageType = 0x12
 
+    def __init__(self, *args, **kwargs):
+        super(WhatIsNetworkNumber, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = WhatIsNetworkNumber.messageType
+
     def encode(self, npdu):
         NPCI.update(npdu, self)
 
@@ -758,9 +769,16 @@ register_npdu_type(WhatIsNetworkNumber)
 
 class NetworkNumberIs(NPDU):
 
-    _debug_contents = ('nniNET', 'nniFlag',)
+    _debug_contents = ('nniNet', 'nniFlag',)
 
     messageType = 0x13
+
+    def __init__(self, net=None, flag=None, *args, **kwargs):
+        super(NetworkNumberIs, self).__init__(*args, **kwargs)
+
+        self.npduNetMessage = NetworkNumberIs.messageType
+        self.nniNet = net
+        self.nniFlag = flag
 
     def encode(self, npdu):
         NPCI.update(npdu, self)
