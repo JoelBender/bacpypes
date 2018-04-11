@@ -541,12 +541,7 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             return
 
-        elif isinstance(pdu, OriginalUnicastNPDU):
-            # build a vanilla PDU
-            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
 
-            # send it upstream
-            self.response(xpdu)
 
         # check the BBMD registration status, we may not be registered
         if self.registrationStatus != 0:
@@ -556,7 +551,14 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         if isinstance(pdu, ReadBroadcastDistributionTableAck):
             # send this to the service access point
             self.sap_response(pdu)
+        
+        elif isinstance(pdu, OriginalUnicastNPDU):
+            # build a vanilla PDU
+            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
 
+            # send it upstream
+            self.response(xpdu)
+            
         elif isinstance(pdu, ReadForeignDeviceTableAck):
             # send this to the service access point
             self.sap_response(pdu)
