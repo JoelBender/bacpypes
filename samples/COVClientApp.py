@@ -118,9 +118,6 @@ class SubscribeCOVApplication(BIPSimpleApplication):
         if iocb.ioError:
             if _debug: SubscribeCOVApplication._debug("    - error: %r", iocb.ioError)
 
-    def cov_notification(self, apdu):
-        if _debug: SubscribeCOVApplication._debug("cov_notification %r", apdu)
-
     def do_ConfirmedCOVNotificationRequest(self, apdu):
         if _debug: SubscribeCOVApplication._debug("do_ConfirmedCOVNotificationRequest %r", apdu)
 
