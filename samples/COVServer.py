@@ -402,13 +402,6 @@ def main():
     # add it to the device
     test_application.add_object(test_bv)
 
-    # get the services supported
-    services_supported = test_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    test_device.protocolServicesSupported = services_supported.value
-
     # make a console
     if args.console:
         test_console = COVConsoleCmd()
