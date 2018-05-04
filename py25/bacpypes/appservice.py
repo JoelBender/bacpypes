@@ -17,7 +17,7 @@ from .apdu import AbortPDU, AbortReason, ComplexAckPDU, \
     SimpleAckPDU, UnconfirmedRequestPDU, apdu_types, \
     unconfirmed_request_types, confirmed_request_types, complex_ack_types, \
     error_types
-from .errors import RejectException, AbortException
+from .errors import RejectException, AbortException, UnrecognizedService
 
 # some debugging
 _debug = 0
@@ -1330,23 +1330,26 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
         if _debug: ApplicationServiceAccessPoint._debug("indication %r", apdu)
 
         if isinstance(apdu, ConfirmedRequestPDU):
-            atype = confirmed_request_types.get(apdu.apduService)
-            if not atype:
-                if _debug: ApplicationServiceAccessPoint._debug("    - no confirmed request decoder")
-                return
-
             # assume no errors found
             error_found = None
 
-            try:
-                xpdu = atype()
-                xpdu.decode(apdu)
-            except RejectException, err:
-                ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
-                error_found = err
-            except AbortException, err:
-                ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
-                error_found = err
+            # look up the class associated with the service
+            atype = confirmed_request_types.get(apdu.apduService)
+            if not atype:
+                if _debug: ApplicationServiceAccessPoint._debug("    - no confirmed request decoder")
+                error_found = UnrecognizedService()
+
+            # no error so far, keep going
+            if not error_found:
+                try:
+                    xpdu = atype()
+                    xpdu.decode(apdu)
+                except RejectException as err:
+                    ApplicationServiceAccessPoint._debug("    - decoding reject: %r", err)
+                    error_found = err
+                except AbortException as err:
+                    ApplicationServiceAccessPoint._debug("    - decoding abort: %r", err)
+                    error_found = err
 
             # no error so far, keep going
             if not error_found:

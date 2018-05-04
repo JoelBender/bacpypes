@@ -11,11 +11,13 @@ import unittest
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from bacpypes.pdu import Address, LocalBroadcast, PDU
+from bacpypes.basetypes import PropertyReference
 from bacpypes.apdu import (
+    ConfirmedRequestSequence, SequenceOf, Element,
     WhoIsRequest, IAmRequest,
     WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
     DeviceCommunicationControlRequest,
-    SimpleAckPDU, Error,
+    SimpleAckPDU, Error, RejectPDU,
     )
 
 from bacpypes.service.device import (
@@ -23,7 +25,7 @@ from bacpypes.service.device import (
     DeviceCommunicationControlServices,
     )
 
-from .helpers import ApplicationNetwork, ApplicationNode
+from .helpers import ApplicationNetwork
 
 # some debugging
 _debug = 0
@@ -383,6 +385,39 @@ class TestDeviceCommunicationControl(unittest.TestCase):
                 errorClass='security',
                 errorCode='passwordFailure',
                 ).doc("7-6-2") \
+            .success()
+
+        # no IUT application layer matching
+        anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+
+@bacpypes_debugging
+class TestUnrecognizedService(unittest.TestCase):
+
+    class ReadPropertyConditionalRequest(ConfirmedRequestSequence):
+        serviceChoice = 13
+        sequenceElements = [
+            # Element('objectSelectionCriteria', ObjectSelectionCriteria, 1),
+            Element('listOfPropertyReferences', SequenceOf(PropertyReference), 1),
+            ]
+
+    def test_9_39_1(self):
+        """9.39.1 Unsupported Confirmed Services Test"""
+        if _debug: TestUnrecognizedService._debug("test_9_39_1")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # send the request, get it rejected
+        anet.td.start_state.doc("7-6-0") \
+            .send(TestUnrecognizedService.ReadPropertyConditionalRequest(
+                destination=anet.iut.address,
+                listOfPropertyReferences=[],
+                )).doc("7-6-1") \
+            .receive(RejectPDU, pduSource=anet.iut.address, apduAbortRejectReason=9).doc("7-6-2") \
             .success()
 
         # no IUT application layer matching
