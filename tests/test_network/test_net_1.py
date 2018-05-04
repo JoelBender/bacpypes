@@ -29,7 +29,7 @@ from bacpypes.npdu import (
 from ..state_machine import match_pdu, StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine
 
-from .helpers import SnifferNode, NetworkLayerNode, RouterNode
+from .helpers import SnifferStateMachine, NetworkLayerStateMachine, RouterNode
 
 # some debugging
 _debug = 0
@@ -58,11 +58,11 @@ class TNetwork(StateMachineGroup):
         self.vlan1 = Network(name="vlan1", broadcast_address=LocalBroadcast())
 
         # test device
-        self.td = NetworkLayerNode("1", self.vlan1)
+        self.td = NetworkLayerStateMachine("1", self.vlan1)
         self.append(self.td)
 
         # sniffer node
-        self.sniffer1 = SnifferNode("2", self.vlan1)
+        self.sniffer1 = SnifferStateMachine("2", self.vlan1)
         self.append(self.sniffer1)
 
         # add the network
@@ -72,7 +72,7 @@ class TNetwork(StateMachineGroup):
         self.vlan2 = Network(name="vlan2", broadcast_address=LocalBroadcast())
 
         # sniffer node
-        self.sniffer2 = SnifferNode("4", self.vlan2)
+        self.sniffer2 = SnifferStateMachine("4", self.vlan2)
         self.append(self.sniffer2)
 
         # add the network
@@ -82,7 +82,7 @@ class TNetwork(StateMachineGroup):
         self.vlan3 = Network(name="vlan3", broadcast_address=LocalBroadcast())
 
         # sniffer node
-        self.sniffer3 = SnifferNode("6", self.vlan3)
+        self.sniffer3 = SnifferStateMachine("6", self.vlan3)
         self.append(self.sniffer3)
 
         # add the network

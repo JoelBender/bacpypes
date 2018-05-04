@@ -38,7 +38,7 @@ from ..state_machine import match_pdu, StateMachineGroup
 from ..time_machine import reset_time_machine, run_time_machine
 
 from .helpers import (
-    SnifferNode, NetworkLayerNode, RouterNode, ApplicationLayerNode,
+    SnifferStateMachine, NetworkLayerStateMachine, RouterNode, ApplicationLayerStateMachine,
     ApplicationNode,
     )
 
@@ -69,11 +69,11 @@ class TNetwork(StateMachineGroup):
         self.vlan1 = Network(name="vlan1", broadcast_address=LocalBroadcast())
 
         # test device
-        self.td = ApplicationLayerNode("1", self.vlan1)
+        self.td = ApplicationLayerStateMachine("1", self.vlan1)
         self.append(self.td)
 
         # sniffer node
-        self.sniffer1 = SnifferNode("2", self.vlan1)
+        self.sniffer1 = SnifferStateMachine("2", self.vlan1)
         self.append(self.sniffer1)
 
         # add the network
@@ -86,7 +86,7 @@ class TNetwork(StateMachineGroup):
         self.app2 = ApplicationNode("4", self.vlan2)
 
         # sniffer node
-        self.sniffer2 = SnifferNode("5", self.vlan2)
+        self.sniffer2 = SnifferStateMachine("5", self.vlan2)
         self.append(self.sniffer2)
 
         # add the network

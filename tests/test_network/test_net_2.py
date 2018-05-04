@@ -30,7 +30,7 @@ from bacpypes.npdu import (
 from ..state_machine import match_pdu, StateMachineGroup, TrafficLog
 from ..time_machine import reset_time_machine, run_time_machine
 
-from .helpers import SnifferNode, NetworkLayerNode, RouterNode
+from .helpers import SnifferStateMachine, NetworkLayerStateMachine, RouterNode
 
 # some debugging
 _debug = 0
@@ -64,11 +64,11 @@ class TNetwork(StateMachineGroup):
         self.vlan1.traffic_log = self.traffic_log
 
         # test device
-        self.td = NetworkLayerNode("1", self.vlan1)
+        self.td = NetworkLayerStateMachine("1", self.vlan1)
         self.append(self.td)
 
         # sniffer node
-        self.sniffer1 = SnifferNode("2", self.vlan1)
+        self.sniffer1 = SnifferStateMachine("2", self.vlan1)
         self.append(self.sniffer1)
 
         # connect vlan1 to iut1
@@ -79,7 +79,7 @@ class TNetwork(StateMachineGroup):
         self.vlan2.traffic_log = self.traffic_log
 
         # sniffer node
-        self.sniffer2 = SnifferNode("4", self.vlan2)
+        self.sniffer2 = SnifferStateMachine("4", self.vlan2)
         self.append(self.sniffer2)
 
         # connect vlan2 to both routers
@@ -91,7 +91,7 @@ class TNetwork(StateMachineGroup):
         self.vlan3.traffic_log = self.traffic_log
 
         # sniffer node
-        self.sniffer3 = SnifferNode("7", self.vlan3)
+        self.sniffer3 = SnifferStateMachine("7", self.vlan3)
         self.append(self.sniffer3)
 
         # connect vlan3 to the second router
