@@ -8,16 +8,16 @@ Test Device Services
 
 import unittest
 
-from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
-from bacpypes.pdu import Address, LocalBroadcast, PDU
+from bacpypes.pdu import Address, PDU
 from bacpypes.basetypes import PropertyReference
 from bacpypes.apdu import (
     ConfirmedRequestSequence, SequenceOf, Element,
     WhoIsRequest, IAmRequest,
-    WhoHasRequest, WhoHasLimits, WhoHasObject, IHaveRequest,
-    DeviceCommunicationControlRequest,
-    SimpleAckPDU, Error, RejectPDU,
+    WhoHasRequest, WhoHasObject, IHaveRequest,
+    DeviceCommunicationControlRequest, ReadPropertyRequest,
+    SimpleAckPDU, Error, RejectPDU, AbortPDU,
     )
 
 from bacpypes.service.device import (
@@ -25,7 +25,7 @@ from bacpypes.service.device import (
     DeviceCommunicationControlServices,
     )
 
-from .helpers import ApplicationNetwork
+from .helpers import ApplicationNetwork, SnifferNode
 
 # some debugging
 _debug = 0
@@ -422,6 +422,86 @@ class TestUnrecognizedService(unittest.TestCase):
 
         # no IUT application layer matching
         anet.iut.start_state.success()
+
+        # run the group
+        anet.run()
+
+
+@bacpypes_debugging
+class TestAPDURetryTimeout(unittest.TestCase):
+
+    def test_apdu_retry_default(self):
+        """Confirmed Request - No Reply"""
+        if _debug: TestAPDURetryTimeout._debug("test_apdu_retry")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # adjust test if default retries changes
+        assert anet.iut_device_object.numberOfApduRetries == 3
+
+        # add a sniffer to see requests without doing anything
+        sniffer = SnifferNode(anet.vlan)
+        anet.append(sniffer)
+
+        # no TD application layer matching
+        anet.td.start_state.success()
+
+        # send a request to a non-existent device, get it rejected
+        anet.iut.start_state.doc("7-7-0") \
+            .send(ReadPropertyRequest(
+                objectIdentifier=('analogValue', 1),
+                propertyIdentifier='presentValue',
+                destination=Address(99),
+                )).doc("7-7-1") \
+            .receive(AbortPDU, apduAbortRejectReason=65).doc("7-7-2") \
+            .success()
+
+        # see the attempts and nothing else
+        sniffer.start_state.doc("7-8-0") \
+            .receive(PDU).doc("7-8-1") \
+            .receive(PDU).doc("7-8-2") \
+            .receive(PDU).doc("7-8-3") \
+            .receive(PDU).doc("7-8-4") \
+            .timeout(10).doc("7-8-5") \
+            .success()
+
+        # run the group
+        anet.run()
+
+    def test_apdu_retry_1(self):
+        """Confirmed Request - No Reply"""
+        if _debug: TestAPDURetryTimeout._debug("test_apdu_retry_1")
+
+        # create a network
+        anet = ApplicationNetwork()
+
+        # change the retry count in the device properties
+        anet.iut_device_object.numberOfApduRetries = 1
+
+        # add a sniffer to see requests without doing anything
+        sniffer = SnifferNode(anet.vlan)
+        anet.append(sniffer)
+
+        # no TD application layer matching
+        anet.td.start_state.success()
+
+        # send a request to a non-existent device, get it rejected
+        anet.iut.start_state.doc("7-9-0") \
+            .send(ReadPropertyRequest(
+                objectIdentifier=('analogValue', 1),
+                propertyIdentifier='presentValue',
+                destination=Address(99),
+                )).doc("7-9-1") \
+            .receive(AbortPDU, apduAbortRejectReason=65).doc("7-9-2") \
+            .success()
+
+        # see the attempts and nothing else
+        sniffer.start_state.doc("7-10-0") \
+            .receive(PDU).doc("7-10-1") \
+            .receive(PDU).doc("7-10-2") \
+            .timeout(10).doc("7-10-3") \
+            .success()
 
         # run the group
         anet.run()

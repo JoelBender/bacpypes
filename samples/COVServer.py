@@ -373,6 +373,10 @@ def main():
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
+    # provide max segments accepted if any kind of segmentation supported
+    if args.ini.segmentationsupported != 'noSegmentation':
+        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
+
     # make a sample application
     test_application = SubscribeCOVApplication(test_device, args.ini.address)
 

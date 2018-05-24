@@ -288,14 +288,25 @@ class TestBBMD(unittest.TestCase):
             .receive(IAmRequest).doc("2-3-2") \
             .success()
 
-        # listen for the forwarded NPDU, then the re-braodcast on the local LAN
-        # then the original unicast going back, then fail if there's anything else
-        listener.start_state.doc("2-4-0") \
-            .receive(ForwardedNPDU).doc("2-4-1") \
-            .receive(ForwardedNPDU).doc("2-4-2") \
-            .receive(OriginalUnicastNPDU).doc("2-4-3") \
-            .timeout(3).doc("2-4-4") \
+        # listen for the forwarded NPDU.  The packet will be sent upstream which
+        # will generate the original unicast going back, then it will be
+        # re-broadcast on the local LAN.  Fail if there's anything after that.
+        s241 = listener.start_state.doc("2-4-0") \
+            .receive(ForwardedNPDU).doc("2-4-1")
+
+        # look for the original unicast going back, followed by the rebroadcast
+        # of the forwarded NPDU on the local LAN
+        both = s241 \
+            .receive(OriginalUnicastNPDU).doc("2-4-1-a") \
+            .receive(ForwardedNPDU).doc("2-4-1-b")
+
+        # fail if anything is received after both packets
+        both.timeout(3).doc("2-4-4") \
             .success()
+
+        # allow the two packets in either order
+        s241.receive(ForwardedNPDU).doc("2-4-2-a") \
+            .receive(OriginalUnicastNPDU, next_state=both).doc("2-4-2-b")
 
         # run the group
         tnet.run()

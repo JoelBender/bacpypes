@@ -90,7 +90,7 @@ class TimeMachine(_TaskManager):
             return False
 
         # peek at the next task and see when it is supposed to run
-        when, task = self.tasks[0]
+        when, n, task = self.tasks[0]
         if when >= self.time_limit:
             if _debug: TimeMachine._debug("    - next task at or exceeds time limit")
             return False
@@ -119,7 +119,7 @@ class TimeMachine(_TaskManager):
 
         else:
             # peek at the next task and see when it is supposed to run
-            when, _ = self.tasks[0]
+            when, n, _ = self.tasks[0]
             if when >= self.time_limit:
                 if _debug: TimeMachine._debug("    - time limit reached")
 
@@ -128,7 +128,7 @@ class TimeMachine(_TaskManager):
 
             else:
                 # pull it off the list
-                when, task = heappop(self.tasks)
+                when, n, task = heappop(self.tasks)
                 if _debug: TimeMachine._debug("    - when, task: %r, %s", when, task)
 
                 # mark that it is no longer scheduled

@@ -35,7 +35,7 @@ from bacpypes.apdu import (
     )
 
 from ..state_machine import match_pdu, StateMachineGroup
-from ..time_machine import reset_time_machine, run_time_machine
+from ..time_machine import reset_time_machine, run_time_machine, current_time
 
 from .helpers import (
     SnifferStateMachine, NetworkLayerStateMachine, RouterNode, ApplicationLayerStateMachine,
@@ -94,12 +94,16 @@ class TNetwork(StateMachineGroup):
 
     def run(self, time_limit=60.0):
         if _debug: TNetwork._debug("run %r", time_limit)
+        if _debug: TNetwork._debug("    - current_time: %r", current_time())
 
         # run the group
         super(TNetwork, self).run()
+        if _debug: TNetwork._debug("    - current_time: %r", current_time())
 
         # run it for some time
         run_time_machine(time_limit)
+        if _debug: TNetwork._debug("    - current_time: %r", current_time())
+
         if _debug:
             TNetwork._debug("    - time machine finished")
             for state_machine in self.state_machines:
@@ -335,27 +339,27 @@ class TestConfirmedRequests(unittest.TestCase):
                     )
                 ).doc("5-2-2") \
             .receive(PDU,
-                pduData=xtob('01.24.00.02.01.04.ff'
+                pduData=xtob('01.24.00.02.01.04.ff'                 # request
                     '02.44.01.0c.0c.02.00.00.04.19.78'
                     )
                 ).doc("5-2-3") \
             .receive(PDU,
-                pduData=xtob('01.08.00.02.01.04'
+                pduData=xtob('01.08.00.02.01.04'                    # ack
                     '30.01.0c.0c.02.00.00.04.19.78.3e.22.03.e7.3f'
                     )
                 ).doc("5-2-4") \
             .timeout(3).doc("5-2-5") \
             .success()
 
-        # network 2 sees local broadcast request and unicast response
+        # network 2 sees routed request and unicast response
         tnet.sniffer2.start_state.doc('5-3-0') \
             .receive(PDU,
-                pduData=xtob('01.0c.00.01.01.01'
+                pduData=xtob('01.0c.00.01.01.01'                    # request
                     '02.44.01.0c.0c.02.00.00.04.19.78'
                     )
                 ).doc("5-3-1") \
             .receive(PDU,
-                pduData=xtob('01.20.00.01.01.01.ff'
+                pduData=xtob('01.20.00.01.01.01.ff'                 # ack
                     '30.01.0c.0c.02.00.00.04.19.78.3e.22.03.e7.3f'
                     )
                 ).doc("5-3-2") \

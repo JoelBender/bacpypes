@@ -251,6 +251,10 @@ def main():
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
+    # provide max segments accepted if any kind of segmentation supported
+    if args.ini.segmentationsupported != 'noSegmentation':
+        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
+
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
 

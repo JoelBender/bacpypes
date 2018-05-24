@@ -2,8 +2,8 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyMultipleRequest PDUs, then lines up the coorresponding
+ReadPropertyMultipleACK and prints the value.
 """
 
 import sys
@@ -151,7 +151,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                         # here is the read result
                         readResult = element.readResult
 
-                        sys.stdout.write(propertyIdentifier)
+                        sys.stdout.write(str(propertyIdentifier))
                         if propertyArrayIndex is not None:
                             sys.stdout.write("[" + str(propertyArrayIndex) + "]")
 
@@ -167,17 +167,17 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                             datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
                             if _debug: ReadPropertyMultipleConsoleCmd._debug("    - datatype: %r", datatype)
                             if not datatype:
-                                raise TypeError("unknown datatype")
-
-                            # special case for array parts, others are managed by cast_out
-                            if issubclass(datatype, Array) and (propertyArrayIndex is not None):
-                                if propertyArrayIndex == 0:
-                                    value = propertyValue.cast_out(Unsigned)
-                                else:
-                                    value = propertyValue.cast_out(datatype.subtype)
+                                value = '?'
                             else:
-                                value = propertyValue.cast_out(datatype)
-                            if _debug: ReadPropertyMultipleConsoleCmd._debug("    - value: %r", value)
+                                # special case for array parts, others are managed by cast_out
+                                if issubclass(datatype, Array) and (propertyArrayIndex is not None):
+                                    if propertyArrayIndex == 0:
+                                        value = propertyValue.cast_out(Unsigned)
+                                    else:
+                                        value = propertyValue.cast_out(datatype.subtype)
+                                else:
+                                    value = propertyValue.cast_out(datatype)
+                                if _debug: ReadPropertyMultipleConsoleCmd._debug("    - value: %r", value)
 
                             sys.stdout.write(" = " + str(value) + '\n')
                         sys.stdout.flush()
@@ -210,6 +210,10 @@ def main():
         segmentationSupported=args.ini.segmentationsupported,
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
+
+    # provide max segments accepted if any kind of segmentation supported
+    if args.ini.segmentationsupported != 'noSegmentation':
+        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)

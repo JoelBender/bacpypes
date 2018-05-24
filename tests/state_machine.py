@@ -88,18 +88,18 @@ def match_pdu(pdu, pdu_type=None, **pdu_attrs):
 
     # check the type
     if pdu_type and not isinstance(pdu, pdu_type):
-        if _debug: match_pdu._debug("    - wrong type")
+        if _debug: match_pdu._debug("    - failed match, wrong type")
         return False
 
     # check for matching attribute values
     for attr_name, attr_value in pdu_attrs.items():
         if not hasattr(pdu, attr_name):
-            if _debug: match_pdu._debug("    - missing attr: %r", attr_name)
+            if _debug: match_pdu._debug("    - failed match, missing attr: %r", attr_name)
             return False
         if getattr(pdu, attr_name) != attr_value:
-            if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
+            if _debug: StateMachine._debug("    - failed match, attr value: %r, %r", attr_name, attr_value)
             return False
-    if _debug: match_pdu._debug("    - successful_match")
+    if _debug: match_pdu._debug("    - successful match")
 
     return True
 

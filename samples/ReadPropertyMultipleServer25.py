@@ -103,6 +103,10 @@ def main():
         vendorIdentifier=int(args.ini.vendoridentifier),
         )
 
+    # provide max segments accepted if any kind of segmentation supported
+    if args.ini.segmentationsupported != 'noSegmentation':
+        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
+
     # make a sample application
     this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)
 
