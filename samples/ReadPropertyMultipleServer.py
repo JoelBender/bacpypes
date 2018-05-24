@@ -20,6 +20,8 @@ from bacpypes.errors import ExecutionError
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.service.device import DeviceCommunicationControlServices
 from bacpypes.service.object import ReadWritePropertyMultipleServices
+from bacpypes.local.device import LocalDeviceObject
+
 
 # some debugging
 _debug = 0
@@ -95,18 +97,8 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        _dcc_password="xyzzy",
-        )
-
-    # provide max segments accepted if any kind of segmentation supported
-    if args.ini.segmentationsupported != 'noSegmentation':
-        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a sample application
     this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)

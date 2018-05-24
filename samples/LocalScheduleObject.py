@@ -74,17 +74,8 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=('device', int(args.ini.objectidentifier)),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
-
-    # provide max segments accepted if any kind of segmentation supported
-    if args.ini.segmentationsupported != 'noSegmentation':
-        this_device.maxSegmentsAccepted = int(args.ini.maxsegmentsaccepted)
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a sample application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
