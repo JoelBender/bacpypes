@@ -546,11 +546,6 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             return
 
-        # check the BBMD registration status, we may not be registered
-        if self.registrationStatus != 0:
-            if _debug: BIPForeign._debug("    - packet dropped, unregistered")
-            return
-
         if isinstance(pdu, OriginalUnicastNPDU):
             # build a vanilla PDU
             xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
@@ -559,6 +554,11 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             self.response(xpdu)
 
         elif isinstance(pdu, ForwardedNPDU):
+            # check the BBMD registration status, we may not be registered
+            if self.registrationStatus != 0:
+                if _debug: BIPForeign._debug("    - packet dropped, unregistered")
+                return
+
             # make sure the forwarded PDU from the bbmd
             if pdu.pduSource != self.bbmdAddress:
                 if _debug: BIPForeign._debug("    - packet dropped, not from the BBMD")
@@ -625,6 +625,9 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             # send it downstream
             self.request(xpdu)
+
+        elif isinstance(pdu, OriginalBroadcastNPDU):
+            if _debug: BIPForeign._debug("    - packet dropped")
 
         else:
             BIPForeign._warning("invalid pdu type: %s", type(pdu))
