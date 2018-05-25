@@ -166,9 +166,8 @@ class DeviceInfoCache:
         device_info._cache_keys = (device_info.deviceIdentifier, device_info.address)
 
     def acquire(self, key):
-        """Return the known information about the device.  If the key is the
-        address of an unknown device, build a generic device information record
-        add put it in the cache."""
+        """Return the known information about the device and mark the record
+        as being used by a segmenation state machine."""
         if _debug: DeviceInfoCache._debug("acquire %r", key)
 
         if isinstance(key, int):
