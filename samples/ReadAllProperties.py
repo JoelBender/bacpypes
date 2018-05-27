@@ -11,15 +11,12 @@ from collections import deque
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
-from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, stop, deferred
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.apdu import ReadPropertyRequest, ReadPropertyACK
-from bacpypes.primitivedata import Unsigned
-from bacpypes.constructeddata import Array
+from bacpypes.apdu import ReadPropertyRequest
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
@@ -157,13 +154,8 @@ def main():
     if _debug: _log.debug("    - property_list: %r", property_list)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = ReadPropertyApplication(this_device, args.ini.address)

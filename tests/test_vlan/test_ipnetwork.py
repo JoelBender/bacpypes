@@ -346,6 +346,30 @@ class TestRouter(unittest.TestCase):
         csm_10_3.start_state.timeout(1).success()
         csm_20_2.start_state.timeout(1).success()
 
+    def test_local_broadcast(self):
+        """Test that a node can send a message to all of the other nodes on
+        the same network.
+        """
+        if _debug: TestRouter._debug("test_local_broadcast")
+
+        # unpack the state machines
+        csm_10_2, csm_10_3, csm_20_2, csm_20_3 = self.smg.state_machines
+
+        # make a broadcast PDU from network 10 node 1
+        pdu = PDU(b'data',
+            source=('192.168.10.2', 47808),
+            destination=('192.168.10.255', 47808),
+            )
+        if _debug: TestVLAN._debug("    - pdu: %r", pdu)
+
+        # node 10-2 sends the pdu, node 10-3 gets pdu, nodes 20-2 and 20-3 dont
+        csm_10_2.start_state.send(pdu).success()
+        csm_10_3.start_state.receive(PDU,
+            pduSource=('192.168.10.2', 47808),
+            ).success()
+        csm_20_2.start_state.timeout(1).success()
+        csm_20_3.start_state.timeout(1).success()
+
     def test_remote_broadcast(self):
         """Test that a node can send a message to all of the other nodes on
         a different network.

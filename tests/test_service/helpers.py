@@ -52,7 +52,7 @@ class ApplicationNetwork(StateMachineGroup):
             )
 
         # test device
-        self.td = ApplicationNode(self.td_device_object, self.vlan)
+        self.td = ApplicationStateMachine(self.td_device_object, self.vlan)
         self.append(self.td)
 
         # implementation under test device object
@@ -65,7 +65,7 @@ class ApplicationNetwork(StateMachineGroup):
             )
 
         # implementation under test
-        self.iut = ApplicationNode(self.iut_device_object, self.vlan)
+        self.iut = ApplicationStateMachine(self.iut_device_object, self.vlan)
         self.append(self.iut)
 
     def run(self, time_limit=60.0):
@@ -86,6 +86,7 @@ class ApplicationNetwork(StateMachineGroup):
 
         # check for success
         all_success, some_failed = super(ApplicationNetwork, self).check_for_success()
+        ApplicationNetwork._debug("    - all_success, some_failed: %r, %r", all_success, some_failed)
         assert all_success
 
 
@@ -126,18 +127,18 @@ class SnifferNode(Client, StateMachine):
 
 
 #
-#   ApplicationNode
+#   ApplicationStateMachine
 #
 
 @bacpypes_debugging
-class ApplicationNode(Application, StateMachine):
+class ApplicationStateMachine(Application, StateMachine):
 
     def __init__(self, localDevice, vlan):
-        if _debug: ApplicationNode._debug("__init__ %r %r", localDevice, vlan)
+        if _debug: ApplicationStateMachine._debug("__init__ %r %r", localDevice, vlan)
 
         # build an address and save it
         self.address = Address(localDevice.objectIdentifier[1])
-        if _debug: ApplicationNode._debug("    - address: %r", self.address)
+        if _debug: ApplicationStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
         Application.__init__(self, localDevice, self.address)
@@ -171,22 +172,22 @@ class ApplicationNode(Application, StateMachine):
         self.nsap.bind(self.node)
 
     def send(self, apdu):
-        if _debug: ApplicationNode._debug("send(%s) %r", self.name, apdu)
+        if _debug: ApplicationStateMachine._debug("send(%s) %r", self.name, apdu)
 
         # send the apdu down the stack
         self.request(apdu)
 
     def indication(self, apdu):
-        if _debug: ApplicationNode._debug("indication(%s) %r", self.name, apdu)
+        if _debug: ApplicationStateMachine._debug("indication(%s) %r", self.name, apdu)
 
         # let the state machine know the request was received
         self.receive(apdu)
 
         # allow the application to process it
-        super(ApplicationNode, self).indication(apdu)
+        super(ApplicationStateMachine, self).indication(apdu)
 
     def confirmation(self, apdu):
-        if _debug: ApplicationNode._debug("confirmation(%s) %r", self.name, apdu)
+        if _debug: ApplicationStateMachine._debug("confirmation(%s) %r", self.name, apdu)
 
         # forward the confirmation to the state machine
         self.receive(apdu)

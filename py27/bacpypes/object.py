@@ -1422,7 +1422,7 @@ class EventEnrollmentObject(Object):
         , ReadableProperty('eventTimeStamps', ArrayOf(TimeStamp))
         , OptionalProperty('eventMessageTexts', ArrayOf(CharacterString))
         , OptionalProperty('eventMessageTextsConfig', ArrayOf(CharacterString))
-        , OptionalProperty('eventDetectionEnable', Boolean)
+        , ReadableProperty('eventDetectionEnable', Boolean)
         , OptionalProperty('eventAlgorithmInhibitRef', ObjectPropertyReference)
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('timeDelayNormal', Unsigned)

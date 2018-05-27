@@ -8,6 +8,7 @@ import sys
 
 from time import time as _time
 from heapq import heapify, heappush, heappop
+import itertools
 
 from .singleton import SingletonLogging
 from .debugging import DebugContents, Logging, ModuleLogger, bacpypes_debugging
@@ -280,6 +281,9 @@ class TaskManager(SingletonLogging):
         # task manager is this instance
         _task_manager = self
 
+        # unique sequence counter for tasks scheduled at the same time
+        self.counter = itertools.count()
+
         # there may be tasks created that couldn't be scheduled
         # because a task manager wasn't created yet.
         if _unscheduled_tasks:
@@ -304,7 +308,7 @@ class TaskManager(SingletonLogging):
             self.suspend_task(task)
 
         # save this in the task list
-        heappush( self.tasks, (task.taskTime, task) )
+        heappush( self.tasks, (task.taskTime, next(self.counter), task) )
         if _debug: TaskManager._debug("    - tasks: %r", self.tasks)
 
         task.isScheduled = True
@@ -317,7 +321,7 @@ class TaskManager(SingletonLogging):
         if _debug: TaskManager._debug("suspend_task %r", task)
 
         # remove this guy
-        for i, (when, curtask) in enumerate(self.tasks):
+        for i, (when, n, curtask) in enumerate(self.tasks):
             if task is curtask:
                 if _debug: TaskManager._debug("    - task found")
                 del self.tasks[i]
@@ -352,7 +356,7 @@ class TaskManager(SingletonLogging):
 
         if self.tasks:
             # look at the first task
-            when, nxttask = self.tasks[0]
+            when, n, nxttask = self.tasks[0]
             if when <= now:
                 # pull it off the list and mark that it's no longer scheduled
                 heappop(self.tasks)
@@ -360,7 +364,7 @@ class TaskManager(SingletonLogging):
                 task.isScheduled = False
 
                 if self.tasks:
-                    when, nxttask = self.tasks[0]
+                    when, n, nxttask = self.tasks[0]
                     # peek at the next task, return how long to wait
                     delta = max(when - now, 0.0)
             else:

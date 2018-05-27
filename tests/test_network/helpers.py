@@ -71,14 +71,14 @@ class NPDUCodec(Client, Server):
 
 
 #
-#   SnifferNode
+#   SnifferStateMachine
 #
 
 @bacpypes_debugging
-class SnifferNode(ClientStateMachine):
+class SnifferStateMachine(ClientStateMachine):
 
     def __init__(self, address, vlan):
-        if _debug: SnifferNode._debug("__init__ %r %r", address, vlan)
+        if _debug: SnifferStateMachine._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
         # save the name and address
@@ -87,20 +87,20 @@ class SnifferNode(ClientStateMachine):
 
         # create a promiscuous node, added to the network
         self.node = Node(self.address, vlan, promiscuous=True)
-        if _debug: SnifferNode._debug("    - node: %r", self.node)
+        if _debug: SnifferStateMachine._debug("    - node: %r", self.node)
 
         # bind this to the node
         bind(self, self.node)
 
 #
-#   NetworkLayerNode
+#   NetworkLayerStateMachine
 #
 
 @bacpypes_debugging
-class NetworkLayerNode(ClientStateMachine):
+class NetworkLayerStateMachine(ClientStateMachine):
 
     def __init__(self, address, vlan):
-        if _debug: NetworkLayerNode._debug("__init__ %r %r", address, vlan)
+        if _debug: NetworkLayerStateMachine._debug("__init__ %r %r", address, vlan)
         ClientStateMachine.__init__(self)
 
         # save the name and address
@@ -109,11 +109,11 @@ class NetworkLayerNode(ClientStateMachine):
 
         # create a network layer encoder/decoder
         self.codec = NPDUCodec()
-        if _debug: SnifferNode._debug("    - codec: %r", self.codec)
+        if _debug: SnifferStateMachine._debug("    - codec: %r", self.codec)
 
         # create a node, added to the network
         self.node = Node(self.address, vlan)
-        if _debug: SnifferNode._debug("    - node: %r", self.node)
+        if _debug: SnifferStateMachine._debug("    - node: %r", self.node)
 
         # bind this to the node
         bind(self, self.codec, self.node)
@@ -158,14 +158,14 @@ class TestDeviceObject(LocalDeviceObject):
     pass
 
 #
-#   ApplicationLayerNode
+#   ApplicationLayerStateMachine
 #
 
 @bacpypes_debugging
-class ApplicationLayerNode(ApplicationServiceElement, ClientStateMachine):
+class ApplicationLayerStateMachine(ApplicationServiceElement, ClientStateMachine):
 
     def __init__(self, address, vlan):
-        if _debug: ApplicationLayerNode._debug("__init__ %r %r", address, vlan)
+        if _debug: ApplicationLayerStateMachine._debug("__init__ %r %r", address, vlan)
 
         # build a name, save the address
         self.name = "app @ %s" % (address,)
@@ -180,7 +180,7 @@ class ApplicationLayerNode(ApplicationServiceElement, ClientStateMachine):
 
         # build an address and save it
         self.address = Address(address)
-        if _debug: ApplicationLayerNode._debug("    - address: %r", self.address)
+        if _debug: ApplicationLayerStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
         ApplicationServiceElement.__init__(self)
@@ -209,17 +209,17 @@ class ApplicationLayerNode(ApplicationServiceElement, ClientStateMachine):
 
         # create a node, added to the network
         self.node = Node(self.address, vlan)
-        if _debug: ApplicationLayerNode._debug("    - node: %r", self.node)
+        if _debug: ApplicationLayerStateMachine._debug("    - node: %r", self.node)
 
         # bind the stack to the local network
         self.nsap.bind(self.node)
 
     def indication(self, apdu):
-        if _debug: ApplicationLayerNode._debug("indication %r", apdu)
+        if _debug: ApplicationLayerStateMachine._debug("indication %r", apdu)
         self.receive(apdu)
 
     def confirmation(self, apdu):
-        if _debug: ApplicationLayerNode._debug("confirmation %r %r", apdu)
+        if _debug: ApplicationLayerStateMachine._debug("confirmation %r %r", apdu)
         self.receive(apdu)
 
 #

@@ -56,38 +56,51 @@ def register_error_type(klass):
 #   encode_max_segments_accepted/decode_max_segments_accepted
 #
 
+_max_segments_accepted_encoding = [
+    None, 2, 4, 8, 16, 32, 64, None,
+    ]
+
 def encode_max_segments_accepted(arg):
     """Encode the maximum number of segments the device will accept, Section
-    20.1.2.4"""
-    w = 0
-    while (arg and not arg & 1):
-        w += 1
-        arg = (arg >> 1)
-    return w
+    20.1.2.4, and if the device says it can only accept one segment it shouldn't
+    say that it supports segmentation!"""
+    # unspecified
+    if not arg:
+        return 0
+
+    if arg > 64:
+        return 7
+
+    # the largest number not greater than the arg
+    for i in range(6, 0, -1):
+        if _max_segments_accepted_encoding[i] <= arg:
+            return i
+
+    raise ValueError("invalid max max segments accepted: {0}".format(arg))
 
 def decode_max_segments_accepted(arg):
     """Decode the maximum number of segments the device will accept, Section
     20.1.2.4"""
-    return arg and (1 << arg) or None
+    return _max_segments_accepted_encoding[arg]
 
 #
 #   encode_max_apdu_length_accepted/decode_max_apdu_length_accepted
 #
 
-_max_apdu_response_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
+_max_apdu_length_encoding = [50, 128, 206, 480, 1024, 1476, None, None,
     None, None, None, None, None, None, None, None]
 
 def encode_max_apdu_length_accepted(arg):
     """Return the encoding of the highest encodable value less than the
     value of the arg."""
     for i in range(5, -1, -1):
-        if (arg >= _max_apdu_response_encoding[i]):
+        if (arg >= _max_apdu_length_encoding[i]):
             return i
 
     raise ValueError("invalid max APDU length accepted: {0}".format(arg))
 
 def decode_max_apdu_length_accepted(arg):
-    v = _max_apdu_response_encoding[arg]
+    v = _max_apdu_length_encoding[arg]
     if not v:
         raise ValueError("invalid max APDU length accepted: {0}".format(arg))
 
@@ -173,7 +186,7 @@ class APCI(PCI, DebugContents):
             if self.apduSA:
                 buff += 0x02
             pdu.put(buff)
-            pdu.put((encode_max_segments_accepted(self.apduMaxSegs) << 4) + encode_max_apdu_length_accepted(self.apduMaxResp))
+            pdu.put((self.apduMaxSegs << 4) + self.apduMaxResp)
             pdu.put(self.apduInvokeID)
             if self.apduSeg:
                 pdu.put(self.apduSeq)
@@ -254,8 +267,8 @@ class APCI(PCI, DebugContents):
             self.apduMor = ((buff & 0x04) != 0)
             self.apduSA  = ((buff & 0x02) != 0)
             buff = pdu.get()
-            self.apduMaxSegs = decode_max_segments_accepted( (buff >> 4) & 0x07 )
-            self.apduMaxResp = decode_max_apdu_length_accepted( buff & 0x0F )
+            self.apduMaxSegs = (buff >> 4) & 0x07
+            self.apduMaxResp = buff & 0x0F
             self.apduInvokeID = pdu.get()
             if self.apduSeg:
                 self.apduSeq = pdu.get()
@@ -693,6 +706,7 @@ class APCISequence(APCI, Sequence):
         # create a tag list and decode the rest of the data
         self._tag_list = TagList()
         self._tag_list.decode(apdu)
+        if _debug: APCISequence._debug("    - tag list: %r", self._tag_list)
 
         # pass the taglist to the Sequence for additional decoding
         Sequence.decode(self, self._tag_list)
@@ -1307,7 +1321,7 @@ class LifeSafetyOperationRequest(ConfirmedRequestSequence):
         [ Element('requestingProcessIdentifier', Unsigned, 0)
         , Element('requestingSource', CharacterString, 1)
         , Element('request', LifeSafetyOperation, 2)
-        , Element('objectIdentifier', ObjectIdentifier, 3)
+        , Element('objectIdentifier', ObjectIdentifier, 3, True)
         ]
 
 register_confirmed_request_type(LifeSafetyOperationRequest)
@@ -1491,7 +1505,7 @@ class RemoveListElementRequest(ConfirmedRequestSequence):
     sequenceElements = \
         [ Element('objectIdentifier', ObjectIdentifier, 0)
         , Element('propertyIdentifier', PropertyIdentifier, 1)
-        , Element('propertyArrayIndex', Unsigned, 2)
+        , Element('propertyArrayIndex', Unsigned, 2, True)
         , Element('listOfElements', Any, 3)
         ]
 
@@ -1501,9 +1515,9 @@ register_confirmed_request_type(RemoveListElementRequest)
 
 class DeviceCommunicationControlRequestEnableDisable(Enumerated):
     enumerations = \
-        { 'enable':0
-        , 'disable':1
-        , 'disableInitiation':2
+        { 'enable': 0
+        , 'disable': 1
+        , 'disableInitiation': 2
         }
 
 class DeviceCommunicationControlRequest(ConfirmedRequestSequence):

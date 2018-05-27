@@ -546,32 +546,37 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             return
 
-        elif isinstance(pdu, OriginalUnicastNPDU):
+        if isinstance(pdu, OriginalUnicastNPDU):
             # build a vanilla PDU
             xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
 
             # send it upstream
             self.response(xpdu)
 
-        # check the BBMD registration status, we may not be registered
-        if self.registrationStatus != 0:
-            if _debug: BIPForeign._debug("    - packet dropped, unregistered")
-            return
+        elif isinstance(pdu, ForwardedNPDU):
+            # check the BBMD registration status, we may not be registered
+            if self.registrationStatus != 0:
+                if _debug: BIPForeign._debug("    - packet dropped, unregistered")
+                return
 
-        if isinstance(pdu, ReadBroadcastDistributionTableAck):
+            # make sure the forwarded PDU from the bbmd
+            if pdu.pduSource != self.bbmdAddress:
+                if _debug: BIPForeign._debug("    - packet dropped, not from the BBMD")
+                return
+
+            # build a PDU with the source from the real source
+            xpdu = PDU(pdu.pduData, source=pdu.bvlciAddress, destination=LocalBroadcast(), user_data=pdu.pduUserData)
+
+            # send it upstream
+            self.response(xpdu)
+
+        elif isinstance(pdu, ReadBroadcastDistributionTableAck):
             # send this to the service access point
             self.sap_response(pdu)
 
         elif isinstance(pdu, ReadForeignDeviceTableAck):
             # send this to the service access point
             self.sap_response(pdu)
-
-        elif isinstance(pdu, ForwardedNPDU):
-            # build a PDU with the source from the real source
-            xpdu = PDU(pdu.pduData, source=pdu.bvlciAddress, destination=LocalBroadcast(), user_data=pdu.pduUserData)
-
-            # send it upstream
-            self.response(xpdu)
 
         elif isinstance(pdu, WriteBroadcastDistributionTable):
             # build a response
@@ -620,6 +625,9 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             # send it downstream
             self.request(xpdu)
+
+        elif isinstance(pdu, OriginalBroadcastNPDU):
+            if _debug: BIPForeign._debug("    - packet dropped")
 
         else:
             BIPForeign._warning("invalid pdu type: %s", type(pdu))
@@ -696,7 +704,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             # make an original unicast PDU
             xpdu = OriginalUnicastNPDU(pdu, user_data=pdu.pduUserData)
             xpdu.pduDestination = pdu.pduDestination
-            if _debug: BIPBBMD._debug("    - xpdu: %r", xpdu)
+            if _debug: BIPBBMD._debug("    - original unicast xpdu: %r", xpdu)
 
             # send it downstream
             self.request(xpdu)
@@ -719,13 +727,13 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             for bdte in self.bbmdBDT:
                 if bdte != self.bbmdAddress:
                     xpdu.pduDestination = Address( ((bdte.addrIP|~bdte.addrMask), bdte.addrPort) )
-                    BIPBBMD._debug("        - sending to peer: %r", xpdu.pduDestination)
+                    BIPBBMD._debug("    - sending to peer: %r", xpdu.pduDestination)
                     self.request(xpdu)
 
             # send it to the registered foreign devices
             for fdte in self.bbmdFDT:
                 xpdu.pduDestination = fdte.fdAddress
-                if _debug: BIPBBMD._debug("        - sending to foreign device: %r", xpdu.pduDestination)
+                if _debug: BIPBBMD._debug("    - sending to foreign device: %r", xpdu.pduDestination)
                 self.request(xpdu)
 
         else:
@@ -741,8 +749,9 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
 
         elif isinstance(pdu, WriteBroadcastDistributionTable):
             # build a response
-            xpdu = Result(code=99, user_data=pdu.pduUserData)
+            xpdu = Result(code=0x0010, user_data=pdu.pduUserData)
             xpdu.pduDestination = pdu.pduSource
+            if _debug: BIPBBMD._debug("    - xpdu: %r", xpdu)
 
             # send it downstream
             self.request(xpdu)
@@ -761,27 +770,38 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             self.sap_response(pdu)
 
         elif isinstance(pdu, ForwardedNPDU):
-            # build a PDU with the source from the real source
-            xpdu = PDU(pdu.pduData, source=pdu.bvlciAddress, destination=LocalBroadcast(), user_data=pdu.pduUserData)
-            if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
+            # send it upstream if there is a network layer
+            if self.serverPeer:
+                # build a PDU with a local broadcast address
+                xpdu = PDU(pdu.pduData, source=pdu.bvlciAddress, destination=LocalBroadcast(), user_data=pdu.pduUserData)
+                if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
 
-            # send it upstream
-            self.response(xpdu)
+                self.response(xpdu)
 
             # build a forwarded NPDU to send out
             xpdu = ForwardedNPDU(pdu.bvlciAddress, pdu, destination=None, user_data=pdu.pduUserData)
             if _debug: BIPBBMD._debug("    - forwarded xpdu: %r", xpdu)
 
-            # look for self as first entry in the BDT
-            if self.bbmdBDT and (self.bbmdBDT[0] == self.bbmdAddress):
-                xpdu.pduDestination = LocalBroadcast()
-                if _debug: BIPBBMD._debug("        - local broadcast")
-                self.request(xpdu)
+            # if this was unicast to us, do next hop
+            if pdu.pduDestination.addrType == Address.localStationAddr:
+                if _debug: BIPBBMD._debug("    - unicast message")
+
+                # if this BBMD is listed in its BDT, send a local broadcast
+                if self.bbmdAddress in self.bbmdBDT:
+                    xpdu.pduDestination = LocalBroadcast()
+                    if _debug: BIPBBMD._debug("    - local broadcast")
+                    self.request(xpdu)
+
+            elif pdu.pduDestination.addrType == Address.localBroadcastAddr:
+                if _debug: BIPBBMD._debug("    - directed broadcast message")
+
+            else:
+                BIPBBMD._warning("invalid destination address: %r", pdu.pduDestination)
 
             # send it to the registered foreign devices
             for fdte in self.bbmdFDT:
                 xpdu.pduDestination = fdte.fdAddress
-                if _debug: BIPBBMD._debug("        - sending to foreign device: %r", xpdu.pduDestination)
+                if _debug: BIPBBMD._debug("    - sending to foreign device: %r", xpdu.pduDestination)
                 self.request(xpdu)
 
         elif isinstance(pdu, RegisterForeignDevice):
@@ -820,12 +840,13 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             self.request(xpdu)
 
         elif isinstance(pdu, DistributeBroadcastToNetwork):
-            # build a PDU with a local broadcast address
-            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=LocalBroadcast(), user_data=pdu.pduUserData)
-            if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
+            # send it upstream if there is a network layer
+            if self.serverPeer:
+                # build a PDU with a local broadcast address
+                xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=LocalBroadcast(), user_data=pdu.pduUserData)
+                if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
 
-            # send it upstream
-            self.response(xpdu)
+                self.response(xpdu)
 
             # build a forwarded NPDU to send out
             xpdu = ForwardedNPDU(pdu.pduSource, pdu, user_data=pdu.pduUserData)
@@ -835,35 +856,37 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             for bdte in self.bbmdBDT:
                 if bdte == self.bbmdAddress:
                     xpdu.pduDestination = LocalBroadcast()
-                    if _debug: BIPBBMD._debug("        - local broadcast")
+                    if _debug: BIPBBMD._debug("    - local broadcast")
                     self.request(xpdu)
                 else:
                     xpdu.pduDestination = Address( ((bdte.addrIP|~bdte.addrMask), bdte.addrPort) )
-                    if _debug: BIPBBMD._debug("        - sending to peer: %r", xpdu.pduDestination)
+                    if _debug: BIPBBMD._debug("    - sending to peer: %r", xpdu.pduDestination)
                     self.request(xpdu)
 
             # send it to the other registered foreign devices
             for fdte in self.bbmdFDT:
                 if fdte.fdAddress != pdu.pduSource:
                     xpdu.pduDestination = fdte.fdAddress
-                    if _debug: BIPBBMD._debug("        - sending to foreign device: %r", xpdu.pduDestination)
+                    if _debug: BIPBBMD._debug("    - sending to foreign device: %r", xpdu.pduDestination)
                     self.request(xpdu)
 
         elif isinstance(pdu, OriginalUnicastNPDU):
-            # build a vanilla PDU
-            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
-            if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
+            # send it upstream if there is a network layer
+            if self.serverPeer:
+                # build a PDU with a local broadcast address
+                xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=pdu.pduDestination, user_data=pdu.pduUserData)
+                if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
 
-            # send it upstream
-            self.response(xpdu)
+                self.response(xpdu)
 
         elif isinstance(pdu, OriginalBroadcastNPDU):
-            # build a PDU with a local broadcast address
-            xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=LocalBroadcast(), user_data=pdu.pduUserData)
-            if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
+            # send it upstream if there is a network layer
+            if self.serverPeer:
+                # build a PDU with a local broadcast address
+                xpdu = PDU(pdu.pduData, source=pdu.pduSource, destination=LocalBroadcast(), user_data=pdu.pduUserData)
+                if _debug: BIPBBMD._debug("    - upstream xpdu: %r", xpdu)
 
-            # send it upstream
-            self.response(xpdu)
+                self.response(xpdu)
 
             # make a forwarded PDU
             xpdu = ForwardedNPDU(pdu.pduSource, pdu, user_data=pdu.pduUserData)
@@ -873,13 +896,13 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             for bdte in self.bbmdBDT:
                 if bdte != self.bbmdAddress:
                     xpdu.pduDestination = Address( ((bdte.addrIP|~bdte.addrMask), bdte.addrPort) )
-                    if _debug: BIPBBMD._debug("        - sending to peer: %r", xpdu.pduDestination)
+                    if _debug: BIPBBMD._debug("    - sending to peer: %r", xpdu.pduDestination)
                     self.request(xpdu)
 
             # send it to the registered foreign devices
             for fdte in self.bbmdFDT:
                 xpdu.pduDestination = fdte.fdAddress
-                if _debug: BIPBBMD._debug("        - sending to foreign device: %r", xpdu.pduDestination)
+                if _debug: BIPBBMD._debug("    - sending to foreign device: %r", xpdu.pduDestination)
                 self.request(xpdu)
 
         else:
@@ -929,7 +952,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
                 del self.bbmdFDT[i]
                 break
         else:
-            stat = 99 ### entry not found
+            stat = 0x0050 ### entry not found
 
         # return status
         return stat
@@ -955,10 +978,6 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
             addr = LocalStation(addr)
         else:
             raise TypeError("addr must be a string or an Address")
-
-        # if it's this BBMD, make it the first one
-        if self.bbmdBDT and (addr == self.bbmdAddress):
-            raise RuntimeError("add self to BDT as first address")
 
         # see if it's already there
         for bdte in self.bbmdBDT:
