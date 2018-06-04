@@ -19,12 +19,12 @@ from bacpypes.task import RecurringTask
 from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
-from bacpypes.apdu import ReadPropertyRequest, Error, AbortPDU, ReadPropertyACK
+from bacpypes.apdu import ReadPropertyRequest
 from bacpypes.primitivedata import Unsigned
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -164,24 +164,12 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a dog
     this_application = PrairieDog(args.interval, this_device, args.ini.address)
     if _debug: _log.debug("    - this_application: %r", this_application)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     _log.debug("running")
 

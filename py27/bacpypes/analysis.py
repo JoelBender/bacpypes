@@ -23,7 +23,7 @@ try:
 except:
     pass
 
-from .debugging import ModuleLogger, DebugContents, bacpypes_debugging, btox
+from .debugging import ModuleLogger, bacpypes_debugging, btox
 
 from .pdu import PDU, Address
 from .bvll import BVLPDU, bvl_pdu_types, ForwardedNPDU, \
@@ -144,6 +144,8 @@ def decode_packet(data):
 
     # assume it is ethernet for now
     d = decode_ethernet(data)
+    pduSource = Address(d['source_address'])
+    pduDestination = Address(d['destination_address'])
     data = d['data']
 
     # there could be a VLAN header
@@ -174,10 +176,8 @@ def decode_packet(data):
                 decode_packet._debug("    - pduDestination: %r", pduDestination)
         else:
             if _debug: decode_packet._debug("    - not a UDP packet")
-            return None
     else:
         if _debug: decode_packet._debug("    - not an IP packet")
-        return None
 
     # check for empty
     if not data:
@@ -374,7 +374,7 @@ def decode_file(fname):
 #
 
 @bacpypes_debugging
-class Tracer(DebugContents):
+class Tracer:
 
     def __init__(self, initial_state=None):
         if _debug: Tracer._debug("__init__ initial_state=%r", initial_state)

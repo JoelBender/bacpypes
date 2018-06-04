@@ -18,8 +18,10 @@ from bacpypes.object import AnalogValueObject, Property, register_object_type
 from bacpypes.errors import ExecutionError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject, DeviceCommunicationControlServices
+from bacpypes.service.device import DeviceCommunicationControlServices
 from bacpypes.service.object import ReadWritePropertyMultipleServices
+from bacpypes.local.device import LocalDeviceObject
+
 
 # some debugging
 _debug = 0
@@ -95,14 +97,8 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        _dcc_password="xyzzy",
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a sample application
     this_application = ReadPropertyMultipleApplication(this_device, args.ini.address)
@@ -123,13 +119,6 @@ def main():
     this_application.add_object(ravo1)
     this_application.add_object(ravo2)
     _log.debug("    - object list: %r", this_device.objectList)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     _log.debug("running")
 

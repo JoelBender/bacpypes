@@ -32,8 +32,12 @@ class Network:
 
         self.name = name
         self.nodes = []
+
         self.broadcast_address = broadcast_address
         self.drop_percent = drop_percent
+
+        # point to a TrafficLog instance
+        self.traffic_log = None
 
     def add_node(self, node):
         """ Add a node to this network, let the node know which network it's on. """
@@ -58,6 +62,10 @@ class Network:
             addressing and if a node is promiscuous.
         """
         if _debug: Network._debug("process_pdu(%s) %r", self.name, pdu)
+
+        # if there is a traffic log, call it with the network name and pdu
+        if self.traffic_log:
+            self.traffic_log(self.name, pdu)
 
         # randomly drop a packet
         if self.drop_percent != 0.0:
@@ -154,9 +162,9 @@ class IPNetwork(Network):
     ('1.2.3.255', 5) and the other nodes must have the same tuple.
     """
 
-    def __init__(self):
+    def __init__(self, name=''):
         if _debug: IPNetwork._debug("__init__")
-        Network.__init__(self)
+        Network.__init__(self, name=name)
 
     def add_node(self, node):
         if _debug: IPNetwork._debug("add_node %r", node)
@@ -206,11 +214,12 @@ class IPNode(Node):
 @bacpypes_debugging
 class IPRouterNode(Client):
 
-    def __init__(self, router, addr, lan=None):
+    def __init__(self, router, addr, lan):
         if _debug: IPRouterNode._debug("__init__ %r %r lan=%r", router, addr, lan)
 
-        # save the reference to the router
+        # save the references to the router for packets and the lan for debugging
         self.router = router
+        self.lan = lan
 
         # make ourselves an IPNode and bind to it
         self.node = IPNode(addr, lan=lan, promiscuous=True, spoofing=True)
@@ -230,6 +239,10 @@ class IPRouterNode(Client):
 
         # pass it downstream
         self.request(pdu)
+
+    def __repr__(self):
+        return "<%s for %s>" % (self.__class__.__name__, self.lan.name)
+
 
 #
 #   IPRouter

@@ -18,7 +18,7 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.apdu import Error, AbortPDU, \
+from bacpypes.apdu import \
     AtomicReadFileRequest, \
         AtomicReadFileRequestAccessMethodChoice, \
             AtomicReadFileRequestAccessMethodChoiceRecordAccess, \
@@ -31,7 +31,7 @@ from bacpypes.apdu import Error, AbortPDU, \
     AtomicWriteFileACK
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -311,23 +311,11 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = TestConsoleCmd()

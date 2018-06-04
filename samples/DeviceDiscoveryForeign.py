@@ -16,13 +16,12 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
-from bacpypes.apdu import WhoIsRequest, IAmRequest, ReadPropertyRequest, ReadPropertyACK
+from bacpypes.apdu import WhoIsRequest, ReadPropertyRequest, ReadPropertyACK
 from bacpypes.primitivedata import CharacterString
-from bacpypes.basetypes import ServicesSupported
-from bacpypes.errors import DecodingError
+from bacpypes.errors import MissingRequiredParameter
 
 from bacpypes.app import BIPForeignApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 1
@@ -149,7 +148,6 @@ class DiscoveryConsoleCmd(ConsoleCmd):
 
         try:
             # gather the parameters
-            request = WhoIsRequest()
             if (len(args) == 1) or (len(args) == 3):
                 addr = Address(args[0])
                 del args[0]
@@ -200,13 +198,8 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = DiscoveryApplication(
@@ -214,13 +207,6 @@ def main():
         Address(args.ini.foreignbbmd),
         int(args.ini.foreignttl),
         )
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = DiscoveryConsoleCmd()

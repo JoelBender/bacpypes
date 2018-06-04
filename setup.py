@@ -55,6 +55,7 @@ setup(
     url="https://github.com/JoelBender/bacpypes",
     packages=[
         'bacpypes',
+        'bacpypes.local',
         'bacpypes.service',
     ],
     package_dir={

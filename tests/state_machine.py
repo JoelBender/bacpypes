@@ -16,6 +16,8 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.comm import Client, Server
 from bacpypes.task import OneShotTask
 
+from .time_machine import current_time
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -86,18 +88,18 @@ def match_pdu(pdu, pdu_type=None, **pdu_attrs):
 
     # check the type
     if pdu_type and not isinstance(pdu, pdu_type):
-        if _debug: match_pdu._debug("    - wrong type")
+        if _debug: match_pdu._debug("    - failed match, wrong type")
         return False
 
     # check for matching attribute values
     for attr_name, attr_value in pdu_attrs.items():
         if not hasattr(pdu, attr_name):
-            if _debug: match_pdu._debug("    - missing attr: %r", attr_name)
+            if _debug: match_pdu._debug("    - failed match, missing attr: %r", attr_name)
             return False
         if getattr(pdu, attr_name) != attr_value:
-            if _debug: StateMachine._debug("    - attr value: %r, %r", attr_name, attr_value)
+            if _debug: StateMachine._debug("    - failed match, attr value: %r, %r", attr_name, attr_value)
             return False
-    if _debug: match_pdu._debug("    - successful_match")
+    if _debug: match_pdu._debug("    - successful match")
 
     return True
 
@@ -1219,11 +1221,11 @@ class ClientStateMachine(Client, StateMachine):
     stack are fed as received PDU's.
     """
 
-    def __init__(self):
+    def __init__(self, name=''):
         if _debug: ClientStateMachine._debug("__init__")
 
         Client.__init__(self)
-        StateMachine.__init__(self)
+        StateMachine.__init__(self, name=name)
 
     def send(self, pdu):
         if _debug: ClientStateMachine._debug("send(%s) %r", self.name, pdu)
@@ -1246,11 +1248,11 @@ class ServerStateMachine(Server, StateMachine):
     stack are fed as received PDU's.
     """
 
-    def __init__(self):
+    def __init__(self, name=''):
         if _debug: ServerStateMachine._debug("__init__")
 
         Server.__init__(self)
-        StateMachine.__init__(self)
+        StateMachine.__init__(self, name=name)
 
     def send(self, pdu):
         if _debug: ServerStateMachine._debug("send %r", pdu)
@@ -1259,4 +1261,30 @@ class ServerStateMachine(Server, StateMachine):
     def indication(self, pdu):
         if _debug: ServerStateMachine._debug("indication %r", pdu)
         self.receive(pdu)
+
+
+#
+#   TrafficLog
+#
+
+class TrafficLog:
+
+    def __init__(self):
+        """Initialize with no traffic."""
+        self.traffic = []
+
+    def __call__(self, *args):
+        """Capture the current time and the arguments."""
+        self.traffic.append((current_time(),) + args)
+
+    def dump(self, handler_fn):
+        """Dump the traffic, pass the correct handler like SomeClass._debug"""
+        for args in self.traffic:
+            arg_format = "   %6.3f:"
+            for arg in args[1:]:
+                if hasattr(arg, 'debug_contents'):
+                    arg_format += " %r"
+                else:
+                    arg_format += " %s"
+            handler_fn(arg_format, *args)
 

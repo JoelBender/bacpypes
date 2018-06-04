@@ -8,7 +8,7 @@ Test Object Services
 
 import unittest
 
-from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
+from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.errors import ExecutionError, InvalidParameterDatatype
 from bacpypes.primitivedata import CharacterString
@@ -16,7 +16,7 @@ from bacpypes.constructeddata import ArrayOf
 from bacpypes.object import register_object_type, ReadableProperty, \
     WritableProperty, Object
 
-from bacpypes.service.object import CurrentPropertyListMixIn
+from bacpypes.local.object import CurrentPropertyListMixIn
 
 # some debugging
 _debug = 0
@@ -31,7 +31,7 @@ class TestBasic(unittest.TestCase):
         if _debug: TestBasic._debug("test_basic")
 
         # create an object, no properties
-        obj = Object()
+        Object()
 
 
 @bacpypes_debugging

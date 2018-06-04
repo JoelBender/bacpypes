@@ -18,7 +18,7 @@ from bacpypes.task import RecurringTask
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import AnalogValueObject, BinaryValueObject
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.cov import ChangeOfValueServices
 
 # some debugging
@@ -365,16 +365,11 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    test_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a sample application
-    test_application = SubscribeCOVApplication(test_device, args.ini.address)
+    test_application = SubscribeCOVApplication(this_device, args.ini.address)
 
     # make an analog value object
     test_av = AnalogValueObject(
@@ -388,7 +383,7 @@ def main():
 
     # add it to the device
     test_application.add_object(test_av)
-    _log.debug("    - object list: %r", test_device.objectList)
+    _log.debug("    - object list: %r", this_device.objectList)
 
     # make a binary value object
     test_bv = BinaryValueObject(
@@ -401,13 +396,6 @@ def main():
 
     # add it to the device
     test_application.add_object(test_bv)
-
-    # get the services supported
-    services_supported = test_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    test_device.protocolServicesSupported = services_supported.value
 
     # make a console
     if args.console:

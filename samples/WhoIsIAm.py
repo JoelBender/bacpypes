@@ -17,11 +17,10 @@ from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import WhoIsRequest, IAmRequest
-from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -180,37 +179,14 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
     if _debug: _log.debug("    - this_device: %r", this_device)
-
-    # build a bit string that knows about the bit names
-    pss = ServicesSupported()
-    pss['whoIs'] = 1
-    pss['iAm'] = 1
-    pss['readProperty'] = 1
-    pss['writeProperty'] = 1
-
-    # set the property value to be just the bits
-    this_device.protocolServicesSupported = pss.value
 
     # make a simple application
     this_application = WhoIsIAmApplication(
         this_device, args.ini.address,
         )
     if _debug: _log.debug("    - this_application: %r", this_application)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = WhoIsIAmConsoleCmd()

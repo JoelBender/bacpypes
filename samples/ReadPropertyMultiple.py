@@ -2,8 +2,8 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyMultipleRequest PDUs, then lines up the coorresponding
+ReadPropertyMultipleACK and prints the value.
 """
 
 import sys
@@ -25,7 +25,7 @@ from bacpypes.constructeddata import Array
 from bacpypes.basetypes import PropertyIdentifier
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.service.device import LocalDeviceObject
+from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
 _debug = 0
@@ -151,7 +151,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                         # here is the read result
                         readResult = element.readResult
 
-                        sys.stdout.write(propertyIdentifier)
+                        sys.stdout.write(str(propertyIdentifier))
                         if propertyArrayIndex is not None:
                             sys.stdout.write("[" + str(propertyArrayIndex) + "]")
 
@@ -167,17 +167,17 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                             datatype = get_datatype(objectIdentifier[0], propertyIdentifier)
                             if _debug: ReadPropertyMultipleConsoleCmd._debug("    - datatype: %r", datatype)
                             if not datatype:
-                                raise TypeError("unknown datatype")
-
-                            # special case for array parts, others are managed by cast_out
-                            if issubclass(datatype, Array) and (propertyArrayIndex is not None):
-                                if propertyArrayIndex == 0:
-                                    value = propertyValue.cast_out(Unsigned)
-                                else:
-                                    value = propertyValue.cast_out(datatype.subtype)
+                                value = '?'
                             else:
-                                value = propertyValue.cast_out(datatype)
-                            if _debug: ReadPropertyMultipleConsoleCmd._debug("    - value: %r", value)
+                                # special case for array parts, others are managed by cast_out
+                                if issubclass(datatype, Array) and (propertyArrayIndex is not None):
+                                    if propertyArrayIndex == 0:
+                                        value = propertyValue.cast_out(Unsigned)
+                                    else:
+                                        value = propertyValue.cast_out(datatype.subtype)
+                                else:
+                                    value = propertyValue.cast_out(datatype)
+                                if _debug: ReadPropertyMultipleConsoleCmd._debug("    - value: %r", value)
 
                             sys.stdout.write(" = " + str(value) + '\n')
                         sys.stdout.flush()
@@ -203,23 +203,11 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # make a device object
-    this_device = LocalDeviceObject(
-        objectName=args.ini.objectname,
-        objectIdentifier=int(args.ini.objectidentifier),
-        maxApduLengthAccepted=int(args.ini.maxapdulengthaccepted),
-        segmentationSupported=args.ini.segmentationsupported,
-        vendorIdentifier=int(args.ini.vendoridentifier),
-        )
+    this_device = LocalDeviceObject(ini=args.ini)
+    if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
-
-    # get the services supported
-    services_supported = this_application.get_services_supported()
-    if _debug: _log.debug("    - services_supported: %r", services_supported)
-
-    # let the device object know
-    this_device.protocolServicesSupported = services_supported.value
 
     # make a console
     this_console = ReadPropertyMultipleConsoleCmd()

@@ -22,6 +22,10 @@ from . import test_utilities
 from . import test_vlan
 
 from . import test_bvll
+from . import test_npdu
 
+from . import test_network
 from . import test_service
+from . import test_local
+from . import test_segmentation
 
