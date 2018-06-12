@@ -243,3 +243,30 @@ class TestWhoIsRouterToNetwork(unittest.TestCase):
         # run the group
         tnet.run()
 
+    def test_04(self):
+        """Test broadcast for a router to the network it is on."""
+        if _debug: TestWhoIsRouterToNetwork._debug("test_02")
+
+        # create a network
+        tnet = TNetwork()
+
+        # request router to network 1 on network 1, no response
+        tnet.td.start_state.doc("4-1-0") \
+            .send(WhoIsRouterToNetwork(1,
+                destination=LocalBroadcast(),
+                )).doc("4-1-1") \
+            .timeout(3).doc("4-1-2") \
+            .success()
+
+        tnet.sniffer1.start_state.success()
+
+        # nothing received on network 2
+        tnet.sniffer2.start_state.doc("4-2-0") \
+            .timeout(3).doc("4-2-1") \
+            .success()
+
+        tnet.sniffer3.start_state.success()
+
+        # run the group
+        tnet.run()
+

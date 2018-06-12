@@ -737,6 +737,10 @@ class NetworkServiceElement(ApplicationServiceElement):
             if dnet in sap.adapters:
                 if _debug: NetworkServiceElement._debug("    - directly connected")
 
+                if sap.adapters[dnet] is adapter:
+                    if _debug: NetworkServiceElement._debug("    - same network")
+                    return
+
                 # build a response
                 iamrtn = IAmRouterToNetwork([dnet], user_data=npdu.pduUserData)
                 iamrtn.pduDestination = npdu.pduSource
