@@ -12,7 +12,7 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address
-from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork
+from bacpypes.npdu import InitializeRoutingTable, WhoIsRouterToNetwork, IAmRouterToNetwork
 
 from bacpypes.app import BIPNetworkApplication
 
@@ -41,6 +41,10 @@ class WhoIsRouterApplication(BIPNetworkApplication):
 
     def indication(self, adapter, npdu):
         if _debug: WhoIsRouterApplication._debug("indication %r %r", adapter, npdu)
+
+        if isinstance(npdu, IAmRouterToNetwork):
+            print("{} -> {}, {}".format(npdu.pduSource, npdu.pduDestination, npdu.iartnNetworkList))
+
         BIPNetworkApplication.indication(self, adapter, npdu)
 
     def response(self, adapter, npdu):
