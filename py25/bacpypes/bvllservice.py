@@ -552,7 +552,6 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
             # send it upstream
             self.response(xpdu)
-            return
 
         elif isinstance(pdu, ForwardedNPDU):
             # check the BBMD registration status, we may not be registered

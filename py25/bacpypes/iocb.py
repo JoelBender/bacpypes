@@ -140,12 +140,12 @@ class IOCB(DebugContents):
         if self.ioComplete.isSet():
             self.trigger()
 
-    def wait(self, *args):
+    def wait(self, *args, **kwargs):
         """Wait for the completion event to be set."""
-        if _debug: IOCB._debug("wait(%d) %r", self.ioID, args)
+        if _debug: IOCB._debug("wait(%d) %r %r", self.ioID, args, kwargs)
 
         # waiting from a non-daemon thread could be trouble
-        self.ioComplete.wait(*args)
+        return self.ioComplete.wait(*args, **kwargs)
 
     def trigger(self):
         """Set the completion event and make the callback(s)."""

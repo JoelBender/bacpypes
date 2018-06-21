@@ -737,6 +737,10 @@ class NetworkServiceElement(ApplicationServiceElement):
             if dnet in sap.adapters:
                 if _debug: NetworkServiceElement._debug("    - directly connected")
 
+                if sap.adapters[dnet] is adapter:
+                    if _debug: NetworkServiceElement._debug("    - same network")
+                    return
+
                 # build a response
                 iamrtn = IAmRouterToNetwork([dnet], user_data=npdu.pduUserData)
                 iamrtn.pduDestination = npdu.pduSource
@@ -758,6 +762,9 @@ class NetworkServiceElement(ApplicationServiceElement):
                     if router_net not in sap.adapters:
                         if _debug: NetworkServiceElement._debug("    - path error (6)")
                         return
+                    if sap.adapters[router_net] is adapter:
+                        if _debug: NetworkServiceElement._debug("    - same network")
+                        return
 
                     # build a response
                     iamrtn = IAmRouterToNetwork([dnet], user_data=npdu.pduUserData)
@@ -767,7 +774,7 @@ class NetworkServiceElement(ApplicationServiceElement):
                     self.response(adapter, iamrtn)
 
                 else:
-                    if _debug: NetworkServiceElement._debug("    - forwarding request to other adapters")
+                    if _debug: NetworkServiceElement._debug("    - forwarding to other adapters")
 
                     # build a request
                     whoisrtn = WhoIsRouterToNetwork(dnet, user_data=npdu.pduUserData)
@@ -797,19 +804,21 @@ class NetworkServiceElement(ApplicationServiceElement):
         sap.add_router_references(adapter.adapterNet, npdu.pduSource, npdu.iartnNetworkList)
 
         # skip if this is not a router
-        if len(sap.adapters) > 1:
+        if len(sap.adapters) == 1:
+            if _debug: NetworkServiceElement._debug("    - not a router")
+
+        else:
+            if _debug: NetworkServiceElement._debug("    - forwarding to other adapters")
+
             # build a broadcast annoucement
             iamrtn = IAmRouterToNetwork(npdu.iartnNetworkList, user_data=npdu.pduUserData)
             iamrtn.pduDestination = LocalBroadcast()
 
             # send it to all of the connected adapters
             for xadapter in sap.adapters.values():
-                # skip the horse it rode in on
-                if (xadapter is adapter):
-                    continue
-
-                # request this
-                self.request(xadapter, iamrtn)
+                if xadapter is not adapter:
+                    if _debug: NetworkServiceElement._debug("    - sending on adapter: %r", xadapter)
+                    self.request(xadapter, iamrtn)
 
         # look for pending NPDUs for the networks
         for dnet in npdu.iartnNetworkList:

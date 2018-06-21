@@ -355,16 +355,17 @@ def decode_file(fname):
     if not pcap:
         raise RuntimeError("failed to import pcap")
 
-    # create a pcap object
+    # create a pcap object, reading from the file
     p = pcap.pcap(fname)
 
-    for timestamp, data in p:
+    # loop through the packets
+    for i, (timestamp, data) in enumerate(p):
         pkt = decode_packet(data)
         if not pkt:
             continue
 
-        # save the index and timestamp in the packet
-        # pkt._index = i
+        # save the packet number (as viewed in Wireshark) and timestamp
+        pkt._number = i + 1
         pkt._timestamp = timestamp
 
         yield pkt

@@ -1522,7 +1522,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 xpdu = atype()
                 xpdu.decode(apdu)
             except Exception as err:
-                ApplicationServiceAccessPoint._exception("unconfirmed request decoding error: %r", err)
+                ApplicationServiceAccessPoint._exception("complex ack decoding error: %r", err)
                 return
 
         elif isinstance(apdu, ErrorPDU):
