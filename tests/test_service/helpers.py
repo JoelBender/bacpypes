@@ -10,12 +10,12 @@ from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.vlan import Network, Node
 
-from bacpypes.app import Application
+from bacpypes.app import ApplicationIOController
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.local.device import LocalDeviceObject
 
-from ..state_machine import StateMachine, StateMachineGroup
+from ..state_machine import StateMachine, StateMachineGroup, TrafficLog
 from ..time_machine import reset_time_machine, run_time_machine
 
 
@@ -39,8 +39,12 @@ class ApplicationNetwork(StateMachineGroup):
         reset_time_machine()
         if _debug: ApplicationNetwork._debug("    - time machine reset")
 
+        # create a traffic log
+        self.traffic_log = TrafficLog()
+
         # make a little LAN
         self.vlan = Network(broadcast_address=LocalBroadcast())
+        self.vlan.traffic_log = self.traffic_log
 
         # test device object
         self.td_device_object = LocalDeviceObject(
@@ -83,6 +87,9 @@ class ApplicationNetwork(StateMachineGroup):
                 ApplicationNetwork._debug("    - machine: %r", state_machine)
                 for direction, pdu in state_machine.transaction_log:
                     ApplicationNetwork._debug("        %s %s", direction, str(pdu))
+
+            # traffic log has what was processed on each vlan
+            self.traffic_log.dump(ApplicationNetwork._debug)
 
         # check for success
         all_success, some_failed = super(ApplicationNetwork, self).check_for_success()
@@ -131,7 +138,7 @@ class SnifferNode(Client, StateMachine):
 #
 
 @bacpypes_debugging
-class ApplicationStateMachine(Application, StateMachine):
+class ApplicationStateMachine(ApplicationIOController, StateMachine):
 
     def __init__(self, localDevice, vlan):
         if _debug: ApplicationStateMachine._debug("__init__ %r %r", localDevice, vlan)
@@ -141,7 +148,7 @@ class ApplicationStateMachine(Application, StateMachine):
         if _debug: ApplicationStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
-        Application.__init__(self, localDevice, self.address)
+        ApplicationIOController.__init__(self, localDevice, self.address)
         StateMachine.__init__(self, name=localDevice.objectName)
 
         # include a application decoder
