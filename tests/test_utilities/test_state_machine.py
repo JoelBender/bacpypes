@@ -290,7 +290,7 @@ class TestStateMachine(unittest.TestCase):
 
         def fn():
             self._called = True
-            raise RuntimeError("error")
+            raise AssertionError("error")
 
         # create a trapped state machine
         tsm = TrappedStateMachine()
