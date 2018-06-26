@@ -759,12 +759,26 @@ class StateMachine(object):
 
             # pull apart the pieces and call it
             fn, args, kwargs = current_state.call_transition.fnargs
-            fn( *args, **kwargs)
-            if _debug: StateMachine._debug("    - called")
+            try:
+                fn( *args, **kwargs)
+                if _debug: StateMachine._debug("    - called, no exception")
 
-            # check for a transition
-            next_state = current_state.call_transition.next_state
-            if _debug: StateMachine._debug("    - next_state: %r", next_state)
+                # check for a transition
+                next_state = current_state.call_transition.next_state
+                if _debug: StateMachine._debug("    - next_state: %r", next_state)
+
+            except AssertionError as err:
+                if _debug: StateMachine._debug("    - called, exception: %r", err)
+                self.state_transitioning -= 1
+
+                self.halt()
+                self.fail()
+
+                # if it is part of a group, let the group know
+                if self.machine_group and not self._startup_flag:
+                    self.machine_group.stopped(self)
+
+                return
         else:
             if _debug: StateMachine._debug("    - no calls")
 

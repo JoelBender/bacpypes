@@ -31,8 +31,8 @@ _log = ModuleLogger(globals())
 @bacpypes_debugging
 class ApplicationNetwork(StateMachineGroup):
 
-    def __init__(self):
-        if _debug: ApplicationNetwork._debug("__init__")
+    def __init__(self, test_name):
+        if _debug: ApplicationNetwork._debug("__init__ %r", test_name)
         StateMachineGroup.__init__(self)
 
         # reset the time machine
@@ -198,4 +198,7 @@ class ApplicationStateMachine(ApplicationIOController, StateMachine):
 
         # forward the confirmation to the state machine
         self.receive(apdu)
+
+        # allow the application to process it
+        super(ApplicationStateMachine, self).confirmation(apdu)
 
