@@ -8,6 +8,9 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
+from bacpypes.npdu import NPDU
+from bacpypes.apdu import APDU, apdu_types
+
 from bacpypes.vlan import Network, Node
 
 from bacpypes.app import ApplicationIOController
@@ -101,11 +104,76 @@ class ApplicationNetwork(StateMachineGroup):
 #   SnifferNode
 #
 
-@bacpypes_debugging
-class SnifferNode(Client, StateMachine):
+class SnifferNode(Client):
 
     def __init__(self, vlan):
         if _debug: SnifferNode._debug("__init__ %r", vlan)
+
+        # save the name and give it a blank address
+        self.name = "sniffer"
+        self.address = Address()
+
+        # continue with initialization
+        Client.__init__(self)
+
+        # create a promiscuous node, added to the network
+        self.node = Node(self.address, vlan, promiscuous=True)
+        if _debug: SnifferNode._debug("    - node: %r", self.node)
+
+        # bind this to the node
+        bind(self, self.node)
+
+    def request(self, pdu):
+        if _debug: SnifferNode._debug("request(%s) %r", self.name, pdu)
+        raise RuntimeError("sniffers don't request")
+
+    def confirmation(self, pdu):
+        if _debug: SnifferNode._debug("confirmation(%s) %r", self.name, pdu)
+
+        # it's an NPDU
+        npdu = NPDU()
+        npdu.decode(pdu)
+
+        # filter out network layer traffic if there is any, probably not
+        if npdu.npduNetMessage is not None:
+            if _debug: SnifferNode._debug("    - network message: %r", npdu.npduNetMessage)
+            return
+
+        # decode as a generic APDU
+        apdu = APDU()
+        apdu.decode(npdu)
+
+        # "lift" the source and destination address
+        if npdu.npduSADR:
+            apdu.pduSource = npdu.npduSADR
+        else:
+            apdu.pduSource = npdu.pduSource
+        if npdu.npduDADR:
+            apdu.pduDestination = npdu.npduDADR
+        else:
+            apdu.pduDestination = npdu.pduDestination
+
+        # make a more focused interpretation
+        atype = apdu_types.get(apdu.apduType)
+        if _debug: SnifferNode._debug("    - atype: %r", atype)
+
+        xpdu = apdu
+        apdu = atype()
+        apdu.decode(xpdu)
+
+        print(repr(apdu))
+        apdu.debug_contents()
+        print("")
+
+#
+#   SnifferStateMachine
+#
+
+@bacpypes_debugging
+class SnifferStateMachine(Client, StateMachine):
+
+    def __init__(self, vlan):
+        if _debug: SnifferStateMachine._debug("__init__ %r", vlan)
 
         # save the name and give it a blank address
         self.name = "sniffer"
@@ -117,20 +185,52 @@ class SnifferNode(Client, StateMachine):
 
         # create a promiscuous node, added to the network
         self.node = Node(self.address, vlan, promiscuous=True)
-        if _debug: SnifferNode._debug("    - node: %r", self.node)
+        if _debug: SnifferStateMachine._debug("    - node: %r", self.node)
 
         # bind this to the node
         bind(self, self.node)
 
     def send(self, pdu):
-        if _debug: SnifferNode._debug("send(%s) %r", self.name, pdu)
+        if _debug: SnifferStateMachine._debug("send(%s) %r", self.name, pdu)
         raise RuntimeError("sniffers don't send")
 
     def confirmation(self, pdu):
-        if _debug: SnifferNode._debug("confirmation(%s) %r", self.name, pdu)
+        if _debug: SnifferStateMachine._debug("confirmation(%s) %r", self.name, pdu)
+
+        # it's an NPDU
+        npdu = NPDU()
+        npdu.decode(pdu)
+
+        # filter out network layer traffic if there is any, probably not
+        if npdu.npduNetMessage is not None:
+            if _debug: SnifferStateMachine._debug("    - network message: %r", npdu.npduNetMessage)
+            return
+
+        # decode as a generic APDU
+        apdu = APDU()
+        apdu.decode(npdu)
+
+        # "lift" the source and destination address
+        if npdu.npduSADR:
+            apdu.pduSource = npdu.npduSADR
+        else:
+            apdu.pduSource = npdu.pduSource
+        if npdu.npduDADR:
+            apdu.pduDestination = npdu.npduDADR
+        else:
+            apdu.pduDestination = npdu.pduDestination
+
+        # make a more focused interpretation
+        atype = apdu_types.get(apdu.apduType)
+        if _debug: SnifferStateMachine._debug("    - atype: %r", atype)
+
+        xpdu = apdu
+        apdu = atype()
+        apdu.decode(xpdu)
+        if _debug: SnifferStateMachine._debug("    - apdu: %r", apdu)
 
         # pass to the state machine
-        self.receive(pdu)
+        self.receive(apdu)
 
 
 #

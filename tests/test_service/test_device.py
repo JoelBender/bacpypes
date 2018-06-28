@@ -17,7 +17,7 @@ from bacpypes.apdu import (
     WhoIsRequest, IAmRequest,
     WhoHasRequest, WhoHasObject, IHaveRequest,
     DeviceCommunicationControlRequest, ReadPropertyRequest,
-    SimpleAckPDU, Error, RejectPDU, AbortPDU,
+    ConfirmedRequestPDU, SimpleAckPDU, Error, RejectPDU, AbortPDU,
     )
 
 from bacpypes.service.device import (
@@ -25,7 +25,7 @@ from bacpypes.service.device import (
     DeviceCommunicationControlServices,
     )
 
-from .helpers import ApplicationNetwork, SnifferNode
+from .helpers import ApplicationNetwork, SnifferStateMachine
 
 # some debugging
 _debug = 0
@@ -441,7 +441,7 @@ class TestAPDURetryTimeout(unittest.TestCase):
         assert anet.iut_device_object.numberOfApduRetries == 3
 
         # add a sniffer to see requests without doing anything
-        sniffer = SnifferNode(anet.vlan)
+        sniffer = SnifferStateMachine(anet.vlan)
         anet.append(sniffer)
 
         # no TD application layer matching
@@ -459,10 +459,10 @@ class TestAPDURetryTimeout(unittest.TestCase):
 
         # see the attempts and nothing else
         sniffer.start_state.doc("7-8-0") \
-            .receive(PDU).doc("7-8-1") \
-            .receive(PDU).doc("7-8-2") \
-            .receive(PDU).doc("7-8-3") \
-            .receive(PDU).doc("7-8-4") \
+            .receive(ConfirmedRequestPDU).doc("7-8-1") \
+            .receive(ConfirmedRequestPDU).doc("7-8-2") \
+            .receive(ConfirmedRequestPDU).doc("7-8-3") \
+            .receive(ConfirmedRequestPDU).doc("7-8-4") \
             .timeout(10).doc("7-8-5") \
             .success()
 
@@ -480,7 +480,7 @@ class TestAPDURetryTimeout(unittest.TestCase):
         anet.iut_device_object.numberOfApduRetries = 1
 
         # add a sniffer to see requests without doing anything
-        sniffer = SnifferNode(anet.vlan)
+        sniffer = SnifferStateMachine(anet.vlan)
         anet.append(sniffer)
 
         # no TD application layer matching
@@ -498,8 +498,8 @@ class TestAPDURetryTimeout(unittest.TestCase):
 
         # see the attempts and nothing else
         sniffer.start_state.doc("7-10-0") \
-            .receive(PDU).doc("7-10-1") \
-            .receive(PDU).doc("7-10-2") \
+            .receive(ConfirmedRequestPDU).doc("7-10-1") \
+            .receive(ConfirmedRequestPDU).doc("7-10-2") \
             .timeout(10).doc("7-10-3") \
             .success()
 

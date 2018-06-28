@@ -30,7 +30,7 @@ from bacpypes.object import (
     BinaryValueObject,
     )
 
-from .helpers import ApplicationNetwork, SnifferNode
+from .helpers import ApplicationNetwork
 
 # some debugging
 _debug = 0
