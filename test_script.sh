@@ -10,10 +10,15 @@
 
 version=3
 options=""
+keep=0
 
-while getopts v:o: OPTION
+while getopts kv:o: OPTION
 do
     case $OPTION in
+        k)
+            # keep the test results, even if it passes
+            keep=1
+            ;;
         v)
             # which python version
             version=$OPTARG
@@ -54,7 +59,10 @@ python$version setup.py test --addopts "tests/test_service/test_cov.py $options"
 # display for your enjoyment
 if [ $? -eq 0 ]
 then
-    rm -vf $bugfile
+    if [ $keep -eq 0 ]
+    then
+        rm -vf $bugfile
+    fi
 else
     less $bugfile
 fi
