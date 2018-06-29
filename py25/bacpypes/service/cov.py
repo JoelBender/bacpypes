@@ -7,6 +7,7 @@ Change Of Value Service
 from ..debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from ..capability import Capability
 
+from ..core import deferred
 from ..task import OneShotTask, TaskManager
 from ..iocb import IOCB
 
@@ -172,8 +173,8 @@ class COVDetection(DetectionAlgorithm):
         # something changed, send out the notifications
         self.send_cov_notifications()
 
-    def send_cov_notifications(self):
-        if _debug: COVDetection._debug("send_cov_notifications")
+    def send_cov_notifications(self, subscription=None):
+        if _debug: COVDetection._debug("send_cov_notifications %r", subscription)
 
         # check for subscriptions
         if not len(self.cov_subscriptions):
@@ -206,8 +207,15 @@ class COVDetection(DetectionAlgorithm):
             list_of_values.append(property_value)
         if _debug: COVDetection._debug("    - list_of_values: %r", list_of_values)
 
+        # if the specific subscription was provided, that is the notification
+        # list, otherwise send it to all of them
+        if subscription is not None:
+            notification_list = [subscription]
+        else:
+            notification_list = self.cov_subscriptions
+
         # loop through the subscriptions and send out notifications
-        for cov in self.cov_subscriptions:
+        for cov in notification_list:
             if _debug: COVDetection._debug("    - cov: %s", repr(cov))
 
             # calculate time remaining
@@ -650,6 +658,12 @@ class ChangeOfValueServices(Capability):
 
         # return the result
         self.response(response)
+
+        # if the subscription is not being canceled, it is new or renewed,
+        # so send it a notification when you get a chance.
+        if not cancel_subscription:
+            if _debug: ChangeOfValueServices._debug("    - send a notification")
+            deferred(cov_detection.send_cov_notifications, cov)
 
 bacpypes_debugging(ChangeOfValueServices)
 
