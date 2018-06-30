@@ -57,14 +57,6 @@ class COVTestClientServices(Capability):
         assert hasattr(self, 'test_reject')
         assert hasattr(self, 'test_abort')
 
-        print("{} changed\n    {}".format(
-            apdu.monitoredObjectIdentifier,
-            ",\n    ".join("{} = {}".format(
-                element.propertyIdentifier,
-                str(element.value),
-                ) for element in apdu.listOfValues),
-            ))
-
         if self.test_ack:
             # success
             response = SimpleAckPDU(context=apdu)
@@ -86,13 +78,6 @@ class COVTestClientServices(Capability):
     def do_UnconfirmedCOVNotificationRequest(self, apdu):
         if _debug: COVTestClientServices._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 
-        print("{} changed\n    {}".format(
-            apdu.monitoredObjectIdentifier,
-            ",\n    ".join("{} is {}".format(
-                element.propertyIdentifier,
-                str(element.value),
-                ) for element in apdu.listOfValues),
-            ))
 
 @bacpypes_debugging
 class TestBasic(unittest.TestCase):
@@ -113,6 +98,7 @@ class TestBasic(unittest.TestCase):
 
         # run the group
         anet.run()
+
 
 @bacpypes_debugging
 class TestBinaryValue(unittest.TestCase):
