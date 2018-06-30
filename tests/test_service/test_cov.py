@@ -589,27 +589,27 @@ class TestBinaryValue(unittest.TestCase):
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
         # value, no ack coming back
-        anet.iut.start_state.doc("3-1-0") \
-            .receive(SubscribeCOVRequest).doc("3-1-1") \
-            .wait_event("e1").doc("3-1-2") \
-            .call(test_bv_fault).doc("3-1-3") \
-            .timeout(10).doc("3-2-4") \
+        anet.iut.start_state.doc("4-1-0") \
+            .receive(SubscribeCOVRequest).doc("4-1-1") \
+            .wait_event("e1").doc("4-1-2") \
+            .call(test_bv_fault).doc("4-1-3") \
+            .timeout(10).doc("4-2-4") \
             .success()
 
         # test device is quiet
-        anet.td.start_state.doc("3-2-0") \
+        anet.td.start_state.doc("4-2-0") \
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
                 monitoredObjectIdentifier=('binaryValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
-                )).doc("3-2-1") \
-            .receive(SimpleAckPDU).doc("3-2-2") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-3") \
-            .set_event("e1").doc("3-2-4") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-5") \
-            .timeout(10).doc("3-2-6") \
+                )).doc("4-2-1") \
+            .receive(SimpleAckPDU).doc("4-2-2") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("4-2-3") \
+            .set_event("e1").doc("4-2-4") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("4-2-5") \
+            .timeout(10).doc("4-2-6") \
             .success()
 
         # run the group
@@ -647,27 +647,27 @@ class TestBinaryValue(unittest.TestCase):
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
         # value, no ack coming back
-        anet.iut.start_state.doc("3-1-0") \
-            .receive(SubscribeCOVRequest).doc("3-1-1") \
-            .wait_event("e1").doc("3-1-2") \
-            .call(test_bv_fault).doc("3-1-3") \
-            .timeout(10).doc("3-2-4") \
+        anet.iut.start_state.doc("5-1-0") \
+            .receive(SubscribeCOVRequest).doc("5-1-1") \
+            .wait_event("e1").doc("5-1-2") \
+            .call(test_bv_fault).doc("5-1-3") \
+            .timeout(10).doc("5-2-4") \
             .success()
 
         # test device is quiet
-        anet.td.start_state.doc("3-2-0") \
+        anet.td.start_state.doc("5-2-0") \
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
                 monitoredObjectIdentifier=('binaryValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
-                )).doc("3-2-1") \
-            .receive(SimpleAckPDU).doc("3-2-2") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-3") \
-            .set_event("e1").doc("3-2-4") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-5") \
-            .timeout(10).doc("3-2-6") \
+                )).doc("5-2-1") \
+            .receive(SimpleAckPDU).doc("5-2-2") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("5-2-3") \
+            .set_event("e1").doc("5-2-4") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("5-2-5") \
+            .timeout(10).doc("5-2-6") \
             .success()
 
         # run the group
@@ -678,7 +678,7 @@ class TestBinaryValue(unittest.TestCase):
         if _debug: TestBinaryValue._debug("test_multiple_subscribers")
 
         # create a network
-        anet = ApplicationNetwork("test_changing_properties")
+        anet = ApplicationNetwork("test_multiple_subscribers")
 
         # add the service capability to the IUT
         anet.td.add_capability(COVTestClientServices)
@@ -692,7 +692,8 @@ class TestBinaryValue(unittest.TestCase):
             statusFlags=[0, 0, 0, 0],
             )
 
-        # an easy way to change the present value
+        # an easy way to change both the present value and status flags
+        # which should trigger only one notification
         def test_bv_fault():
             if _debug: TestBinaryValue._debug("test_bv_fault")
             test_bv.presentValue = 'active'
@@ -701,34 +702,7 @@ class TestBinaryValue(unittest.TestCase):
         # add it to the implementation
         anet.iut.add_object(test_bv)
 
-        # receive the subscription request, wait until the client has
-        # received the ack and the 'instant' notification.  Then change the
-        # value, no ack coming back
-        anet.iut.start_state.doc("3-1-0") \
-            .receive(SubscribeCOVRequest).doc("3-1-1") \
-            .wait_event("e2").doc("3-1-2") \
-            .call(test_bv_fault).doc("3-1-3") \
-            .timeout(10).doc("3-2-4") \
-            .success()
-
-        # first test device; send the subscription request, get an ack
-        # followed by the 'instant' notification
-        anet.td.start_state.doc("3-2-0") \
-            .send(SubscribeCOVRequest(
-                destination=anet.iut.address,
-                subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
-                issueConfirmedNotifications=False,
-                lifetime=30,
-                )).doc("3-2-1") \
-            .receive(SimpleAckPDU).doc("3-2-2") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-3") \
-            .set_event("e1").doc("3-2-4") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-2-5") \
-            .timeout(10).doc("3-2-6") \
-            .success()
-
-        # another test device object
+        # add another test device object
         anet.td2_device_object = LocalDeviceObject(
             objectName="td2",
             objectIdentifier=("device", 30),
@@ -739,23 +713,52 @@ class TestBinaryValue(unittest.TestCase):
 
         # another test device
         anet.td2 = ApplicationStateMachine(anet.td2_device_object, anet.vlan)
+        anet.td2.add_capability(COVTestClientServices)
         anet.append(anet.td2)
 
-        # same pa
-        anet.td2.start_state.doc("3-3-0") \
-            .wait_event("e1").doc("3-3-1") \
+        # receive the subscription requests, wait until both clients have
+        # received the ack and the 'instant' notification.  Then change the
+        # value, no ack coming back
+        anet.iut.start_state.doc("6-1-0") \
+            .receive(SubscribeCOVRequest, pduSource=anet.td.address).doc("6-1-1") \
+            .receive(SubscribeCOVRequest, pduSource=anet.td2.address).doc("6-1-2") \
+            .wait_event("e2").doc("6-1-3") \
+            .call(test_bv_fault).doc("6-1-4") \
+            .timeout(10).doc("6-2-5") \
+            .success()
+
+        # first test device; send the subscription request, get an ack
+        # followed by the 'instant' notification
+        anet.td.start_state.doc("6-2-0") \
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
                 monitoredObjectIdentifier=('binaryValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
-                )).doc("3-3-2") \
-            .receive(SimpleAckPDU).doc("3-3-3") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-3-4") \
-            .set_event("e2").doc("3-3-5") \
-            .receive(UnconfirmedCOVNotificationRequest).doc("3-3-6") \
-            .timeout(10).doc("3-3-7") \
+                )).doc("6-2-1") \
+            .receive(SimpleAckPDU).doc("6-2-2") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("6-2-3") \
+            .set_event("e1").doc("6-2-4") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("6-2-5") \
+            .timeout(10).doc("6-2-6") \
+            .success()
+
+        # same pa
+        anet.td2.start_state.doc("6-3-0") \
+            .wait_event("e1").doc("6-3-1") \
+            .send(SubscribeCOVRequest(
+                destination=anet.iut.address,
+                subscriberProcessIdentifier=1,
+                monitoredObjectIdentifier=('binaryValue', 1),
+                issueConfirmedNotifications=False,
+                lifetime=30,
+                )).doc("6-3-2") \
+            .receive(SimpleAckPDU).doc("6-3-3") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("6-3-4") \
+            .set_event("e2").doc("6-3-5") \
+            .receive(UnconfirmedCOVNotificationRequest).doc("6-3-6") \
+            .timeout(10).doc("6-3-7") \
             .success()
 
         # run the group
