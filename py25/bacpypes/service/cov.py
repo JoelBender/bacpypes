@@ -444,49 +444,48 @@ class ActiveCOVSubscriptions(Property):
         # start with an empty sequence
         cov_subscriptions = ListOf(COVSubscription)()
 
-        # loop through the object and detection list
-        for obj, cov_detection in obj._app.cov_detections.items():
-            for cov in cov_detection.cov_subscriptions:
-                # calculate time remaining
-                if not cov.lifetime:
-                    time_remaining = 0
-                else:
-                    time_remaining = int(cov.taskTime - current_time)
+        # loop through the subscriptions
+        for cov in obj._app.subscriptions():
+            # calculate time remaining
+            if not cov.lifetime:
+                time_remaining = 0
+            else:
+                time_remaining = int(cov.taskTime - current_time)
 
-                    # make sure it is at least one second
-                    if not time_remaining:
-                        time_remaining = 1
+                # make sure it is at least one second
+                if not time_remaining:
+                    time_remaining = 1
 
-                recipient = Recipient(
-                    address=DeviceAddress(
-                        networkNumber=cov.client_addr.addrNet or 0,
-                        macAddress=cov.client_addr.addrAddr,
-                        ),
-                    )
-                if _debug: ActiveCOVSubscriptions._debug("    - recipient: %r", recipient)
-                if _debug: ActiveCOVSubscriptions._debug("    - client MAC address: %r", cov.client_addr.addrAddr)
+            recipient = Recipient(
+                address=DeviceAddress(
+                    networkNumber=cov.client_addr.addrNet or 0,
+                    macAddress=cov.client_addr.addrAddr,
+                    ),
+                )
+            if _debug: ActiveCOVSubscriptions._debug("    - recipient: %r", recipient)
+            if _debug: ActiveCOVSubscriptions._debug("    - client MAC address: %r", cov.client_addr.addrAddr)
 
-                recipient_process = RecipientProcess(
-                    recipient=recipient,
-                    processIdentifier=cov.proc_id,
-                    )
-                if _debug: ActiveCOVSubscriptions._debug("    - recipient_process: %r", recipient_process)
+            recipient_process = RecipientProcess(
+                recipient=recipient,
+                processIdentifier=cov.proc_id,
+                )
+            if _debug: ActiveCOVSubscriptions._debug("    - recipient_process: %r", recipient_process)
 
-                cov_subscription = COVSubscription(
-                    recipient=recipient_process,
-                    monitoredPropertyReference=ObjectPropertyReference(
-                        objectIdentifier=cov.obj_id,
-                        propertyIdentifier=cov_detection.monitored_property_reference,
-                        ),
-                    issueConfirmedNotifications=cov.confirmed,
-                    timeRemaining=time_remaining,
-                    )
-                if hasattr(cov_detection, 'covIncrement'):
-                    cov_subscription.covIncrement = cov_detection.covIncrement
-                if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
+            cov_subscription = COVSubscription(
+                recipient=recipient_process,
+                monitoredPropertyReference=ObjectPropertyReference(
+                    objectIdentifier=cov.obj_id,
+                    propertyIdentifier=cov_detection.monitored_property_reference,
+                    ),
+                issueConfirmedNotifications=cov.confirmed,
+                timeRemaining=time_remaining,
+                )
+            if hasattr(cov_detection, 'covIncrement'):
+                cov_subscription.covIncrement = cov_detection.covIncrement
+            if _debug: ActiveCOVSubscriptions._debug("    - cov_subscription: %r", cov_subscription)
 
-                # add the list
-                cov_subscriptions.append(cov_subscription)
+            # add the list
+            cov_subscriptions.append(cov_subscription)
 
         return cov_subscriptions
 
@@ -543,6 +542,19 @@ class ChangeOfValueServices(Capability):
 
             # delete it from the object map
             del self.cov_detections[cov.obj_ref]
+
+    def subscriptions(self):
+        """Generator for the active subscriptions."""
+        if _debug: ChangeOfValueServices._debug("subscriptions")
+
+        subscription_list = []
+
+        # loop through the object and detection list
+        for obj, cov_detection in self.cov_detections.items():
+            for cov in cov_detection.cov_subscriptions:
+                subscription_list.append(cov)
+
+        return subscription_list
 
     def cov_notification(self, cov, request):
         if _debug: ChangeOfValueServices._debug("cov_notification %s %s", str(cov), str(request))

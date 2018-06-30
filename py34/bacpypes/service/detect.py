@@ -38,7 +38,6 @@ class DetectionMonitor:
         # if the algorithm is already triggered, don't bother checking for more
         if self.algorithm._triggered:
             if _debug: DetectionMonitor._debug("    - already triggered")
-            self.algorithm._triggered = False
             return
 
         # if there is a special filter, use it, otherwise use !=
