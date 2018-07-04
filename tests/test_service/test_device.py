@@ -17,7 +17,7 @@ from bacpypes.apdu import (
     WhoIsRequest, IAmRequest,
     WhoHasRequest, WhoHasObject, IHaveRequest,
     DeviceCommunicationControlRequest, ReadPropertyRequest,
-    SimpleAckPDU, Error, RejectPDU, AbortPDU,
+    ConfirmedRequestPDU, SimpleAckPDU, Error, RejectPDU, AbortPDU,
     )
 
 from bacpypes.service.device import (
@@ -25,7 +25,7 @@ from bacpypes.service.device import (
     DeviceCommunicationControlServices,
     )
 
-from .helpers import ApplicationNetwork, SnifferNode
+from .helpers import ApplicationNetwork, SnifferStateMachine
 
 # some debugging
 _debug = 0
@@ -40,7 +40,7 @@ class TestBasic(unittest.TestCase):
         if _debug: TestBasic._debug("test_basic")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_basic")
 
         # all start states are successful
         anet.td.start_state.success()
@@ -58,7 +58,7 @@ class TestWhoIsIAm(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_whois_unconstrained")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_whois_unconstrained")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -80,7 +80,7 @@ class TestWhoIsIAm(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_whois_range_below")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_whois_range_below")
 
         # add the service capability to the iut
         anet.iut.add_capability(WhoIsIAmServices)
@@ -105,7 +105,7 @@ class TestWhoIsIAm(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_whois_range_above")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_whois_range_above")
 
         # add the service capability to the iut
         anet.iut.add_capability(WhoIsIAmServices)
@@ -130,7 +130,7 @@ class TestWhoIsIAm(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_whois_range")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_whois_range")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -160,7 +160,7 @@ class TestWhoHasIHave(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_who_has_object_by_name")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_who_has_object_by_name")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoHasIHaveServices)
@@ -185,7 +185,7 @@ class TestWhoHasIHave(unittest.TestCase):
         if _debug: TestWhoIsIAm._debug("test_who_has_object_by_id")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_who_has_object_by_id")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoHasIHaveServices)
@@ -213,7 +213,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         if _debug: TestDeviceCommunicationControl._debug("test_default_behavior")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_default_behavior")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -236,7 +236,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         if _debug: TestDeviceCommunicationControl._debug("test_disable")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_disable")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -263,10 +263,10 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         """Test disabling initiation.  After the DCC request send the IUT
         a WhoIsRequest and verify that the IAmRequest makes it back.
         """
-        if _debug: TestDeviceCommunicationControl._debug("test_disable")
+        if _debug: TestDeviceCommunicationControl._debug("test_disable_initiation")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_disable_initiation")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -297,7 +297,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         if _debug: TestDeviceCommunicationControl._debug("test_disable_time_duration")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_disable_time_duration")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -333,7 +333,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         if _debug: TestDeviceCommunicationControl._debug("test_correct_password")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_correct_password")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -364,7 +364,7 @@ class TestDeviceCommunicationControl(unittest.TestCase):
         if _debug: TestDeviceCommunicationControl._debug("test_incorrect_password")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_incorrect_password")
 
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
@@ -409,7 +409,7 @@ class TestUnrecognizedService(unittest.TestCase):
         if _debug: TestUnrecognizedService._debug("test_9_39_1")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_9_39_1")
 
         # send the request, get it rejected
         anet.td.start_state.doc("7-6-0") \
@@ -435,13 +435,13 @@ class TestAPDURetryTimeout(unittest.TestCase):
         if _debug: TestAPDURetryTimeout._debug("test_apdu_retry")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_apdu_retry")
 
         # adjust test if default retries changes
         assert anet.iut_device_object.numberOfApduRetries == 3
 
         # add a sniffer to see requests without doing anything
-        sniffer = SnifferNode(anet.vlan)
+        sniffer = SnifferStateMachine(anet.vlan)
         anet.append(sniffer)
 
         # no TD application layer matching
@@ -459,10 +459,10 @@ class TestAPDURetryTimeout(unittest.TestCase):
 
         # see the attempts and nothing else
         sniffer.start_state.doc("7-8-0") \
-            .receive(PDU).doc("7-8-1") \
-            .receive(PDU).doc("7-8-2") \
-            .receive(PDU).doc("7-8-3") \
-            .receive(PDU).doc("7-8-4") \
+            .receive(ConfirmedRequestPDU).doc("7-8-1") \
+            .receive(ConfirmedRequestPDU).doc("7-8-2") \
+            .receive(ConfirmedRequestPDU).doc("7-8-3") \
+            .receive(ConfirmedRequestPDU).doc("7-8-4") \
             .timeout(10).doc("7-8-5") \
             .success()
 
@@ -474,13 +474,13 @@ class TestAPDURetryTimeout(unittest.TestCase):
         if _debug: TestAPDURetryTimeout._debug("test_apdu_retry_1")
 
         # create a network
-        anet = ApplicationNetwork()
+        anet = ApplicationNetwork("test_apdu_retry_1")
 
         # change the retry count in the device properties
         anet.iut_device_object.numberOfApduRetries = 1
 
         # add a sniffer to see requests without doing anything
-        sniffer = SnifferNode(anet.vlan)
+        sniffer = SnifferStateMachine(anet.vlan)
         anet.append(sniffer)
 
         # no TD application layer matching
@@ -498,8 +498,8 @@ class TestAPDURetryTimeout(unittest.TestCase):
 
         # see the attempts and nothing else
         sniffer.start_state.doc("7-10-0") \
-            .receive(PDU).doc("7-10-1") \
-            .receive(PDU).doc("7-10-2") \
+            .receive(ConfirmedRequestPDU).doc("7-10-1") \
+            .receive(ConfirmedRequestPDU).doc("7-10-2") \
             .timeout(10).doc("7-10-3") \
             .success()
 
