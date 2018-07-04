@@ -346,6 +346,24 @@ class State(object):
         """Called with PDU received after match."""
         self.state_machine.after_receive(pdu)
 
+    def ignore(self, pdu_type, **pdu_attrs):
+        """Create a ReceiveTransition from this state to itself, if match
+        is successful the effect is to ignore the PDU.
+
+        :param criteria: PDU to match
+        """
+        if _debug: State._debug("ignore(%s) %r %r", self.doc_string, pdu_type, pdu_attrs)
+
+        # create a bundle of the match criteria
+        criteria = (pdu_type, pdu_attrs)
+        if _debug: State._debug("    - criteria: %r", criteria)
+
+        # add this to the list of transitions
+        self.receive_transitions.append(ReceiveTransition(criteria, self))
+
+        # return this state, no new state is created
+        return self
+
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
         state, the default behaviour is to fail."""
@@ -759,12 +777,26 @@ class StateMachine(object):
 
             # pull apart the pieces and call it
             fn, args, kwargs = current_state.call_transition.fnargs
-            fn( *args, **kwargs)
-            if _debug: StateMachine._debug("    - called")
+            try:
+                fn( *args, **kwargs)
+                if _debug: StateMachine._debug("    - called, no exception")
 
-            # check for a transition
-            next_state = current_state.call_transition.next_state
-            if _debug: StateMachine._debug("    - next_state: %r", next_state)
+                # check for a transition
+                next_state = current_state.call_transition.next_state
+                if _debug: StateMachine._debug("    - next_state: %r", next_state)
+
+            except AssertionError as err:
+                if _debug: StateMachine._debug("    - called, exception: %r", err)
+                self.state_transitioning -= 1
+
+                self.halt()
+                self.fail()
+
+                # if it is part of a group, let the group know
+                if self.machine_group and not self._startup_flag:
+                    self.machine_group.stopped(self)
+
+                return
         else:
             if _debug: StateMachine._debug("    - no calls")
 

@@ -277,7 +277,31 @@ class TestStateMachine(unittest.TestCase):
 
         # check for success
         assert not tsm.running
-        assert tsm.current_state.is_success_state
+        assert tsm.is_success_state
+
+        # check for the call
+        assert self._called
+
+    def test_state_machine_call_exception(self):
+        if _debug: TestStateMachine._debug("test_state_machine_call_exception")
+
+        # simple hook
+        self._called = False
+
+        def fn():
+            self._called = True
+            raise AssertionError("error")
+
+        # create a trapped state machine
+        tsm = TrappedStateMachine()
+
+        # make a send transition from start to success, run the machine
+        tsm.start_state.call(fn).success()
+        tsm.run()
+
+        # check for failed call
+        assert not tsm.running
+        assert tsm.is_fail_state
 
         # check for the call
         assert self._called

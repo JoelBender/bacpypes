@@ -24,7 +24,8 @@ from bacpypes.bvllservice import BIPSimple, AnnexJCodec, UDPMultiplexer
 
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
-from bacpypes.service.device import LocalDeviceObject, WhoIsIAmServices
+from bacpypes.local.device import LocalDeviceObject
+from bacpypes.service.device import WhoIsIAmServices
 from bacpypes.service.object import ReadWritePropertyServices
 
 from bacpypes.primitivedata import Real
@@ -235,17 +236,20 @@ def main():
                 )
         _log.debug("    - vlan_device: %r", vlan_device)
 
+        vlan_address = Address(device_number)
+        _log.debug("    - vlan_address: %r", vlan_address)
+
         # make the application, add it to the network
-        vlan_app = VLANApplication(vlan_device, Address(device_number))
+        vlan_app = VLANApplication(vlan_device, vlan_address)
         vlan.add_node(vlan_app.vlan_node)
         _log.debug("    - vlan_app: %r", vlan_app)
 
         # make a random value object
         ravo = RandomAnalogValueObject(
             objectIdentifier=('analogValue', 1),
-            objectName='Random1' % (device_instance,),
+            objectName='Random-1-%d' % (device_instance,),
             )
-        _log.debug("    - ravo1: %r", ravo)
+        _log.debug("    - ravo: %r", ravo)
 
         # add it to the device
         vlan_app.add_object(ravo)

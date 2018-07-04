@@ -125,16 +125,12 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
         args = args.split()
         if _debug: ReadPropertyConsoleCmd._debug("do_rtn %r", args)
 
-        # safe to assume only one adapter
-        adapter = this_application.nsap.adapters[0]
-        if _debug: ReadPropertyConsoleCmd._debug("    - adapter: %r", adapter)
-
         # provide the address and a list of network numbers
         router_address = Address(args[0])
         network_list = [int(arg) for arg in args[1:]]
 
         # pass along to the service access point
-        this_application.nsap.add_router_references(adapter, router_address, network_list)
+        this_application.nsap.add_router_references(None, router_address, network_list)
 
 
 #

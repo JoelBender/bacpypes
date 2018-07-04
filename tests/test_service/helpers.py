@@ -8,14 +8,17 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
+from bacpypes.npdu import NPDU
+from bacpypes.apdu import APDU, apdu_types
+
 from bacpypes.vlan import Network, Node
 
-from bacpypes.app import Application
+from bacpypes.app import ApplicationIOController
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
 from bacpypes.local.device import LocalDeviceObject
 
-from ..state_machine import StateMachine, StateMachineGroup
+from ..state_machine import StateMachine, StateMachineGroup, TrafficLog
 from ..time_machine import reset_time_machine, run_time_machine
 
 
@@ -31,16 +34,20 @@ _log = ModuleLogger(globals())
 @bacpypes_debugging
 class ApplicationNetwork(StateMachineGroup):
 
-    def __init__(self):
-        if _debug: ApplicationNetwork._debug("__init__")
+    def __init__(self, test_name):
+        if _debug: ApplicationNetwork._debug("__init__ %r", test_name)
         StateMachineGroup.__init__(self)
 
         # reset the time machine
         reset_time_machine()
         if _debug: ApplicationNetwork._debug("    - time machine reset")
 
+        # create a traffic log
+        self.traffic_log = TrafficLog()
+
         # make a little LAN
         self.vlan = Network(broadcast_address=LocalBroadcast())
+        self.vlan.traffic_log = self.traffic_log
 
         # test device object
         self.td_device_object = LocalDeviceObject(
@@ -84,6 +91,9 @@ class ApplicationNetwork(StateMachineGroup):
                 for direction, pdu in state_machine.transaction_log:
                     ApplicationNetwork._debug("        %s %s", direction, str(pdu))
 
+            # traffic log has what was processed on each vlan
+            self.traffic_log.dump(ApplicationNetwork._debug)
+
         # check for success
         all_success, some_failed = super(ApplicationNetwork, self).check_for_success()
         ApplicationNetwork._debug("    - all_success, some_failed: %r, %r", all_success, some_failed)
@@ -94,11 +104,76 @@ class ApplicationNetwork(StateMachineGroup):
 #   SnifferNode
 #
 
-@bacpypes_debugging
-class SnifferNode(Client, StateMachine):
+class SnifferNode(Client):
 
     def __init__(self, vlan):
         if _debug: SnifferNode._debug("__init__ %r", vlan)
+
+        # save the name and give it a blank address
+        self.name = "sniffer"
+        self.address = Address()
+
+        # continue with initialization
+        Client.__init__(self)
+
+        # create a promiscuous node, added to the network
+        self.node = Node(self.address, vlan, promiscuous=True)
+        if _debug: SnifferNode._debug("    - node: %r", self.node)
+
+        # bind this to the node
+        bind(self, self.node)
+
+    def request(self, pdu):
+        if _debug: SnifferNode._debug("request(%s) %r", self.name, pdu)
+        raise RuntimeError("sniffers don't request")
+
+    def confirmation(self, pdu):
+        if _debug: SnifferNode._debug("confirmation(%s) %r", self.name, pdu)
+
+        # it's an NPDU
+        npdu = NPDU()
+        npdu.decode(pdu)
+
+        # filter out network layer traffic if there is any, probably not
+        if npdu.npduNetMessage is not None:
+            if _debug: SnifferNode._debug("    - network message: %r", npdu.npduNetMessage)
+            return
+
+        # decode as a generic APDU
+        apdu = APDU()
+        apdu.decode(npdu)
+
+        # "lift" the source and destination address
+        if npdu.npduSADR:
+            apdu.pduSource = npdu.npduSADR
+        else:
+            apdu.pduSource = npdu.pduSource
+        if npdu.npduDADR:
+            apdu.pduDestination = npdu.npduDADR
+        else:
+            apdu.pduDestination = npdu.pduDestination
+
+        # make a more focused interpretation
+        atype = apdu_types.get(apdu.apduType)
+        if _debug: SnifferNode._debug("    - atype: %r", atype)
+
+        xpdu = apdu
+        apdu = atype()
+        apdu.decode(xpdu)
+
+        print(repr(apdu))
+        apdu.debug_contents()
+        print("")
+
+#
+#   SnifferStateMachine
+#
+
+@bacpypes_debugging
+class SnifferStateMachine(Client, StateMachine):
+
+    def __init__(self, vlan):
+        if _debug: SnifferStateMachine._debug("__init__ %r", vlan)
 
         # save the name and give it a blank address
         self.name = "sniffer"
@@ -110,20 +185,52 @@ class SnifferNode(Client, StateMachine):
 
         # create a promiscuous node, added to the network
         self.node = Node(self.address, vlan, promiscuous=True)
-        if _debug: SnifferNode._debug("    - node: %r", self.node)
+        if _debug: SnifferStateMachine._debug("    - node: %r", self.node)
 
         # bind this to the node
         bind(self, self.node)
 
     def send(self, pdu):
-        if _debug: SnifferNode._debug("send(%s) %r", self.name, pdu)
+        if _debug: SnifferStateMachine._debug("send(%s) %r", self.name, pdu)
         raise RuntimeError("sniffers don't send")
 
     def confirmation(self, pdu):
-        if _debug: SnifferNode._debug("confirmation(%s) %r", self.name, pdu)
+        if _debug: SnifferStateMachine._debug("confirmation(%s) %r", self.name, pdu)
+
+        # it's an NPDU
+        npdu = NPDU()
+        npdu.decode(pdu)
+
+        # filter out network layer traffic if there is any, probably not
+        if npdu.npduNetMessage is not None:
+            if _debug: SnifferStateMachine._debug("    - network message: %r", npdu.npduNetMessage)
+            return
+
+        # decode as a generic APDU
+        apdu = APDU()
+        apdu.decode(npdu)
+
+        # "lift" the source and destination address
+        if npdu.npduSADR:
+            apdu.pduSource = npdu.npduSADR
+        else:
+            apdu.pduSource = npdu.pduSource
+        if npdu.npduDADR:
+            apdu.pduDestination = npdu.npduDADR
+        else:
+            apdu.pduDestination = npdu.pduDestination
+
+        # make a more focused interpretation
+        atype = apdu_types.get(apdu.apduType)
+        if _debug: SnifferStateMachine._debug("    - atype: %r", atype)
+
+        xpdu = apdu
+        apdu = atype()
+        apdu.decode(xpdu)
+        if _debug: SnifferStateMachine._debug("    - apdu: %r", apdu)
 
         # pass to the state machine
-        self.receive(pdu)
+        self.receive(apdu)
 
 
 #
@@ -131,7 +238,7 @@ class SnifferNode(Client, StateMachine):
 #
 
 @bacpypes_debugging
-class ApplicationStateMachine(Application, StateMachine):
+class ApplicationStateMachine(ApplicationIOController, StateMachine):
 
     def __init__(self, localDevice, vlan):
         if _debug: ApplicationStateMachine._debug("__init__ %r %r", localDevice, vlan)
@@ -141,7 +248,7 @@ class ApplicationStateMachine(Application, StateMachine):
         if _debug: ApplicationStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
-        Application.__init__(self, localDevice, self.address)
+        ApplicationIOController.__init__(self, localDevice, self.address)
         StateMachine.__init__(self, name=localDevice.objectName)
 
         # include a application decoder
@@ -191,4 +298,7 @@ class ApplicationStateMachine(Application, StateMachine):
 
         # forward the confirmation to the state machine
         self.receive(apdu)
+
+        # allow the application to process it
+        super(ApplicationStateMachine, self).confirmation(apdu)
 
