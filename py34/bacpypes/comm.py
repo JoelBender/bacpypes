@@ -387,6 +387,109 @@ class Echo(Client, Server):
         self.response(*args, **kwargs)
 
 #
+#    Switch
+#
+
+@bacpypes_debugging
+class Switch(Client, Server):
+
+    """
+    A Switch is a client and server that wraps around clients and/or servers
+    and provides a way to switch between them without unbinding and rebinding
+    the stack.
+    """
+
+    class TerminalWrapper(Client, Server):
+
+        def __init__(self, switch, terminal):
+            self.switch = switch
+            self.terminal = terminal
+
+            if isinstance(terminal, Server):
+                bind(self, terminal)
+            if isinstance(terminal, Client):
+                bind(terminal, self)
+
+        def indication(self, *args, **kwargs):
+            self.switch.request(*args, **kwargs)
+
+        def confirmation(self, *args, **kwargs):
+            self.switch.response(*args, **kwargs)
+
+    def __init__(self, **terminals):
+        if _debug: Switch._debug("__init__ %r", terminals)
+
+        Client.__init__(self)
+        Server.__init__(self)
+
+        # wrap the terminals
+        self.terminals = {k:Switch.TerminalWrapper(self, v) for k, v in terminals.items()}
+        self.current_terminal = None
+
+    def __getitem__(self, key):
+        if key not in self.terminals:
+            raise KeyError("%r not a terminal" % (key,))
+
+        # return the terminal, not the wrapper
+        return self.terminals[key].terminal
+
+    def __setitem__(self, key, term):
+        if key in self.terminals:
+            raise KeyError("%r already a terminal" % (key,))
+
+        # build a wrapper and map it
+        self.terminals[key] = Switch.TerminalWrapper(self, term)
+
+    def __delitem__(self, key):
+        if key not in self.terminals:
+            raise KeyError("%r not a terminal" % (key,))
+
+        # if deleting current terminal, deactivate it
+        term = self.terminals[key].terminal
+        if term is self.current_terminal:
+            terminal_deactivate = getattr(self.current_terminal, 'deactivate', None)
+            if terminal_deactivate:
+                terminal_deactivate()
+            self.current_terminal = None
+
+        del self.terminals[key]
+
+    def switch_terminal(self, key):
+        if key not in self.terminals:
+            raise KeyError("%r not a terminal" % (key,))
+
+        if self.current_terminal:
+            terminal_deactivate = getattr(self.current_terminal, 'deactivate', None)
+            if terminal_deactivate:
+                terminal_deactivate()
+
+        if key is None:
+            self.current_terminal = None
+        else:
+            self.current_terminal = self.terminals[key].terminal
+            terminal_activate = getattr(self.current_terminal, 'activate', None)
+            if terminal_activate:
+                terminal_activate()
+
+    def indication(self, *args, **kwargs):
+        """Downstream packet, send to current terminal."""
+        if not self.current_terminal:
+            raise RuntimeError("no active terminal")
+        if not isinstance(self.current_terminal, Server):
+            raise RuntimeError("current terminal not a server")
+
+        self.current_terminal.indication(*args, **kwargs)
+
+    def confirmation(self, *args, **kwargs):
+        """Upstream packet, send to current terminal."""
+        if not self.current_terminal:
+            raise RuntimeError("no active terminal")
+        if not isinstance(self.current_terminal, Client):
+            raise RuntimeError("current terminal not a client")
+
+        self.current_terminal.confirmation(*args, **kwargs)
+
+#
 #   ServiceAccessPoint
 #
 #   Note that the SAP functions have been renamed so a derived class
