@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Test Binary Value COV Services
+Test Analog Value COV Services
 ------------------------------
 """
 
@@ -17,7 +17,7 @@ from bacpypes.apdu import (
 
 from bacpypes.service.cov import ChangeOfValueServices
 from bacpypes.local.device import LocalDeviceObject
-from bacpypes.object import BinaryValueObject
+from bacpypes.object import AnalogValueObject
 
 from .helpers import ApplicationNetwork, ApplicationStateMachine, COVTestClientServices
 
@@ -27,11 +27,11 @@ _log = ModuleLogger(globals())
 
 
 @bacpypes_debugging
-class TestBinaryValue(unittest.TestCase):
+class TestAnalogValue(unittest.TestCase):
 
     def test_8_10_1(self):
         """Confirmed Notifications Subscription"""
-        if _debug: TestBinaryValue._debug("test_8_10_1")
+        if _debug: TestAnalogValue._debug("test_8_10_1")
 
         # create a network
         anet = ApplicationNetwork("test_8_10_1")
@@ -47,16 +47,17 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # wait for the subscription
         anet.iut.start_state.doc("8.10.1-1-0") \
@@ -68,7 +69,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=True,
                 lifetime=30,
                 )).doc("8.10.1-2-1") \
@@ -80,7 +81,7 @@ class TestBinaryValue(unittest.TestCase):
 
     def test_8_10_2(self):
         """Unconfirmed Notifications Subscription"""
-        if _debug: TestBinaryValue._debug("test_8_10_2")
+        if _debug: TestAnalogValue._debug("test_8_10_2")
 
         # create a network
         anet = ApplicationNetwork("test_8_10_2")
@@ -96,16 +97,17 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # wait for the subscription
         anet.iut.start_state.doc("8.10.2-1-0") \
@@ -117,7 +119,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("8.10.2-2-1") \
@@ -128,21 +130,21 @@ class TestBinaryValue(unittest.TestCase):
         anet.run(time_limit=5.0)
 
         # check that the IUT still has the detection
-        if _debug: TestBinaryValue._debug("    - detections: %r", anet.iut.cov_detections)
+        if _debug: TestAnalogValue._debug("    - detections: %r", anet.iut.cov_detections)
         assert len(anet.iut.cov_detections) == 1
 
         # pop out the subscription list and criteria
         obj_ref, criteria = anet.iut.cov_detections.popitem()
-        if _debug: TestBinaryValue._debug("    - criteria: %r", criteria)
+        if _debug: TestAnalogValue._debug("    - criteria: %r", criteria)
 
         # get the list of subscriptions from the criteria
         subscriptions = criteria.cov_subscriptions.cov_subscriptions
-        if _debug: TestBinaryValue._debug("    - subscriptions: %r", subscriptions)
+        if _debug: TestAnalogValue._debug("    - subscriptions: %r", subscriptions)
         assert len(subscriptions) == 1
 
     def test_8_10_3(self):
         """Canceling a Subscription"""
-        if _debug: TestBinaryValue._debug("test_8_10_3")
+        if _debug: TestAnalogValue._debug("test_8_10_3")
 
         # create a network
         anet = ApplicationNetwork("test_8_10_3")
@@ -158,16 +160,17 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # wait for the subscription, then for the cancelation
         anet.iut.start_state.doc("8.10.3-1-0") \
@@ -182,7 +185,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("8.10.3-2-1") \
@@ -191,7 +194,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 )).doc("8.10.3-2-1") \
             .ignore(UnconfirmedCOVNotificationRequest) \
             .receive(SimpleAckPDU).doc("8.10.3-2-2") \
@@ -202,7 +205,7 @@ class TestBinaryValue(unittest.TestCase):
 
     def test_8_10_4(self):
         """Requests 8 Hour Lifetimes"""
-        if _debug: TestBinaryValue._debug("test_8_10_4")
+        if _debug: TestAnalogValue._debug("test_8_10_4")
 
         # create a network
         anet = ApplicationNetwork("test_8_10_4")
@@ -218,16 +221,17 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # wait for the subscription
         anet.iut.start_state.doc("8.10.4-1-0") \
@@ -239,7 +243,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=True,
                 lifetime=28800,
                 )).doc("8.10.4-2-1") \
@@ -250,7 +254,7 @@ class TestBinaryValue(unittest.TestCase):
         anet.run()
 
     def test_9_10_1_1(self):
-        if _debug: TestBinaryValue._debug("test_9_10_1_1")
+        if _debug: TestAnalogValue._debug("test_9_10_1_1")
 
         notification_fail_time = 0.5
 
@@ -268,16 +272,17 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # wait for the subscription, wait for the notification ack
         anet.iut.start_state.doc("9.10.1.1-1-0") \
@@ -292,7 +297,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=True,
                 lifetime=30,
                 )).doc("9.10.1.1-2-1") \
@@ -313,7 +318,7 @@ class TestBinaryValue(unittest.TestCase):
 
     def test_no_traffic(self):
         """Test basic configuration of a network."""
-        if _debug: TestBinaryValue._debug("test_no_traffic")
+        if _debug: TestAnalogValue._debug("test_no_traffic")
 
         # create a network
         anet = ApplicationNetwork("test_no_traffic")
@@ -321,25 +326,26 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change the present value
-        write_test_bv = lambda v: setattr(test_bv, 'presentValue', v)
+        write_test_av = lambda v: setattr(test_av, 'presentValue', v)
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # make some transitions
         anet.iut.start_state.doc("1-1-0") \
-            .call(write_test_bv, 'active').doc("1-1-1") \
+            .call(write_test_av, 100.0).doc("1-1-1") \
             .timeout(1).doc("1-1-2") \
-            .call(write_test_bv, 'inactive').doc("1-1-3") \
+            .call(write_test_av, 0.0).doc("1-1-3") \
             .timeout(1).doc("1-1-4") \
             .success()
 
@@ -349,11 +355,8 @@ class TestBinaryValue(unittest.TestCase):
         # run the group
         anet.run()
 
-    def test_8_2_3(self):
-        """To verify that the IUT can initiate ConfirmedCOVNotification
-        service requests conveying a change of the Present_Value property of
-        Binary Input, Binary Output, and Binary Value objects."""
-        if _debug: TestBinaryValue._debug("test_8_2_3")
+    def test_simple_transition_confirmed(self):
+        if _debug: TestAnalogValue._debug("test_simple_transition_confirmed")
 
         # create a network
         anet = ApplicationNetwork("test_simple_transition_confirmed")
@@ -369,19 +372,20 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change the present value
-        write_test_bv = lambda v: setattr(test_bv, 'presentValue', v)
+        write_test_av = lambda v: setattr(test_av, 'presentValue', v)
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
@@ -390,7 +394,7 @@ class TestBinaryValue(unittest.TestCase):
             .receive(SubscribeCOVRequest).doc("2-1-1") \
             .receive(SimpleAckPDU).doc("2-1-2") \
             .wait_event("e1").doc("2-1-3") \
-            .call(write_test_bv, 'active').doc("2-1-4") \
+            .call(write_test_av, 100.0).doc("2-1-4") \
             .receive(SimpleAckPDU).doc("2-1-5") \
             .timeout(10).doc("2-2-6") \
             .success()
@@ -402,7 +406,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=True,
                 lifetime=30,
                 )).doc("2-2-1") \
@@ -417,10 +421,7 @@ class TestBinaryValue(unittest.TestCase):
         anet.run()
 
     def test_simple_transition_unconfirmed(self):
-        """To verify that the IUT can initiate UnconfirmedCOVNotification
-        service requests conveying a change of the Present_Value property of
-        Binary Input, Binary Output, and Binary Value objects."""
-        if _debug: TestBinaryValue._debug("test_simple_transition_unconfirmed")
+        if _debug: TestAnalogValue._debug("test_simple_transition_unconfirmed")
 
         # create a network
         anet = ApplicationNetwork("test_simple_transition_unconfirmed")
@@ -436,19 +437,20 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change the present value
-        write_test_bv = lambda v: setattr(test_bv, 'presentValue', v)
+        write_test_av = lambda v: setattr(test_av, 'presentValue', v)
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
@@ -456,7 +458,7 @@ class TestBinaryValue(unittest.TestCase):
         anet.iut.start_state.doc("3-1-0") \
             .receive(SubscribeCOVRequest).doc("3-1-1") \
             .wait_event("e1").doc("3-1-2") \
-            .call(write_test_bv, 'active').doc("3-1-3") \
+            .call(write_test_av, 100.0).doc("3-1-3") \
             .timeout(10).doc("3-2-4") \
             .success()
 
@@ -465,7 +467,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("3-2-1") \
@@ -479,11 +481,11 @@ class TestBinaryValue(unittest.TestCase):
         # run the group
         anet.run()
 
-    def test_8_2_4(self):
-        """To verify that the IUT can initiate ConfirmedCOVNotification service
-        requests conveying a change of the Status_Flags property of Binary
-        Input, Binary Output, and Binary Value objects."""
-        if _debug: TestBinaryValue._debug("test_8_2_4")
+    def test_changing_status_flags(self):
+        """This test changes the status flags of binary value point to verify
+        that the detection picks up other changes, most tests just change the
+        present value."""
+        if _debug: TestAnalogValue._debug("test_changing_status_flags")
 
         # create a network
         anet = ApplicationNetwork("test_changing_status_flags")
@@ -499,21 +501,22 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change the present value
-        def test_bv_fault():
-            if _debug: TestBinaryValue._debug("test_bv_fault")
-            test_bv.statusFlags = [0, 1, 0, 0]
+        def test_av_fault():
+            if _debug: TestAnalogValue._debug("test_av_fault")
+            test_av.statusFlags = [0, 1, 0, 0]
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
@@ -521,7 +524,7 @@ class TestBinaryValue(unittest.TestCase):
         anet.iut.start_state.doc("4-1-0") \
             .receive(SubscribeCOVRequest).doc("4-1-1") \
             .wait_event("e1").doc("4-1-2") \
-            .call(test_bv_fault).doc("4-1-3") \
+            .call(test_av_fault).doc("4-1-3") \
             .timeout(10).doc("4-2-4") \
             .success()
 
@@ -530,7 +533,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("4-2-1") \
@@ -547,7 +550,7 @@ class TestBinaryValue(unittest.TestCase):
     def test_changing_properties(self):
         """This test changes the value of multiple properties to verify that
         only one COV notification is sent."""
-        if _debug: TestBinaryValue._debug("test_changing_properties")
+        if _debug: TestAnalogValue._debug("test_changing_properties")
 
         # create a network
         anet = ApplicationNetwork("test_changing_properties")
@@ -563,22 +566,23 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change the present value
-        def test_bv_fault():
-            if _debug: TestBinaryValue._debug("test_bv_fault")
-            test_bv.presentValue = 'active'
-            test_bv.statusFlags = [0, 0, 1, 0]
+        def test_av_fault():
+            if _debug: TestAnalogValue._debug("test_av_fault")
+            test_av.presentValue = 100.0
+            test_av.statusFlags = [0, 0, 1, 0]
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
@@ -586,7 +590,7 @@ class TestBinaryValue(unittest.TestCase):
         anet.iut.start_state.doc("5-1-0") \
             .receive(SubscribeCOVRequest).doc("5-1-1") \
             .wait_event("e1").doc("5-1-2") \
-            .call(test_bv_fault).doc("5-1-3") \
+            .call(test_av_fault).doc("5-1-3") \
             .timeout(10).doc("5-2-4") \
             .success()
 
@@ -595,7 +599,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("5-2-1") \
@@ -611,7 +615,7 @@ class TestBinaryValue(unittest.TestCase):
 
     def test_multiple_subscribers(self):
         """This has more than one subscriber for the object."""
-        if _debug: TestBinaryValue._debug("test_multiple_subscribers")
+        if _debug: TestAnalogValue._debug("test_multiple_subscribers")
 
         # create a network
         anet = ApplicationNetwork("test_multiple_subscribers")
@@ -627,23 +631,24 @@ class TestBinaryValue(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(ChangeOfValueServices)
 
-        # make a binary value object
-        test_bv = BinaryValueObject(
-            objectIdentifier=('binaryValue', 1),
-            objectName='bv',
-            presentValue='inactive',
+        # make an analog value object
+        test_av = AnalogValueObject(
+            objectIdentifier=('analogValue', 1),
+            objectName='av',
+            presentValue=0.0,
             statusFlags=[0, 0, 0, 0],
+            covIncrement=10.0,
             )
 
         # an easy way to change both the present value and status flags
         # which should trigger only one notification
-        def test_bv_fault():
-            if _debug: TestBinaryValue._debug("test_bv_fault")
-            test_bv.presentValue = 'active'
-            test_bv.statusFlags = [0, 0, 1, 0]
+        def test_av_fault():
+            if _debug: TestAnalogValue._debug("test_av_fault")
+            test_av.presentValue = 100.0
+            test_av.statusFlags = [0, 0, 1, 0]
 
         # add it to the implementation
-        anet.iut.add_object(test_bv)
+        anet.iut.add_object(test_av)
 
         # add another test device object
         anet.td2_device_object = LocalDeviceObject(
@@ -666,7 +671,7 @@ class TestBinaryValue(unittest.TestCase):
             .receive(SubscribeCOVRequest, pduSource=anet.td.address).doc("6-1-1") \
             .receive(SubscribeCOVRequest, pduSource=anet.td2.address).doc("6-1-2") \
             .wait_event("e2").doc("6-1-3") \
-            .call(test_bv_fault).doc("6-1-4") \
+            .call(test_av_fault).doc("6-1-4") \
             .timeout(10).doc("6-2-5") \
             .success()
 
@@ -676,7 +681,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("6-2-1") \
@@ -693,7 +698,7 @@ class TestBinaryValue(unittest.TestCase):
             .send(SubscribeCOVRequest(
                 destination=anet.iut.address,
                 subscriberProcessIdentifier=1,
-                monitoredObjectIdentifier=('binaryValue', 1),
+                monitoredObjectIdentifier=('analogValue', 1),
                 issueConfirmedNotifications=False,
                 lifetime=30,
                 )).doc("6-3-2") \
