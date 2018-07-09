@@ -355,11 +355,14 @@ class TestAnalogValue(unittest.TestCase):
         # run the group
         anet.run()
 
-    def test_simple_transition_confirmed(self):
-        if _debug: TestAnalogValue._debug("test_simple_transition_confirmed")
+    def test_8_2_1(self):
+        """To verify that the IUT can initiate ConfirmedCOVNotification service
+        requests conveying a change of the Present_Value property of Analog
+        Input, Analog Output, and Analog Value objects."""
+        if _debug: TestAnalogValue._debug("test_8_2_1")
 
         # create a network
-        anet = ApplicationNetwork("test_simple_transition_confirmed")
+        anet = ApplicationNetwork("test_8_2_1")
 
         # add the ability to accept COV notifications to the TD
         anet.td.add_capability(COVTestClientServices)
@@ -389,14 +392,17 @@ class TestAnalogValue(unittest.TestCase):
 
         # receive the subscription request, wait until the client has
         # received the ack and the 'instant' notification.  Then change the
-        # value and wait for the ack.
+        # value a little bit and nothing should be sent.  Change it some more
+        # and wait for the notification ack.
         anet.iut.start_state.doc("2-1-0") \
             .receive(SubscribeCOVRequest).doc("2-1-1") \
             .receive(SimpleAckPDU).doc("2-1-2") \
             .wait_event("e1").doc("2-1-3") \
-            .call(write_test_av, 100.0).doc("2-1-4") \
-            .receive(SimpleAckPDU).doc("2-1-5") \
-            .timeout(10).doc("2-2-6") \
+            .call(write_test_av, 5.0).doc("2-1-4") \
+            .timeout(5).doc("2-2-5") \
+            .call(write_test_av, 10.0).doc("2-1-6") \
+            .receive(SimpleAckPDU).doc("2-1-7") \
+            .timeout(10).doc("2-2-8") \
             .success()
 
         # send the subscription request, wait for the ack and the 'instant'
