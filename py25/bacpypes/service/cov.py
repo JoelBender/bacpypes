@@ -303,14 +303,14 @@ class COVIncrementCriteria(COVDetection):
 
         return value_changed
 
-    def send_cov_notifications(self):
+    def send_cov_notifications(self, subscription=None):
         if _debug: COVIncrementCriteria._debug("send_cov_notifications")
 
         # when sending out notifications, keep the current value
         self.previous_reported_value = self.presentValue
 
         # continue
-        COVDetection.send_cov_notifications(self)
+        COVDetection.send_cov_notifications(self, subscription)
 
 bacpypes_debugging(COVDetection)
 
