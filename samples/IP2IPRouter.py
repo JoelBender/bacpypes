@@ -77,6 +77,10 @@ class IP2IPRouter:
         # bind the BIP stack to the local network
         self.nsap.bind(self.s2_bip, net2)
 
+    def send_iamrtn(self):
+        if _debug: IP2IPRouter._debug("send_iamrtn")
+        self.nse.send_iamrtn()
+
 #
 #   __main__
 #

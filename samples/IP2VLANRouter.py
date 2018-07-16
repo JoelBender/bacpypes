@@ -135,6 +135,10 @@ class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
         if _debug: VLANApplication._debug("[%s]confirmation %r", self.vlan_node.address, apdu)
         Application.confirmation(self, apdu)
 
+    def send_iamrtn(self):
+        if _debug: VLANApplication._debug("send_iamrtn")
+        self.nse.send_iamrtn()
+
 #
 #   VLANRouter
 #
