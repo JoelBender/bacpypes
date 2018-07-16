@@ -15,7 +15,7 @@ import argparse
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.comm import bind
 
 from bacpypes.pdu import Address, LocalBroadcast
@@ -257,6 +257,8 @@ def main():
 
         # add it to the device
         vlan_app.add_object(ravo)
+
+    deferred(vlan_app.send_iamrtn)
 
     _log.debug("running")
 
