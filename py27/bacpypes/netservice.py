@@ -886,4 +886,92 @@ class NetworkServiceElement(ApplicationServiceElement):
 
         # reference the service access point
         # sap = self.elementService
+    def send_iamrtn_all(self):
+        """
+        Send IAMRouterToNetwork with netList for all adapters sans the current
+        adapter
+        :return: None
+        """
+        log = NetworkServiceElement._debug
+        if _debug: log("send_iamrtn_all")
+        adapters = self.elementService.adapters.values()
+        routes = {}  # key = adapter, value = list of networks for all other adapters.
+
+        for adapter in adapters:
+            routes[adapter] = []
+
+        # build the netList
+        for current_adapter, netList in routes.items():
+            other_adapters = list(set(adapters) - set([current_adapter]))
+
+            # directly reachable network
+            for adapter in other_adapters:
+                netList.append(adapter.adapterNet)
+
+        destination = LocalBroadcast()
+        for adapter, netList in routes.items():
+            if netList:
+                iamrtn = IAmRouterToNetwork(netList=netList)
+                iamrtn.pduDestination = destination
+                if _debug: log("sending  IAmRouterToNetwork %r %r", adapter, iamrtn)
+                self.request(adapter, iamrtn)
+
+    def send_iamrtn_all_for_network(self, network):
+        """
+        Send this network[dnet] info to all adapters
+        :param network:
+        :return:None
+        """
+        log = NetworkServiceElement._debug
+        netList = [network]
+
+        for adapter in self.elementService.adapters.values():
+            iamrtn = IAmRouterToNetwork(netList=netList)
+            iamrtn.pduDestination = LocalBroadcast()
+            if _debug: log("sending  IAmRouterToNetwork %r %r", adapter, iamrtn)
+            self.request(adapter, iamrtn)
+
+    def send_iamrtn(self, adapter=None, destination=None, network=None):
+        log = NetworkServiceElement._debug
+
+        if _debug: log("send_iamrtn")
+
+        if not adapter:
+            if not network and not destination:
+                # no adapter, no destination, no network
+                # unhinged request akin to response to WhoIsRouter
+                self.send_iamrtn_all()
+                return
+
+            if not destination:
+                # network provided. netList must have only this network
+                # and should be sent out to all adapters
+                self.send_iamrtn_all_for_network(network)
+                return
+
+            # destination as well as  network is provided
+            adapter = self.elementService.adapters.get(network)
+            if not adapter:
+                raise RuntimeError("No adapter for network %r", network)
+            iamrtn = IAmRouterToNetwork(netList=[network])
+            iamrtn.pduDestination = destination if isinstance(destination, Address) else Address(destination)
+            log("sending IAmRouterToNetwork %r %r", adapter, network)
+            self.request(adapter, iamrtn)
+            return
+
+        if not destination:
+            destination = LocalBroadcast()
+        else:
+            destination = destination if isinstance(destination, Address) else Address(destination)
+
+        if adapter != self.elementService.adapters[network]:
+            if _debug:
+                log("Adapter not of network %r", network)
+            return
+
+        iamrtn = IAmRouterToNetwork(netList=[network])
+        iamrtn.pduDestination = destination
+        if _debug: log("sending IAmRouterToNetwork %r %r", adapter, network)
+        self.request(adapter, iamrtn)
+        return
 

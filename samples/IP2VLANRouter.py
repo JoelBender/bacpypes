@@ -15,7 +15,7 @@ import argparse
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.comm import bind
 
 from bacpypes.pdu import Address, LocalBroadcast
@@ -135,6 +135,10 @@ class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
         if _debug: VLANApplication._debug("[%s]confirmation %r", self.vlan_node.address, apdu)
         Application.confirmation(self, apdu)
 
+    def send_iamrtn(self):
+        if _debug: VLANApplication._debug("send_iamrtn")
+        self.nse.send_iamrtn()
+
 #
 #   VLANRouter
 #
@@ -253,6 +257,8 @@ def main():
 
         # add it to the device
         vlan_app.add_object(ravo)
+
+    deferred(vlan_app.send_iamrtn)
 
     _log.debug("running")
 
