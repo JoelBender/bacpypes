@@ -947,9 +947,12 @@ class NetworkServiceElement(ApplicationServiceElement):
                 # network provided. netList must have only this network
                 # and should be sent out to all adapters
                 self.send_iamrtn_all_for_network(network)
+                return
 
             # destination as well as  network is provided
-            adapter = self.elementService.adapters[network]
+            adapter = self.elementService.adapters.get(network)
+            if not adapter:
+                raise RuntimeError("No adapter for network %r", network)
             iamrtn = IAmRouterToNetwork(netList=[network])
             iamrtn.pduDestination = destination if isinstance(destination, Address) else Address(destination)
             log("sending IAmRouterToNetwork %r %r", adapter, network)
