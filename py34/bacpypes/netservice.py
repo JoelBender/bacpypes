@@ -954,7 +954,10 @@ class NetworkServiceElement(ApplicationServiceElement):
             self.request(adapter, iamrtn)
             return
 
-        destination = destination if destination else LocalBroadcast()
+        if not destination:
+            destination = LocalBroadcast()
+        else:
+            destination = destination if isinstance(destination, Address) else Address(destination)
 
         if adapter != self.elementService.adapters[network]:
             if _debug:
