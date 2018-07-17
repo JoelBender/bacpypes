@@ -935,6 +935,8 @@ class NetworkServiceElement(ApplicationServiceElement):
     def send_iamrtn(self, adapter=None, destination=None, network=None):
         log = NetworkServiceElement._debug
 
+        if _debug: log("send_iamrtn")
+
         if not adapter:
             if not network and not destination:
                 # no adapter, no destination, no network
@@ -951,6 +953,7 @@ class NetworkServiceElement(ApplicationServiceElement):
             adapter = self.elementService.adapters[network]
             iamrtn = IAmRouterToNetwork(netList=[network])
             iamrtn.pduDestination = destination if isinstance(destination, Address) else Address(destination)
+            log("sending IAmRouterToNetwork %r %r", adapter, network)
             self.request(adapter, iamrtn)
             return
 
@@ -961,11 +964,12 @@ class NetworkServiceElement(ApplicationServiceElement):
 
         if adapter != self.elementService.adapters[network]:
             if _debug:
-                log("Supplied adapter not of the supplied network")
+                log("Adapter not of network %r", network)
             return
 
         iamrtn = IAmRouterToNetwork(netList=[network])
         iamrtn.pduDestination = destination
+        if _debug: log("sending IAmRouterToNetwork %r %r", adapter, network)
         self.request(adapter, iamrtn)
         return
 
