@@ -703,6 +703,84 @@ class NetworkServiceElement(ApplicationServiceElement):
         if hasattr(self, fn):
             getattr(self, fn)(adapter, npdu)
 
+    def i_am_router_to_network(self, adapter=None, destination=None, network=None):
+        if _debug: NetworkServiceElement._debug("i_am_router_to_network %r %r %r", adapter, destination, network)
+
+        # reference the service access point
+        sap = self.elementService
+        if _debug: NetworkServiceElement._debug("    - sap: %r", sap)
+
+        # if we're not a router, trouble
+        if len(sap.adapters) == 1:
+            raise RuntimeError("not a router")
+
+        if adapter is not None:
+            if destination is None:
+                destination = LocalBroadcast()
+            elif destination.addrType in (Address.localStationAddr, Address.localBroadcastAddr):
+                pass
+            elif destination.addrType == Address.remoteStationAddr:
+                if destination.addrNet != adapter.adapterNet:
+                    raise ValueError("invalid address, remote station for a different adapter")
+                destination = LocalStation(destination.addrAddr)
+            elif destination.addrType == Address.remoteBroadcastAddr:
+                if destination.addrNet != adapter.adapterNet:
+                    raise ValueError("invalid address, remote broadcast for a different adapter")
+                destination = LocalBroadcast()
+            else:
+                raise TypeError("invalid destination address")
+        else:
+            if destination is None:
+                destination = LocalBroadcast()
+            elif destination.addrType == Address.localStationAddr:
+                raise ValueError("ambiguous destination")
+            elif destination.addrType == Address.localBroadcastAddr:
+                pass
+            elif destination.addrType == Address.remoteStationAddr:
+                if destination.addrNet not in sap.adapters:
+                    raise ValueError("invalid address, no network for remote station")
+                adapter = sap.adapters[destination.addrNet]
+                destination = LocalStation(destination.addrAddr)
+            elif destination.addrType == Address.remoteBroadcastAddr:
+                if destination.addrNet not in sap.adapters:
+                    raise ValueError("invalid address, no network for remote broadcast")
+                adapter = sap.adapters[destination.addrNet]
+                destination = LocalBroadcast()
+            else:
+                raise TypeError("invalid destination address")
+        if _debug: NetworkServiceElement._debug("    - adapter, destination, network: %r, %r, %r", adapter, destination, network)
+
+        # process a single adapter or all of the adapters
+        if adapter is not None:
+            adapter_list = [adapter]
+        else:
+            adapter_list = list(sap.adapters.values())
+
+        # loop through all of the adapters
+        for adapter in adapter_list:
+            # build a list of reachable networks
+            netlist = []
+
+            # loop through the adapters
+            for xadapter in sap.adapters.values():
+                if (xadapter is not adapter):
+                    netlist.append(xadapter.adapterNet)
+                    ### add the other reachable networks
+
+            if network is not None:
+                if network not in netlist:
+                    continue
+                netlist = [network]
+
+            # build a response
+            iamrtn = IAmRouterToNetwork(netlist)
+            iamrtn.pduDestination = destination
+
+            if _debug: NetworkServiceElement._debug("    - adapter, iamrtn: %r, %r", adapter, iamrtn)
+
+            # send it back
+            self.request(adapter, iamrtn)
+
     #-----
 
     def WhoIsRouterToNetwork(self, adapter, npdu):

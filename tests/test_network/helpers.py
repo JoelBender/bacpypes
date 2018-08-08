@@ -20,7 +20,7 @@ from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.device import WhoIsIAmServices
 from bacpypes.service.object import ReadWritePropertyServices
 
-from ..state_machine import ClientStateMachine
+from ..state_machine import StateMachine, ClientStateMachine
 
 # some debugging
 _debug = 0
@@ -147,6 +147,19 @@ class RouterNode:
 
         # bind the BIP stack to the local network
         self.nsap.bind(node, net)
+
+#
+#   RouterStateMachine
+#
+
+@bacpypes_debugging
+class RouterStateMachine(RouterNode, StateMachine):
+
+    def __init__(self):
+        if _debug: RouterStateMachine._debug("__init__")
+
+        RouterNode.__init__(self)
+        StateMachine.__init__(self)
 
 #
 #   TestDeviceObject

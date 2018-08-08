@@ -19,7 +19,7 @@ The sample addresses are like running BR1 from Figure J-8, Clause J.7.5.
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.comm import bind
 
 from bacpypes.pdu import Address
@@ -127,6 +127,9 @@ def main():
     # create the router
     router = NATRouter(args.addr1, args.port1, args.net1, args.addr2, args.port2, args.net2)
     if _debug: _log.debug("    - router: %r", router)
+
+    # send network topology
+    deferred(router.nse.i_am_router_to_network)
 
     _log.debug("running")
 

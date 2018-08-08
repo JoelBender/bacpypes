@@ -15,7 +15,7 @@ import argparse
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.comm import bind
 
 from bacpypes.pdu import Address, LocalBroadcast
@@ -218,6 +218,9 @@ def main():
 
     # bind the router stack to the vlan network through this node
     router.nsap.bind(router_node, vlan_network)
+
+    # send network topology
+    deferred(router.nse.i_am_router_to_network)
 
     # make some devices
     for device_number in range(2, 2 + args.count):
