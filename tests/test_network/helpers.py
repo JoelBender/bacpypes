@@ -109,11 +109,11 @@ class NetworkLayerStateMachine(ClientStateMachine):
 
         # create a network layer encoder/decoder
         self.codec = NPDUCodec()
-        if _debug: SnifferStateMachine._debug("    - codec: %r", self.codec)
+        if _debug: NetworkLayerStateMachine._debug("    - codec: %r", self.codec)
 
         # create a node, added to the network
         self.node = Node(self.address, vlan)
-        if _debug: SnifferStateMachine._debug("    - node: %r", self.node)
+        if _debug: NetworkLayerStateMachine._debug("    - node: %r", self.node)
 
         # bind this to the node
         bind(self, self.codec, self.node)
