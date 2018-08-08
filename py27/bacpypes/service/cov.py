@@ -8,7 +8,7 @@ from ..debugging import bacpypes_debugging, DebugContents, ModuleLogger
 from ..capability import Capability
 
 from ..core import deferred
-from ..task import OneShotTask, TaskManager
+from ..task import OneShotTask, RecurringFunctionTask, TaskManager
 from ..iocb import IOCB
 
 from ..basetypes import DeviceAddress, COVSubscription, PropertyValue, \
@@ -167,6 +167,23 @@ class COVDetection(DetectionAlgorithm):
         # list of all active subscriptions
         self.cov_subscriptions = SubscriptionList()
 
+    def add_subscription(self, cov):
+        if _debug: COVDetection._debug("add_subscription %r", cov)
+
+        # add it to the subscription list for its object
+        self.cov_subscriptions.append(cov)
+
+    def cancel_subscription(self, cov):
+        if _debug: COVDetection._debug("cancel_subscription %r", cov)
+
+        # cancel the subscription timeout
+        if cov.isScheduled:
+            cov.suspend_task()
+            if _debug: COVDetection._debug("    - task suspended")
+
+        # remove it from the subscription list for its object
+        self.cov_subscriptions.remove(cov)
+
     def execute(self):
         if _debug: COVDetection._debug("execute")
 
@@ -296,14 +313,14 @@ class COVIncrementCriteria(COVDetection):
             self.previous_reported_value = old_value
 
         # see if it changed enough to trigger reporting
-        value_changed = (new_value <= (self.previous_reported_value - self.covIncrement)) \
-            or (new_value >= (self.previous_reported_value + self.covIncrement))
+        value_changed = (new_value <= (self.previous_reported_value - self.obj.covIncrement)) \
+            or (new_value >= (self.previous_reported_value + self.obj.covIncrement))
         if _debug: COVIncrementCriteria._debug("    - value significantly changed: %r", value_changed)
 
         return value_changed
 
     def send_cov_notifications(self, subscription=None):
-        if _debug: COVIncrementCriteria._debug("send_cov_notifications")
+        if _debug: COVIncrementCriteria._debug("send_cov_notifications %r", subscription)
 
         # when sending out notifications, keep the current value
         self.previous_reported_value = self.presentValue
@@ -376,16 +393,80 @@ class LoadControlCriteria(COVDetection):
         )
 
 
-class PulseConverterCriteria(COVDetection):
+@bacpypes_debugging
+class PulseConverterCriteria(COVIncrementCriteria):
 
     properties_tracked = (
         'presentValue',
         'statusFlags',
+        'covPeriod',
         )
     properties_reported = (
         'presentValue',
         'statusFlags',
         )
+
+    def __init__(self, obj):
+        if _debug: PulseConverterCriteria._debug("__init__ %r", obj)
+        COVIncrementCriteria.__init__(self, obj)
+
+        # check for a period
+        if self.covPeriod == 0:
+            if _debug: PulseConverterCriteria._debug("    - no periodic notifications")
+            self.cov_period_task = None
+        else:
+            if _debug: PulseConverterCriteria._debug("    - covPeriod: %r", self.covPeriod)
+            self.cov_period_task = RecurringFunctionTask(self.covPeriod * 1000, self.send_cov_notifications)
+            if _debug: PulseConverterCriteria._debug("    - cov period task created")
+
+    def add_subscription(self, cov):
+        if _debug: PulseConverterCriteria._debug("add_subscription %r", cov)
+
+        # let the parent classes do their thing
+        COVIncrementCriteria.add_subscription(self, cov)
+
+        # if there is a COV period task, install it
+        if self.cov_period_task:
+            self.cov_period_task.install_task()
+            if _debug: PulseConverterCriteria._debug("    - cov period task installed")
+
+    def cancel_subscription(self, cov):
+        if _debug: PulseConverterCriteria._debug("cancel_subscription %r", cov)
+
+        # let the parent classes do their thing
+        COVIncrementCriteria.cancel_subscription(self, cov)
+
+        # if there are no more subscriptions, cancel the task
+        if not len(self.cov_subscriptions):
+            if self.cov_period_task and self.cov_period_task.isScheduled:
+                self.cov_period_task.suspend_task()
+                if _debug: PulseConverterCriteria._debug("    - cov period task suspended")
+                self.cov_period_task = None
+
+    @monitor_filter('covPeriod')
+    def cov_period_filter(self, old_value, new_value):
+        if _debug: PulseConverterCriteria._debug("cov_period_filter %r %r", old_value, new_value)
+
+        # check for an old period
+        if old_value != 0:
+            if self.cov_period_task.isScheduled:
+                self.cov_period_task.suspend_task()
+                if _debug: PulseConverterCriteria._debug("    - canceled old task")
+            self.cov_period_task = None
+
+        # check for a new period
+        if new_value != 0:
+            self.cov_period_task = RecurringFunctionTask(new_value * 1000, self.cov_period_x)
+            self.cov_period_task.install_task()
+            if _debug: PulseConverterCriteria._debug("    - new task created and installed")
+
+        return False
+
+    def send_cov_notifications(self, subscription=None):
+        if _debug: PulseConverterCriteria._debug("send_cov_notifications %r", subscription)
+
+        # pass along to the parent class as if something changed
+        COVIncrementCriteria.send_cov_notifications(self, subscription)
 
 
 # mapping from object type to appropriate criteria class
@@ -513,22 +594,17 @@ class ChangeOfValueServices(Capability):
     def add_subscription(self, cov):
         if _debug: ChangeOfValueServices._debug("add_subscription %r", cov)
 
-        # add it to the subscription list for its object
-        self.cov_detections[cov.obj_ref].cov_subscriptions.append(cov)
+        # let the detection algorithm know this is a new or additional subscription
+        self.cov_detections[cov.obj_ref].add_subscription(cov)
 
     def cancel_subscription(self, cov):
         if _debug: ChangeOfValueServices._debug("cancel_subscription %r", cov)
 
-        # cancel the subscription timeout
-        if cov.isScheduled:
-            cov.suspend_task()
-            if _debug: ChangeOfValueServices._debug("    - task suspended")
-
         # get the detection algorithm object
         cov_detection = self.cov_detections[cov.obj_ref]
 
-        # remove it from the subscription list for its object
-        cov_detection.cov_subscriptions.remove(cov)
+        # let the detection algorithm know this subscription is going away
+        cov_detection.cancel_subscription(cov)
 
         # if the detection algorithm doesn't have any subscriptions, remove it
         if not len(cov_detection.cov_subscriptions):
