@@ -19,7 +19,7 @@ from bacpypes.object import get_datatype
 
 from bacpypes.apdu import SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
-from bacpypes.primitivedata import Unsigned, CharacterString
+from bacpypes.primitivedata import Unsigned, CharacterString, ObjectIdentifier
 from bacpypes.constructeddata import Array, ArrayOf, Any
 
 from bacpypes.app import BIPSimpleApplication
@@ -47,16 +47,17 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
         global context
 
         try:
-            addr, obj_type, obj_inst = context
+            addr, obj_id = context
+            obj_id = ObjectIdentifier(obj_id).value
             prop_id = 'eventMessageTexts'
 
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
@@ -122,7 +123,8 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
         ReadWritePropertyConsoleCmd._debug("do_write %r", args)
 
         try:
-            addr, obj_type, obj_inst = context
+            addr, obj_id = context
+            obj_id = ObjectIdentifier(obj_id).value
             prop_id = 'eventMessageTexts'
 
             indx = None
@@ -137,7 +139,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id
                 )
             request.pduDestination = Address(addr)
@@ -208,12 +210,8 @@ def main():
         help="address of server",
         )
     parser.add_argument(
-        "objtype",
-        help="object type",
-        )
-    parser.add_argument(
-        "objinst", type=int,
-        help="object instance",
+        "objid",
+        help="object identifier",
         )
     args = parser.parse_args()
 
@@ -221,7 +219,7 @@ def main():
     if _debug: _log.debug("    - args: %r", args)
 
     # set the context, the collection of the above parameters
-    context = args.address, args.objtype, args.objinst
+    context = args.address, args.objid
     if _debug: _log.debug("    - context: %r", context)
 
     # make a device object

@@ -15,9 +15,9 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.object import get_object_class
 from bacpypes.apdu import SubscribeCOVRequest, \
     SimpleAckPDU, RejectPDU, AbortPDU
+from bacpypes.primitivedata import ObjectIdentifier
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
@@ -92,7 +92,7 @@ class SubscribeCOVApplication(BIPSimpleApplication):
 class SubscribeCOVConsoleCmd(ConsoleCmd):
 
     def do_subscribe(self, args):
-        """subscribe addr proc_id obj_type obj_inst [ confirmed ] [ lifetime ]
+        """subscribe addr proc_id obj_id [ confirmed ] [ lifetime ]
 
         Generate a SubscribeCOVRequest and wait for the response.
         """
@@ -100,18 +100,13 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
         if _debug: SubscribeCOVConsoleCmd._debug("do_subscribe %r", args)
 
         try:
-            addr, proc_id, obj_type, obj_inst = args[:4]
+            addr, proc_id, obj_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
             proc_id = int(proc_id)
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError("unknown object type")
-            obj_inst = int(obj_inst)
-
-            if len(args) >= 5:
-                issue_confirmed = args[4]
+            if len(args) >= 4:
+                issue_confirmed = args[3]
                 if issue_confirmed == '-':
                     issue_confirmed = None
                 else:
@@ -120,8 +115,8 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             else:
                 issue_confirmed = None
 
-            if len(args) >= 6:
-                lifetime = args[5]
+            if len(args) >= 5:
+                lifetime = args[4]
                 if lifetime == '-':
                     lifetime = None
                 else:
@@ -133,7 +128,7 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
             # build a request
             request = SubscribeCOVRequest(
                 subscriberProcessIdentifier=proc_id,
-                monitoredObjectIdentifier=(obj_type, obj_inst),
+                monitoredObjectIdentifier=obj_id,
                 )
             request.pduDestination = Address(addr)
 

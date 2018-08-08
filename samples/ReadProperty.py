@@ -17,11 +17,11 @@ from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 from bacpypes.apdu import ReadPropertyRequest, ReadPropertyACK
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_datatype
 from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
@@ -45,28 +45,22 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
         if _debug: ReadPropertyConsoleCmd._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError("unknown object type")
-
-            obj_inst = int(obj_inst)
-
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: ReadPropertyConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB

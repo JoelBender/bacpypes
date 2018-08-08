@@ -17,10 +17,9 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.object import get_object_class
 
 from bacpypes.apdu import ReadPropertyRequest
-from bacpypes.primitivedata import Tag
+from bacpypes.primitivedata import Tag, ObjectIdentifier
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
@@ -41,29 +40,23 @@ this_application = None
 class ReadPropertyAnyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadPropertyAnyConsoleCmd._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError("unknown object type")
-
-            obj_inst = int(obj_inst)
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: ReadPropertyAnyConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB

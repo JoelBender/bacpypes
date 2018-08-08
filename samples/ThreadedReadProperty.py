@@ -20,7 +20,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
@@ -36,12 +36,12 @@ this_application = None
 # point list, set according to your devices
 point_list = [
     ('10.0.1.14', [
-        ('analogValue', 1, 'presentValue'),
-        ('analogValue', 2, 'presentValue'),
+        ('analogValue:1', 'presentValue'),
+        ('analogValue:2', 'presentValue'),
         ]),
     ('10.0.1.15', [
-        ('analogValue', 1, 'presentValue'),
-        ('analogValue', 2, 'presentValue'),
+        ('analogValue:1', 'presentValue'),
+        ('analogValue:2', 'presentValue'),
         ]),
     ]
 
@@ -70,11 +70,13 @@ class ReadPointListThread(Thread):
         global this_application
 
         # loop through the points
-        for obj_type, obj_inst, prop_id in self.point_list:
+        for obj_id, prop_id in self.point_list:
+            obj_id = ObjectIdentifier(obj_id).value
+
             # build a request
             request = ReadPropertyRequest(
                 destination=self.device_address,
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             if _debug: ReadPointListThread._debug("    - request: %r", request)

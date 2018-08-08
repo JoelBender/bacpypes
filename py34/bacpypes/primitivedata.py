@@ -1652,6 +1652,16 @@ class ObjectIdentifier(Atomic):
                 self.decode(arg)
             elif isinstance(arg, int):
                 self.set_long(arg)
+            elif isinstance(arg, str):
+                try:
+                    objType, objInstance = arg.split(':')
+                    if objType.isdigit():
+                        objType = int(objType)
+                    objInstance = int(objInstance)
+                except:
+                    raise ValueError("invalid format")
+
+                self.set_tuple(objType, objInstance)
             elif isinstance(arg, tuple):
                 self.set_tuple(*arg)
             elif isinstance(arg, ObjectIdentifier):

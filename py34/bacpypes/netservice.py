@@ -244,7 +244,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         if _debug: NetworkServiceAccessPoint._debug("    - adapters[%r]: %r", net, adapter)
 
         # if the address was given, make it the "local" one
-        if address and not self.localAddress:
+        if address and not self.local_address:
             self.local_adapter = adapter
             self.local_address = address
 
@@ -501,7 +501,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     elif npdu.npduDADR.addrType == Address.remoteBroadcastAddr:
                         apdu.pduDestination = LocalBroadcast()
                     else:
-                        apdu.pduDestination = self.localAddress
+                        apdu.pduDestination = self.local_address
                 else:
                     # combine the source address
                     if npdu.npduSADR:

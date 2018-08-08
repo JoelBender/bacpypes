@@ -35,8 +35,8 @@ this_application = None
 
 # point list, set according to your device
 point_list = [
-    ('10.0.1.14', 'analogValue', 1, 'presentValue'),
-    ('10.0.1.14', 'analogValue', 2, 'presentValue'),
+    ('10.0.1.14', 'analogValue:1', 'presentValue'),
+    ('10.0.1.14', 'analogValue:2', 'presentValue'),
     ]
 
 #
@@ -61,10 +61,10 @@ class ReadPointListThread(Thread):
         global this_application
 
         # loop through the points
-        for addr, obj_type, obj_inst, prop_id in self.point_queue:
+        for addr, obj_id, prop_id in self.point_queue:
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=ObjectIdentifer(obj_id).value,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)

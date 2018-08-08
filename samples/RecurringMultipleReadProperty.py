@@ -20,7 +20,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
@@ -32,8 +32,8 @@ _log = ModuleLogger(globals())
 
 # point list
 point_list = [
-    ('1.2.3.4', 'analogValue', 1, 'presentValue'),
-    ('1.2.3.4', 'analogValue', 2, 'presentValue'),
+    ('1.2.3.4', 'analogValue:1', 'presentValue'),
+    ('1.2.3.4', 'analogValue:2', 'presentValue'),
     ]
 
 #
@@ -92,11 +92,12 @@ class PrairieDog(BIPSimpleApplication, RecurringTask):
             return
 
         # get the next request
-        addr, obj_type, obj_inst, prop_id = self.point_queue.popleft()
+        addr, obj_id, prop_id = self.point_queue.popleft()
+        obj_id = ObjectIdentifier(obj_id).value
 
         # build a request
         request = ReadPropertyRequest(
-            objectIdentifier=(obj_type, obj_inst),
+            objectIdentifier=obj_id,
             propertyIdentifier=prop_id,
             )
         request.pduDestination = Address(addr)

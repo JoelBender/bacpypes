@@ -19,7 +19,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
@@ -34,8 +34,8 @@ this_application = None
 
 # point list, set according to your device
 point_list = [
-    ('10.0.1.14', 'analogValue', 1, 'presentValue'),
-    ('10.0.1.14', 'analogValue', 2, 'presentValue'),
+    ('10.0.1.14', 'analogValue:1', 'presentValue'),
+    ('10.0.1.14', 'analogValue:2', 'presentValue'),
     ]
 
 #
@@ -65,11 +65,12 @@ class ReadPointListApplication(BIPSimpleApplication):
             return
 
         # get the next request
-        addr, obj_type, obj_inst, prop_id = self.point_queue.popleft()
+        addr, obj_id, prop_id = self.point_queue.popleft()
+        obj_id = ObjectIdentifier(obj_id).value
 
         # build a request
         request = ReadPropertyRequest(
-            objectIdentifier=(obj_type, obj_inst),
+            objectIdentifier=obj_id,
             propertyIdentifier=prop_id,
             )
         request.pduDestination = Address(addr)

@@ -18,12 +18,12 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_datatype
 
 from bacpypes.apdu import SimpleAckPDU, \
     ReadPropertyRequest, ReadPropertyACK, WritePropertyRequest
 from bacpypes.primitivedata import Null, Atomic, Boolean, Unsigned, Integer, \
-    Real, Double, OctetString, CharacterString, BitString, Date, Time
+    Real, Double, OctetString, CharacterString, BitString, Date, Time, ObjectIdentifier
 from bacpypes.constructeddata import Array, Any, AnyAtomic
 
 from bacpypes.app import BIPSimpleApplication
@@ -44,33 +44,27 @@ this_application = None
 class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadWritePropertyConsoleCmd._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError("unknown object type")
-
-            obj_inst = int(obj_inst)
-
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB
@@ -126,32 +120,30 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
         ReadWritePropertyConsoleCmd._debug("do_write %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            obj_inst = int(obj_inst)
-            value = args[4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
+            value = args[3]
 
             indx = None
-            if len(args) >= 6:
-                if args[5] != "-":
-                    indx = int(args[5])
+            if len(args) >= 5:
+                if args[4] != "-":
+                    indx = int(args[4])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - indx: %r", indx)
 
             priority = None
-            if len(args) >= 7:
-                priority = int(args[6])
+            if len(args) >= 6:
+                priority = int(args[5])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - priority: %r", priority)
 
             # get the datatype
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if _debug: ReadWritePropertyConsoleCmd._debug("    - datatype: %r", datatype)
 
             # change atomic values into something encodeable, null is a special case
             if (value == 'null'):
                 value = Null()
             elif issubclass(datatype, AnyAtomic):
-                dtype, dvalue = value.split(':')
+                dtype, dvalue = value.split(':', 1)
                 if _debug: ReadWritePropertyConsoleCmd._debug("    - dtype, dvalue: %r, %r", dtype, dvalue)
 
                 datatype = {
@@ -165,6 +157,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
                     'bs': BitString,
                     'date': Date,
                     'time': Time,
+                    'id': ObjectIdentifier,
                     }[dtype]
                 if _debug: ReadWritePropertyConsoleCmd._debug("    - datatype: %r", datatype)
 
@@ -192,7 +185,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id
                 )
             request.pduDestination = Address(addr)
