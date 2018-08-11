@@ -67,10 +67,7 @@ def Commandable(datatype, presentValue='presentValue', priorityArray='priorityAr
 
             # see if a priority array was provided
             if (priorityArray not in kwargs):
-                new_priority_array = PriorityArray()
-                for i in range(16):
-                    new_priority_array.append(PriorityValue(null=()))
-                setattr(self, priorityArray, new_priority_array)
+                setattr(self, priorityArray, PriorityArray())
 
             # see if a present value was provided
             if (relinquishDefault not in kwargs):

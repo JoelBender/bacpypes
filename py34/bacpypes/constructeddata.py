@@ -5,6 +5,7 @@ Constructed Data
 """
 
 import sys
+from copy import deepcopy as _deepcopy
 
 from .errors import DecodingError, \
     MissingRequiredParameter, InvalidParameterDatatype, InvalidTag
@@ -691,15 +692,33 @@ class Array(object):
 _array_of_map = {}
 _array_of_classes = {}
 
-def ArrayOf(klass):
+def ArrayOf(klass, fixed_length=None, prototype=None):
     """Function to return a class that can encode and decode a list of
     some other type."""
     global _array_of_map
     global _array_of_classes, _sequence_of_classes
 
+    # check the parameters for consistency
+    if issubclass(klass, Atomic):
+        if prototype is None:
+            pass
+        elif not klass.is_valid(prototype):
+            raise ValueError("prototype %r not valid for %s" % (prototype, klass.__name__))
+    else:
+        if prototype is None:
+            ### TODO This should be an error, a prototype should always be
+            ### required for non-atomic types, even if it's only klass()
+            ### for a default object which will be deep copied
+            pass
+        elif not isinstance(prototype, klass):
+            raise ValueError("prototype %r not valid for %s" % (prototype, klass.__name__))
+
+    # build a signature of the parameters
+    array_signature = (klass, fixed_length, prototype)
+
     # if this has already been built, return the cached one
-    if klass in _array_of_map:
-        return _array_of_map[klass]
+    if array_signature in _array_of_map:
+        return _array_of_map[array_signature]
 
     # no ArrayOf(ArrayOf(...)) allowed
     if klass in _array_of_classes:
@@ -713,23 +732,60 @@ def ArrayOf(klass):
     class ArrayOf(Array):
 
         subtype = None
+        fixed_length = None
+        prototype = None
 
         def __init__(self, value=None):
             if value is None:
                 self.value = [0]
+                if self.fixed_length is not None:
+                    self.fix_length(self.fixed_length)
+
             elif isinstance(value, list):
+                if (self.fixed_length is not None) and (len(value) != self.fixed_length):
+                    raise ValueError("invalid array length")
+
                 self.value = [len(value)]
                 self.value.extend(value)
             else:
                 raise TypeError("invalid constructor datatype")
 
+        def fix_length(self, new_length):
+            if len(self.value) > new_length + 1:
+                # trim off the excess
+                del self.value[new_length + 1:]
+            elif len(self.value) < new_length + 1:
+                # how many do we need
+                element_count = new_length - len(self.value) + 1
+
+                # extend or append
+                if issubclass(self.subtype, Atomic):
+                    if self.prototype is None:
+                        extend_value = self.subtype().value
+                    else:
+                        extend_value = self.prototype
+                    self.value.extend( [extend_value] * element_count )
+                else:
+                    for i in range(element_count):
+                        if self.prototype is None:
+                            append_value = self.subtype()
+                        else:
+                            append_value = _deepcopy(self.prototype)
+                        self.value.append(append_value)
+
+            self.value[0] = new_length
+
         def append(self, value):
+            if self.fixed_length is not None:
+                raise TypeError("fixed length array")
+
             if issubclass(self.subtype, Atomic):
                 pass
             elif issubclass(self.subtype, AnyAtomic) and not isinstance(value, Atomic):
                 raise TypeError("instance of an atomic type required")
             elif not isinstance(value, self.subtype):
                 raise TypeError("%s value required" % (self.subtype.__name__,))
+
             self.value.append(value)
             self.value[0] = len(self.value) - 1
 
@@ -750,23 +806,19 @@ def ArrayOf(klass):
 
             # special length handling for index 0
             if item == 0:
-                if value < self.value[0]:
-                    # trim
-                    self.value = self.value[0:value + 1]
-                elif value > self.value[0]:
-                    # extend
-                    if issubclass(self.subtype, Atomic):
-                        self.value.extend( [self.subtype().value] * (value - self.value[0]) )
-                    else:
-                        for i in range(value - self.value[0]):
-                            self.value.append(self.subtype())
-                else:
+                if (self.fixed_length is not None):
+                    if (value != self.value[0]):
+                        raise TypeError("fixed length array")
                     return
-                self.value[0] = value
+
+                self.fix_length(value)
             else:
                 self.value[item] = value
 
         def __delitem__(self, item):
+            if self.fixed_length is not None:
+                raise TypeError("fixed length array")
+
             # no wrapping index
             if (item < 1) or (item > self.value[0]):
                 raise IndexError("index out of range")
@@ -788,6 +840,9 @@ def ArrayOf(klass):
             raise ValueError("%r not in array" % (value,))
 
         def remove(self, item):
+            if self.fixed_length is not None:
+                raise TypeError("fixed length array")
+
             # find the index of the item and delete it
             indx = self.index(item)
             self.__delitem__(indx)
@@ -816,7 +871,7 @@ def ArrayOf(klass):
             if _debug: ArrayOf._debug("(%r)decode %r", self.__class__.__name__, taglist)
 
             # start with an empty array
-            self.value = [0]
+            new_value = []
 
             while len(taglist) != 0:
                 tag = taglist.Peek()
@@ -831,7 +886,7 @@ def ArrayOf(klass):
                     helper = self.subtype(tag)
 
                     # save the value
-                    self.value.append(helper.value)
+                    new_value.append(helper.value)
                 else:
                     if _debug: ArrayOf._debug("    - building value: %r", self.subtype)
                     # build an element
@@ -841,10 +896,15 @@ def ArrayOf(klass):
                     value.decode(taglist)
 
                     # save what was built
-                    self.value.append(value)
+                    new_value.append(value)
+
+            # check the length
+            if self.fixed_length is not None:
+                if self.fixed_length != len(new_value):
+                    raise ValueError("invalid array length")
 
             # update the length
-            self.value[0] = len(self.value) - 1
+            self.value = [len(new_value)] + new_value
 
         def encode_item(self, item, taglist):
             if _debug: ArrayOf._debug("(%r)encode_item %r %r", self.__class__.__name__, item, taglist)
@@ -941,10 +1001,14 @@ def ArrayOf(klass):
 
     # constrain it to a list of a specific type of item
     setattr(ArrayOf, 'subtype', klass)
+    setattr(ArrayOf, 'fixed_length', fixed_length)
+    setattr(ArrayOf, 'prototype', prototype)
+
+    # update the name
     ArrayOf.__name__ = 'ArrayOf' + klass.__name__
 
     # cache this type
-    _array_of_map[klass] = ArrayOf
+    _array_of_map[array_signature] = ArrayOf
     _array_of_classes[ArrayOf] = 1
 
     # return this new type
@@ -1148,7 +1212,7 @@ class Choice(object):
 
     def dict_contents(self, use_dict=None, as_class=dict):
         """Return the contents of an object as a dict."""
-        if _debug: _log.debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
+        if _debug: Choice._debug("dict_contents use_dict=%r as_class=%r", use_dict, as_class)
 
         # make/extend the dictionary of content
         if use_dict is None:
@@ -1340,7 +1404,7 @@ class Any:
 #
 
 @bacpypes_debugging
-class AnyAtomic:
+class AnyAtomic(Atomic):
 
     def __init__(self, arg=None):
         if _debug: AnyAtomic._debug("__init__ %r", arg)
