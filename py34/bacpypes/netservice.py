@@ -11,9 +11,11 @@ from .errors import ConfigurationError
 
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
+from .task import FunctionTask
 
 from .pdu import Address, LocalBroadcast, LocalStation, PDU, RemoteStation
-from .npdu import IAmRouterToNetwork, NPDU, WhoIsRouterToNetwork, npdu_types
+from .npdu import NPDU, npdu_types, IAmRouterToNetwork, WhoIsRouterToNetwork, \
+    WhatIsNetworkNumber, NetworkNumberIs
 from .apdu import APDU as _APDU
 
 # some debugging
@@ -163,13 +165,19 @@ class RouterInfoCache:
 @bacpypes_debugging
 class NetworkAdapter(Client, DebugContents):
 
-    _debug_contents = ('adapterSAP-', 'adapterNet')
+    _debug_contents = ('adapterSAP-', 'adapterNet', 'adapterNetConfigured')
 
     def __init__(self, sap, net, cid=None):
         if _debug: NetworkAdapter._debug("__init__ %s %r cid=%r", sap, net, cid)
         Client.__init__(self, cid)
         self.adapterSAP = sap
         self.adapterNet = net
+
+        # record if this was 0=learned, 1=configured, None=unknown
+        if net is None:
+            self.adapterNetConfigured = None
+        else:
+            self.adapterNetConfigured = 1
 
     def confirmation(self, pdu):
         """Decode upstream PDUs and pass them up to the service access point."""
@@ -200,11 +208,11 @@ class NetworkAdapter(Client, DebugContents):
 @bacpypes_debugging
 class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
-    _debug_contents = ('adapters++', 'routers++', 'networks+'
-        , 'localAdapter-', 'localAddress'
+    _debug_contents = ('adapters++', 'pending_nets',
+        'local_adapter-', 'local_address',
         )
 
-    def __init__(self, routerInfoCache=None, sap=None, sid=None):
+    def __init__(self, router_info_cache=None, sap=None, sid=None):
         if _debug: NetworkServiceAccessPoint._debug("__init__ sap=%r sid=%r", sap, sid)
         ServiceAccessPoint.__init__(self, sap)
         Server.__init__(self, sid)
@@ -213,7 +221,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         self.adapters = {}          # net -> NetworkAdapter
 
         # use the provided cache or make a default one
-        self.router_info_cache = routerInfoCache or RouterInfoCache()
+        self.router_info_cache = router_info_cache or RouterInfoCache()
 
         # map to a list of application layer packets waiting for a path
         self.pending_nets = {}
@@ -230,18 +238,13 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         if net in self.adapters:
             raise RuntimeError("already bound")
 
-        # when binding to an adapter and there is more than one, then they
-        # must all have network numbers and one of them will be the default
-        if (net is not None) and (None in self.adapters):
-            raise RuntimeError("default adapter bound")
-
         # create an adapter object, add it to our map
         adapter = NetworkAdapter(self, net)
         self.adapters[net] = adapter
         if _debug: NetworkServiceAccessPoint._debug("    - adapters[%r]: %r", net, adapter)
 
         # if the address was given, make it the "local" one
-        if address:
+        if address and not self.local_address:
             self.local_adapter = adapter
             self.local_address = address
 
@@ -331,9 +334,17 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
 
         # if the network matches the local adapter it's local
         if (dnet == adapter.adapterNet):
-            ### log this, the application shouldn't be sending to a remote station address
-            ### when it's a directly connected network
-            raise RuntimeError("addressing problem")
+            if (npdu.pduDestination.addrType == Address.remoteStationAddr):
+                if _debug: NetworkServiceAccessPoint._debug("    - mapping remote station to local station")
+                npdu.pduDestination = LocalStation(npdu.pduDestination.addrAddr)
+            elif (npdu.pduDestination.addrType == Address.remoteBroadcastAddr):
+                if _debug: NetworkServiceAccessPoint._debug("    - mapping remote broadcast to local broadcast")
+                npdu.pduDestination = LocalBroadcast()
+            else:
+                raise RuntimeError("addressing problem")
+
+            adapter.process_npdu(npdu)
+            return
 
         # get it ready to send when the path is found
         npdu.pduDestination = None
@@ -490,7 +501,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     elif npdu.npduDADR.addrType == Address.remoteBroadcastAddr:
                         apdu.pduDestination = LocalBroadcast()
                     else:
-                        apdu.pduDestination = self.localAddress
+                        apdu.pduDestination = self.local_address
                 else:
                     # combine the source address
                     if npdu.npduSADR:
@@ -671,6 +682,9 @@ class NetworkServiceElement(ApplicationServiceElement):
         if _debug: NetworkServiceElement._debug("__init__ eid=%r", eid)
         ApplicationServiceElement.__init__(self, eid)
 
+        # network number is timeout
+        self.network_number_is_task = None
+
     def indication(self, adapter, npdu):
         if _debug: NetworkServiceElement._debug("indication %r %r", adapter, npdu)
 
@@ -686,6 +700,84 @@ class NetworkServiceElement(ApplicationServiceElement):
         fn = npdu.__class__.__name__
         if hasattr(self, fn):
             getattr(self, fn)(adapter, npdu)
+
+    def i_am_router_to_network(self, adapter=None, destination=None, network=None):
+        if _debug: NetworkServiceElement._debug("i_am_router_to_network %r %r %r", adapter, destination, network)
+
+        # reference the service access point
+        sap = self.elementService
+        if _debug: NetworkServiceElement._debug("    - sap: %r", sap)
+
+        # if we're not a router, trouble
+        if len(sap.adapters) == 1:
+            raise RuntimeError("not a router")
+
+        if adapter is not None:
+            if destination is None:
+                destination = LocalBroadcast()
+            elif destination.addrType in (Address.localStationAddr, Address.localBroadcastAddr):
+                pass
+            elif destination.addrType == Address.remoteStationAddr:
+                if destination.addrNet != adapter.adapterNet:
+                    raise ValueError("invalid address, remote station for a different adapter")
+                destination = LocalStation(destination.addrAddr)
+            elif destination.addrType == Address.remoteBroadcastAddr:
+                if destination.addrNet != adapter.adapterNet:
+                    raise ValueError("invalid address, remote broadcast for a different adapter")
+                destination = LocalBroadcast()
+            else:
+                raise TypeError("invalid destination address")
+        else:
+            if destination is None:
+                destination = LocalBroadcast()
+            elif destination.addrType == Address.localStationAddr:
+                raise ValueError("ambiguous destination")
+            elif destination.addrType == Address.localBroadcastAddr:
+                pass
+            elif destination.addrType == Address.remoteStationAddr:
+                if destination.addrNet not in sap.adapters:
+                    raise ValueError("invalid address, no network for remote station")
+                adapter = sap.adapters[destination.addrNet]
+                destination = LocalStation(destination.addrAddr)
+            elif destination.addrType == Address.remoteBroadcastAddr:
+                if destination.addrNet not in sap.adapters:
+                    raise ValueError("invalid address, no network for remote broadcast")
+                adapter = sap.adapters[destination.addrNet]
+                destination = LocalBroadcast()
+            else:
+                raise TypeError("invalid destination address")
+        if _debug: NetworkServiceElement._debug("    - adapter, destination, network: %r, %r, %r", adapter, destination, network)
+
+        # process a single adapter or all of the adapters
+        if adapter is not None:
+            adapter_list = [adapter]
+        else:
+            adapter_list = list(sap.adapters.values())
+
+        # loop through all of the adapters
+        for adapter in adapter_list:
+            # build a list of reachable networks
+            netlist = []
+
+            # loop through the adapters
+            for xadapter in sap.adapters.values():
+                if (xadapter is not adapter):
+                    netlist.append(xadapter.adapterNet)
+                    ### add the other reachable networks
+
+            if network is not None:
+                if network not in netlist:
+                    continue
+                netlist = [network]
+
+            # build a response
+            iamrtn = IAmRouterToNetwork(netlist)
+            iamrtn.pduDestination = destination
+
+            if _debug: NetworkServiceElement._debug("    - adapter, iamrtn: %r, %r", adapter, iamrtn)
+
+            # send it back
+            self.request(adapter, iamrtn)
 
     #-----
 
@@ -886,4 +978,152 @@ class NetworkServiceElement(ApplicationServiceElement):
 
         # reference the service access point
         # sap = self.elementService
+
+    def what_is_network_number(self, adapter=None, address=None):
+        if _debug: NetworkServiceElement._debug("what_is_network_number %r", adapter, address)
+
+        # reference the service access point
+        sap = self.elementService
+
+        # a little error checking
+        if (adapter is None) and (address is not None):
+            raise RuntimeError("inconsistent parameters")
+
+        # build a request
+        winn = WhatIsNetworkNumber()
+        winn.pduDestination = LocalBroadcast()
+
+        # check for a specific adapter
+        if adapter:
+            if address is not None:
+                winn.pduDestination = address
+            adapter_list = [adapter]
+        else:
+            # send to adapters we don't know anything about
+            adapter_list = []
+            for xadapter in sap.adapters.values():
+                if xadapter.adapterNet is None:
+                    adapter_list.append(xadapter)
+        if _debug: NetworkServiceElement._debug("    - adapter_list: %r", adapter_list)
+
+        # send it to the adapter(s)
+        for xadapter in adapter_list:
+            self.request(xadapter, winn)
+
+    def WhatIsNetworkNumber(self, adapter, npdu):
+        if _debug: NetworkServiceElement._debug("WhatIsNetworkNumber %r %r", adapter, npdu)
+
+        # reference the service access point
+        sap = self.elementService
+
+        # check to see if the local network is known
+        if adapter.adapterNet is None:
+            if _debug: NetworkServiceElement._debug("   - local network not known")
+            return
+
+        # if this is not a router, wait for somebody else to answer
+        if (npdu.pduDestination.addrType == Address.localBroadcastAddr):
+            if _debug: NetworkServiceElement._debug("    - local broadcast request")
+
+            if len(sap.adapters) == 1:
+                if _debug: NetworkServiceElement._debug("    - not a router")
+
+                if self.network_number_is_task:
+                    if _debug: NetworkServiceElement._debug("    - already waiting")
+                else:
+                    self.network_number_is_task = FunctionTask(self.network_number_is, adapter)
+                    self.network_number_is_task.install_task(delta=10 * 1000)
+                    return
+
+        # send out what we know
+        self.network_number_is(adapter)
+
+    def network_number_is(self, adapter=None):
+        if _debug: NetworkServiceElement._debug("network_number_is %r", adapter)
+
+        # reference the service access point
+        sap = self.elementService
+
+        # specific adapter, or all configured adapters
+        if adapter is not None:
+            adapter_list = [adapter]
+        else:
+            # send to adapters we are configured to know
+            adapter_list = []
+            for xadapter in sap.adapters.values():
+                if (xadapter.adapterNet is not None) and (xadapter.adapterNetConfigured == 1):
+                    adapter_list.append(xadapter)
+        if _debug: NetworkServiceElement._debug("    - adapter_list: %r", adapter_list)
+
+        # loop through the adapter(s)
+        for xadapter in adapter_list:
+            if xadapter.adapterNet is None:
+                if _debug: NetworkServiceElement._debug("    - unknown network: %r", xadapter)
+                continue
+
+            # build a broadcast annoucement
+            nni = NetworkNumberIs(net=xadapter.adapterNet, flag=xadapter.adapterNetConfigured)
+            nni.pduDestination = LocalBroadcast()
+            if _debug: NetworkServiceElement._debug("    - nni: %r", nni)
+
+            # send it to the adapter
+            self.request(xadapter, nni)
+
+    def NetworkNumberIs(self, adapter, npdu):
+        if _debug: NetworkServiceElement._debug("NetworkNumberIs %r %r", adapter, npdu)
+
+        # reference the service access point
+        sap = self.elementService
+
+        # if this was not sent as a broadcast, ignore it
+        if (npdu.pduDestination.addrType != Address.localBroadcastAddr):
+            if _debug: NetworkServiceElement._debug("    - not broadcast")
+            return
+
+        # if we are waiting for someone else to say what this network number
+        # is, cancel that task
+        if self.network_number_is_task:
+            if _debug: NetworkServiceElement._debug("    - cancel waiting task")
+            self.network_number_is_task.suspend_task()
+            self.network_number_is_task = None
+
+        # check to see if the local network is known
+        if adapter.adapterNet is None:
+            if _debug: NetworkServiceElement._debug("   - local network not known: %r", list(sap.adapters.keys()))
+
+            # delete the reference from an unknown network
+            del sap.adapters[None]
+
+            adapter.adapterNet = npdu.nniNet
+            adapter.adapterNetConfigured = 0
+
+            # we now know what network this is
+            sap.adapters[adapter.adapterNet] = adapter
+
+            if _debug: NetworkServiceElement._debug("   - local network learned")
+            ###TODO: s/None/net/g in routing tables
+            return
+
+        # check if this matches what we have
+        if adapter.adapterNet == npdu.nniNet:
+            if _debug: NetworkServiceElement._debug("   - matches what we have")
+            return
+
+        # check it this matches what we know, if we know it
+        if adapter.adapterNetConfigured == 1:
+            if _debug: NetworkServiceElement._debug("   - doesn't match what we know")
+            return
+
+        if _debug: NetworkServiceElement._debug("   - learning something new")
+
+        # delete the reference from the old (learned) network
+        del sap.adapters[adapter.adapterNet]
+
+        adapter.adapterNet = npdu.nniNet
+        adapter.adapterNetConfigured = npdu.nniFlag
+
+        # we now know what network this is
+        sap.adapters[adapter.adapterNet] = adapter
+
+        ###TODO: s/old/new/g in routing tables
 

@@ -20,7 +20,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import WritePropertyRequest, SimpleAckPDU
-from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
+from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real, ObjectIdentifier
 from bacpypes.constructeddata import Array, Any
 
 from bacpypes.app import BIPSimpleApplication
@@ -55,25 +55,23 @@ class WritePropertyClient(Client):
         if _debug: WritePropertyClient._debug("    - args: %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            obj_inst = int(obj_inst)
-            value = args[4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
+            value = args[3]
 
             indx = None
-            if len(args) >= 6:
-                if args[5] != "-":
-                    indx = int(args[5])
+            if len(args) >= 5:
+                if args[4] != "-":
+                    indx = int(args[4])
             if _debug: WritePropertyClient._debug("    - indx: %r", indx)
 
             priority = None
-            if len(args) >= 7:
-                priority = int(args[6])
+            if len(args) >= 6:
+                priority = int(args[5])
             if _debug: WritePropertyClient._debug("    - priority: %r", priority)
 
             # get the datatype
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if _debug: WritePropertyClient._debug("    - datatype: %r", datatype)
 
             # change atomic values into something encodeable, null is a special case
@@ -100,7 +98,7 @@ class WritePropertyClient(Client):
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id
                 )
             request.pduDestination = Address(addr)

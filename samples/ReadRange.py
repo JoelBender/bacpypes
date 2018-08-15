@@ -16,10 +16,11 @@ from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_datatype
 from bacpypes.apdu import ReadRangeRequest, ReadRangeACK
 
 from bacpypes.app import BIPSimpleApplication
+from bacpypes.primitivedata import ObjectIdentifier
 from bacpypes.local.device import LocalDeviceObject
 
 # some debugging
@@ -37,33 +38,27 @@ this_application = None
 class ReadRangeConsoleCmd(ConsoleCmd):
 
     def do_readrange(self, args):
-        """readrange <addr> <type> <inst> <prop> [ <indx> ]"""
+        """readrange <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadRangeConsoleCmd._debug("do_readrange %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError("unknown object type")
-
-            obj_inst = int(obj_inst)
-
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadRangeRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: ReadRangeConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB

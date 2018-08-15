@@ -21,7 +21,7 @@ As a router, this does not have an application layer.
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.comm import bind
 
 from bacpypes.pdu import Address
@@ -114,6 +114,9 @@ def main():
     # create the router
     router = IP2IPRouter(Address(args.addr1), args.net1, Address(args.addr2), args.net2)
     if _debug: _log.debug("    - router: %r", router)
+
+    # send network topology
+    deferred(router.nse.i_am_router_to_network)
 
     _log.debug("running")
 

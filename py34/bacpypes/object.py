@@ -929,7 +929,7 @@ class AlertEnrollmentObject(Object):
     properties = \
         [ ReadableProperty('presentValue', ObjectIdentifier)
         , ReadableProperty('eventState', EventState)
-        , OptionalProperty('eventDetectionEnable', Boolean)
+        , ReadableProperty('eventDetectionEnable', Boolean)
         , ReadableProperty('notificationClass', Unsigned)
         , OptionalProperty('eventEnable', EventTransitionBits)
         , OptionalProperty('ackedTransitions', EventTransitionBits)

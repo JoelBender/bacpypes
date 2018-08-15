@@ -79,8 +79,6 @@ class TestObjectIdentifier(unittest.TestCase):
         assert obj.value == ('analogInput', 0)
 
         with self.assertRaises(TypeError):
-            ObjectIdentifier("some string")
-        with self.assertRaises(TypeError):
             ObjectIdentifier(1.0)
 
     def test_object_identifier_int(self):
@@ -93,6 +91,26 @@ class TestObjectIdentifier(unittest.TestCase):
         obj = ObjectIdentifier(0x0400002)
         assert obj.value == ('analogOutput', 2)
         assert str(obj) == "ObjectIdentifier(analogOutput,2)"
+
+    def test_object_identifier_str(self):
+        if _debug: TestObjectIdentifier._debug("test_object_identifier_str")
+
+        obj = ObjectIdentifier("analogInput:1")
+        assert obj.value == ('analogInput', 1)
+        assert str(obj) == "ObjectIdentifier(analogInput,1)"
+
+        obj = ObjectIdentifier("8:123")
+        assert obj.value == ('device', 123)
+        assert str(obj) == "ObjectIdentifier(device,123)"
+
+        with self.assertRaises(ValueError):
+            ObjectIdentifier("x")
+        with self.assertRaises(ValueError):
+            ObjectIdentifier(":1")
+        with self.assertRaises(ValueError):
+            ObjectIdentifier("1:")
+        with self.assertRaises(ValueError):
+            ObjectIdentifier("a:b")
 
     def test_object_identifier_tuple(self):
         if _debug: TestObjectIdentifier._debug("test_object_identifier_tuple")

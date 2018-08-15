@@ -19,6 +19,7 @@ from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import ReadPropertyRequest, WhoIsRequest
+from bacpypes.primitivedata import ObjectIdentifier
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.object import get_object_class, get_datatype
@@ -65,30 +66,28 @@ class ThreadedHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if _debug: ThreadedHTTPRequestHandler._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst = args[:3]
+            addr, obj_id = args[:2]
+            obj_id = ObjectIdentifier(obj_id).value
 
             # get the object type
-            if not get_object_class(obj_type):
+            if not get_object_class(obj_id[0]):
                 raise ValueError("unknown object type")
 
-            # get the instance number
-            obj_inst = int(obj_inst)
-
             # implement a default property, the bain of committee meetings
-            if len(args) == 4:
-                prop_id = args[3]
+            if len(args) == 3:
+                prop_id = args[2]
             else:
                 prop_id = "presentValue"
 
             # look for its datatype, an easy way to see if the property is
             # appropriate for the object
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)

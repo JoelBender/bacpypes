@@ -14,19 +14,24 @@ from bacpypes.consolecmd import ConsoleCmd
 from bacpypes.core import run
 from bacpypes.comm import bind
 
-from bacpypes.pdu import Address, GlobalBroadcast
+from bacpypes.pdu import Address, LocalBroadcast, GlobalBroadcast
 
 from bacpypes.vlan import Network, Node
 
-from bacpypes.app import LocalDeviceObject, Application
+from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.netservice import NetworkServiceAccessPoint, NetworkServiceElement
+from bacpypes.local.device import LocalDeviceObject
 
 from bacpypes.apdu import WhoIsRequest, IAmRequest, ReadPropertyRequest, WritePropertyRequest
 
-from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real
+from bacpypes.primitivedata import Null, Atomic, Integer, Unsigned, Real, ObjectIdentifier
 from bacpypes.constructeddata import Array, Any
 from bacpypes.object import get_object_class, get_datatype
+
+# basic services
+from bacpypes.service.device import WhoIsIAmServices
+from bacpypes.service.object import ReadWritePropertyServices
 
 # some debugging
 _debug = 0
@@ -41,11 +46,11 @@ vlan_app_2 = None
 #
 
 @bacpypes_debugging
-class VLANApplication(Application):
+class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
-    def __init__(self, vlan_device, vlan_address, aseID=None):
-        if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
-        Application.__init__(self, vlan_device, vlan_address, aseID)
+    def __init__(self, vlan_device, vlan_address):
+        if _debug: VLANApplication._debug("__init__ %r %r", vlan_device, vlan_address)
+        Application.__init__(self, vlan_device, vlan_address)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -53,6 +58,10 @@ class VLANApplication(Application):
         # pass the device object to the state machine access point so it
         # can know if it should support segmentation
         self.smap = StateMachineAccessPoint(vlan_device)
+
+        # the segmentation state machines need access to the same device
+        # information cache as the application
+        self.smap.deviceInfoCache = self.deviceInfoCache
 
         # a network service access point will be needed
         self.nsap = NetworkServiceAccessPoint()
@@ -141,33 +150,27 @@ class TestConsoleCmd(ConsoleCmd):
             TestConsoleCmd._exception("exception: %r", e)
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: TestConsoleCmd._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type):
-                raise ValueError, "unknown object type"
-
-            obj_inst = int(obj_inst)
-
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:
                 raise ValueError, "invalid property for object type"
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: TestConsoleCmd._debug("    - request: %r", request)
 
             # give it to the application
@@ -177,30 +180,28 @@ class TestConsoleCmd(ConsoleCmd):
             TestConsoleCmd._exception("exception: %r", e)
 
     def do_write(self, args):
-        """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
+        """write <addr> <objid> <prop> <value> [ <indx> ] [ <priority> ]"""
         args = args.split()
         if _debug: TestConsoleCmd._debug("do_write %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            obj_inst = int(obj_inst)
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
             value = args[4]
 
             indx = None
-            if len(args) >= 6:
-                if args[5] != "-":
-                    indx = int(args[5])
+            if len(args) >= 5:
+                if args[4] != "-":
+                    indx = int(args[4])
             if _debug: TestConsoleCmd._debug("    - indx: %r", indx)
 
             priority = None
-            if len(args) >= 7:
-                priority = int(args[6])
+            if len(args) >= 6:
+                priority = int(args[5])
             if _debug: TestConsoleCmd._debug("    - priority: %r", priority)
 
             # get the datatype
-            datatype = get_datatype(obj_type, prop_id)
+            datatype = get_datatype(obj_id[0], prop_id)
             if _debug: TestConsoleCmd._debug("    - datatype: %r", datatype)
 
             # change atomic values into something encodeable, null is a special case
@@ -227,7 +228,7 @@ class TestConsoleCmd(ConsoleCmd):
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id
                 )
             request.pduDestination = Address(addr)
@@ -269,7 +270,7 @@ try:
     if _debug: _log.debug("    - args: %r", args)
 
     # create a VLAN
-    vlan = Network()
+    vlan = Network(broadcast_address=LocalBroadcast())
 
     # create the first device
     vlan_device_1 = \

@@ -21,7 +21,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_object_class, get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest, WritePropertyRequest
-from bacpypes.primitivedata import Tag, Null, Atomic, Integer, Unsigned, Real
+from bacpypes.primitivedata import Tag, Null, Atomic, Integer, Unsigned, Real, ObjectIdentifier
 from bacpypes.constructeddata import Array, Any
 
 from bacpypes.app import BIPSimpleApplication
@@ -44,39 +44,31 @@ this_application = None
 class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadWritePropertyConsoleCmd._debug("do_read %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type, VendorAVObject.vendor_id):
-                raise ValueError("unknown object type")
-            if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_type: %r", obj_type)
-
-            obj_inst = int(obj_inst)
-            if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_inst: %r", obj_inst)
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
             if prop_id.isdigit():
                 prop_id = int(prop_id)
             if _debug: ReadWritePropertyConsoleCmd._debug("    - prop_id: %r", prop_id)
 
-            datatype = get_datatype(obj_type, prop_id, VendorAVObject.vendor_id)
+            datatype = get_datatype(obj_id[0], prop_id, VendorAVObject.vendor_id)
             if not datatype:
                 raise ValueError("invalid property for object type")
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB
@@ -124,41 +116,36 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
     def do_write(self, args):
-        """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
+        """write <addr> <objid> <prop> <value> [ <indx> ] [ <priority> ]"""
         args = args.split()
         ReadWritePropertyConsoleCmd._debug("do_write %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
 
-            if obj_type.isdigit():
-                obj_type = int(obj_type)
-            elif not get_object_class(obj_type, VendorAVObject.vendor_id):
+            if not get_object_class(obj_id[0], VendorAVObject.vendor_id):
                 raise ValueError("unknown object type")
-            if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_type: %r", obj_type)
-
-            obj_inst = int(obj_inst)
-            if _debug: ReadWritePropertyConsoleCmd._debug("    - obj_inst: %r", obj_inst)
 
             if prop_id.isdigit():
                 prop_id = int(prop_id)
             if _debug: ReadWritePropertyConsoleCmd._debug("    - prop_id: %r", prop_id)
 
-            value = args[4]
+            value = args[3]
 
             indx = None
-            if len(args) >= 6:
-                if args[5] != "-":
-                    indx = int(args[5])
+            if len(args) >= 5:
+                if args[4] != "-":
+                    indx = int(args[4])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - indx: %r", indx)
 
             priority = None
-            if len(args) >= 7:
-                priority = int(args[6])
+            if len(args) >= 6:
+                priority = int(args[5])
             if _debug: ReadWritePropertyConsoleCmd._debug("    - priority: %r", priority)
 
             # get the datatype
-            datatype = get_datatype(obj_type, prop_id, VendorAVObject.vendor_id)
+            datatype = get_datatype(obj_id[0], prop_id, VendorAVObject.vendor_id)
             if _debug: ReadWritePropertyConsoleCmd._debug("    - datatype: %r", datatype)
 
             # change atomic values into something encodeable, null is a special case
@@ -185,7 +172,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id
                 )
             request.pduDestination = Address(addr)

@@ -21,7 +21,7 @@ from bacpypes.pdu import Address
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
 
-from bacpypes.primitivedata import TagList, OpeningTag, ClosingTag, ContextTag
+from bacpypes.primitivedata import TagList, OpeningTag, ClosingTag, ContextTag, ObjectIdentifier
 from bacpypes.constructeddata import Any
 from bacpypes.apdu import WritePropertyRequest, SimpleAckPDU
 
@@ -40,26 +40,24 @@ this_application = None
 class WriteSomethingConsoleCmd(ConsoleCmd):
 
     def do_write(self, args):
-        """write <addr> <type> <inst> <prop> [ <indx> ]"""
+        """write <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: WriteSomethingConsoleCmd._debug("do_write %r", args)
 
         try:
-            addr, obj_type, obj_inst, prop_id = args[:4]
-
-            obj_type = int(obj_type)
-            obj_inst = int(obj_inst)
+            addr, obj_id, prop_id = args[:3]
+            obj_id = ObjectIdentifier(obj_id).value
             prop_id = int(prop_id)
 
             # build a request
             request = WritePropertyRequest(
-                objectIdentifier=(obj_type, obj_inst),
+                objectIdentifier=obj_id,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
 
-            if len(args) == 5:
-                request.propertyArrayIndex = int(args[4])
+            if len(args) == 4:
+                request.propertyArrayIndex = int(args[3])
 
             # build a custom datastructure
             tag_list = TagList([

@@ -2365,7 +2365,9 @@ class PriorityValue(Choice):
         , Element('datetime', DateTime, 1)
         ]
 
-class PriorityArray(ArrayOf(PriorityValue)):
+class PriorityArray(ArrayOf(
+        PriorityValue, fixed_length=16, prototype=PriorityValue(null=()),
+        )):
     pass
 
 class PropertyAccessResultAccessResult(Choice):

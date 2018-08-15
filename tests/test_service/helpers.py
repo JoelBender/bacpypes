@@ -5,11 +5,12 @@ Service Helper Classes
 """
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
+from bacpypes.capability import Capability
 
 from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.npdu import NPDU
-from bacpypes.apdu import APDU, apdu_types
+from bacpypes.apdu import apdu_types, APDU, SimpleAckPDU, RejectPDU, AbortPDU
 
 from bacpypes.vlan import Network, Node
 
@@ -301,4 +302,41 @@ class ApplicationStateMachine(ApplicationIOController, StateMachine):
 
         # allow the application to process it
         super(ApplicationStateMachine, self).confirmation(apdu)
+
+
+#
+#   COVTestClientServices
+#
+
+@bacpypes_debugging
+class COVTestClientServices(Capability):
+
+    def do_ConfirmedCOVNotificationRequest(self, apdu):
+        if _debug: COVTestClientServices._debug("do_ConfirmedCOVNotificationRequest %r", apdu)
+
+        # the test device needs to set these
+        assert hasattr(self, 'test_ack')
+        assert hasattr(self, 'test_reject')
+        assert hasattr(self, 'test_abort')
+
+        if self.test_ack:
+            # success
+            response = SimpleAckPDU(context=apdu)
+            if _debug: COVTestClientServices._debug("    - simple_ack: %r", response)
+
+        elif self.test_reject:
+            # reject
+            response = RejectPDU(reason=self.test_reject, context=apdu)
+            if _debug: COVTestClientServices._debug("    - reject: %r", response)
+
+        elif self.test_abort:
+            # abort
+            response = AbortPDU(reason=self.test_abort, context=apdu)
+            if _debug: COVTestClientServices._debug("    - abort: %r", response)
+
+        # return the result
+        self.response(response)
+
+    def do_UnconfirmedCOVNotificationRequest(self, apdu):
+        if _debug: COVTestClientServices._debug("do_UnconfirmedCOVNotificationRequest %r", apdu)
 

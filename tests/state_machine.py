@@ -919,7 +919,9 @@ class StateMachine(object):
     def unexpected_receive(self, pdu):
         """Called with PDU that did not match.  Unless this is trapped by the
         state, the default behaviour is to fail."""
-        if _debug: StateMachine._debug("unexpected_receive(%s) %r", self.name, pdu)
+        if _debug:
+            StateMachine._debug("unexpected_receive(%s) %r", self.name, pdu)
+            StateMachine._debug("    - current_state: %r", self.current_state)
 
         # go to the unexpected receive state (failing)
         self.goto_state(self.unexpected_receive_state)
