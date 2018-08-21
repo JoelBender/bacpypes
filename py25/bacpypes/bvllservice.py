@@ -634,6 +634,8 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
     def register(self, addr, ttl):
         """Initiate the process of registering with a BBMD."""
+        if _debug: BIPForeign._debug("register %r %r", addr, ttl)
+
         # a little error checking
         if ttl <= 0:
             raise ValueError("time-to-live must be greater than zero")
@@ -647,11 +649,15 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
         # install this task to run when it gets a chance
         self.install_task(when=0)
+        if _debug: BIPForeign._debug("    - scheduled to run")
 
     def unregister(self):
         """Drop the registration with a BBMD."""
+        if _debug: BIPForeign._debug("unregister")
+
         pdu = RegisterForeignDevice(0)
         pdu.pduDestination = self.bbmdAddress
+        if _debug: BIPForeign._debug("    - pdu: %r", pdu)
 
         # send it downstream
         self.request(pdu)
@@ -665,8 +671,11 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
     def process_task(self):
         """Called when the registration request should be sent to the BBMD."""
+        if _debug: BIPForeign._debug("process_task")
+
         pdu = RegisterForeignDevice(self.bbmdTimeToLive)
         pdu.pduDestination = self.bbmdAddress
+        if _debug: BIPForeign._debug("    - pdu: %r", pdu)
 
         # send it downstream
         self.request(pdu)
