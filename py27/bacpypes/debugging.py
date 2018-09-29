@@ -10,21 +10,9 @@ import logging
 import binascii
 from cStringIO import StringIO
 
-
-# set the level of the root logger
-_root = logging.getLogger()
-_root.setLevel(1)
-
-# add a stream handler for warnings and up
-hdlr = logging.StreamHandler()
-if ('--debugDebugging' in sys.argv):
-    hdlr.setLevel(logging.DEBUG)
-else:
-    hdlr.setLevel(logging.WARNING)
-hdlr.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
-_root.addHandler(hdlr)
-del hdlr
-
+# create a root logger
+root_logger = logging.getLogger('bacpypes')
+root_logger.setLevel(logging.DEBUG)
 
 def btox(data, sep=''):
     """Return the hex encoding of a blob (string)."""
@@ -68,11 +56,22 @@ def ModuleLogger(globs):
     if '_debug' not in globs:
         raise RuntimeError("define _debug before creating a module logger")
 
+    # logger name is the module name
+    logger_name = globs['__name__']
+
     # create a logger to be assigned to _log
     logger = logging.getLogger(globs['__name__'])
+    logger = logging.getLogger(logger_name)
 
     # put in a reference to the module globals
     logger.globs = globs
+
+    # if this is a "root" logger add a default handler for warnings and up
+    if '.' not in logger_name:
+        hdlr = logging.StreamHandler()
+        hdlr.setLevel(logging.WARNING)
+        hdlr.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
+        logger.addHandler(hdlr)
 
     return logger
 
