@@ -12,7 +12,6 @@ from cStringIO import StringIO
 
 # create a root logger
 root_logger = logging.getLogger('bacpypes')
-root_logger.setLevel(logging.DEBUG)
  
 
 def btox(data, sep=''):
@@ -61,7 +60,6 @@ def ModuleLogger(globs):
     logger_name = globs['__name__']
 
     # create a logger to be assigned to _log
-    logger = logging.getLogger(globs['__name__'])
     logger = logging.getLogger(logger_name)
 
     # put in a reference to the module globals
