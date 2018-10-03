@@ -8,8 +8,7 @@ import random
 import string
 import unittest
 
-from bacpypes.debugging import ModuleLogger, bacpypes_debugging, btox, xtob
-from bacpypes.consolelogging import ArgumentParser
+from bacpypes.debugging import ModuleLogger, bacpypes_debugging
 
 from bacpypes.primitivedata import CharacterString
 from bacpypes.constructeddata import Any
@@ -18,14 +17,11 @@ from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.vlan import Network, Node
 
-from bacpypes.npdu import NPDU, npdu_types
-from bacpypes.apdu import APDU, apdu_types, \
-    confirmed_request_types, unconfirmed_request_types, complex_ack_types, error_types, \
-    ConfirmedRequestPDU, UnconfirmedRequestPDU, \
-    SimpleAckPDU, ComplexAckPDU, SegmentAckPDU, ErrorPDU, RejectPDU, AbortPDU
-
-from bacpypes.apdu import APDU, ErrorPDU, RejectPDU, AbortPDU, \
-    ConfirmedPrivateTransferRequest, ConfirmedPrivateTransferACK
+from bacpypes.npdu import NPDU
+from bacpypes.apdu import (
+    APDU, apdu_types,
+    ConfirmedPrivateTransferRequest, ConfirmedPrivateTransferACK,
+    )
 
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
