@@ -260,7 +260,7 @@ class ApplicationNode(Application, WhoIsIAmServices, ReadWritePropertyServices):
         if _debug: ApplicationNode._debug("    - address: %r", self.address)
 
         # continue with initialization
-        Application.__init__(self, local_device, self.address)
+        Application.__init__(self, local_device)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
