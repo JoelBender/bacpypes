@@ -26,10 +26,13 @@ from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.device import WhoIsIAmServices
-from bacpypes.service.object import ReadWritePropertyServices
+from bacpypes.service.object import (
+    ReadWritePropertyServices,
+    ReadWritePropertyMultipleServices,
+    )
 
 from bacpypes.primitivedata import Real
-from bacpypes.object import AnalogValueObject, Property
+from bacpypes.object import register_object_type, AnalogValueObject, Property
 
 from bacpypes.vlan import Network, Node
 from bacpypes.errors import ExecutionError
@@ -71,6 +74,7 @@ class RandomValueProperty(Property):
 #
 
 @bacpypes_debugging
+@register_object_type(vendor_id=999)
 class RandomAnalogValueObject(AnalogValueObject):
 
     properties = [
@@ -86,7 +90,12 @@ class RandomAnalogValueObject(AnalogValueObject):
 #
 
 @bacpypes_debugging
-class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
+class VLANApplication(
+    Application,
+    WhoIsIAmServices,
+    ReadWritePropertyServices,
+    ReadWritePropertyMultipleServices,
+    ):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
