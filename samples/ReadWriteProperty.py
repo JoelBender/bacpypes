@@ -115,7 +115,7 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
             ReadWritePropertyConsoleCmd._exception("exception: %r", error)
 
     def do_write(self, args):
-        """write <addr> <type> <inst> <prop> <value> [ <indx> ] [ <priority> ]"""
+        """write <addr> <objid> <prop> <value> [ <indx> ] [ <priority> ]"""
         args = args.split()
         ReadWritePropertyConsoleCmd._debug("do_write %r", args)
 
