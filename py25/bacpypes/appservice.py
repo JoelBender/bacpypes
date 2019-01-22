@@ -833,7 +833,7 @@ class ServerSSM(SSM):
 
                 # make sure we dont exceed the number of segments in our response
                 # that the client said it was willing to accept in the request
-                if self.segmentCount > self.maxSegmentsAccepted:
+                if (self.maxSegmentsAccepted is not None) and (self.segmentCount > self.maxSegmentsAccepted):
                     if _debug: ServerSSM._debug("    - client can't receive enough segments")
                     abort = self.abort(AbortReason.apduTooLong)
                     self.response(abort)
