@@ -2,7 +2,6 @@
 
 """
 Raspberry Pi Binary Input and Output
-
 This sample application is BACnet server running on a Rasbperry Pi that
 associates a Button with a BinaryInputObject and a LED with a
 BinaryOutputObject.
@@ -25,6 +24,8 @@ from bacpypes.errors import ExecutionError
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
 
+from gpiozero import Button, LED
+
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
@@ -39,6 +40,9 @@ led_list = [(17, 17)]
 #   Mock classes
 #
 
+'''
+# We may want to look into the mock pin class of gpiozero.
+# It will allow for testing without using an RPI board.
 
 class Button:
     def __init__(self, button_id):
@@ -48,7 +52,7 @@ class Button:
 class LED:
     def __init__(self, led_id):
         pass
-
+'''
 
 #
 #   BIPresentValue
@@ -73,12 +77,18 @@ class BIPresentValue(Property):
             raise ExecutionError(
                 errorClass="property", errorCode="propertyIsNotAnArray"
             )
+        
 
         ###TODO: obj._button is the Button object
+        
         if _debug:
             BIPresentValue._debug("    - read button: %r", obj._button)
 
-        return "inactive"
+        if obj._button.is_pressed:
+            return "active"
+        
+        else:
+            return "inactive"
 
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         if _debug:
@@ -137,9 +147,17 @@ class BOPresentValue(Property):
             raise ExecutionError(
                 errorClass="property", errorCode="propertyIsNotAnArray"
             )
+        
 
         ###TODO: obj._led is the LED object
-        return "inactive"
+        if _debug:
+            BOPresentValue._debug("    - read led: %r", obj._led)
+        
+        if obj._led.value == 1:
+            return "active"
+        else:
+            return "inactive"
+        
 
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         if _debug:
@@ -162,7 +180,15 @@ class BOPresentValue(Property):
         if _debug:
             BOPresentValue._debug("    - write led: %r", obj._led)
 
-        raise ExecutionError(errorClass="property", errorCode="writeAccessDenied")
+        #raise ExecutionError(errorClass="property", errorCode="writeAccessDenied")
+
+        if value == "active":
+            obj._led.on()
+        elif value == "inactive":
+            obj._led.off()
+        else:
+            ### TODO: insert correct value error. Below is a placeholder.
+            print("invalid value for led. Use 'active' to turn on or 'inactive' to turn off.")
 
 
 #
