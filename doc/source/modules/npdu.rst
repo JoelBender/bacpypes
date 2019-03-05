@@ -20,7 +20,7 @@ PDU Base Types
 
     .. attribute:: npduControl
 
-        This is the a single octec. Each bit of the byte indicates the presence of specific fields in the NPCI.
+        This is the a single octet. Each bit of the byte indicates the presence of specific fields in the NPCI.
 
     .. attribute:: npduDADR
 
@@ -80,7 +80,7 @@ Service Requests
 
 .. class:: IAmRouterToNetwork(NPCI)
 
-    Respose to a WhoIsRouterToNetwork request. Contains network numbers of the networks a router provides access to.
+    Response to a WhoIsRouterToNetwork request. Contains network numbers of the networks a router provides access to.
 
     .. method:: encode(npdu)
                 decode(npdu)
@@ -91,7 +91,7 @@ Service Requests
 
 .. class:: ICouldBeRouterToNetwork(NPCI)
 
-    Respose to a WhoIsRouterToNetwork request. Contains network numbers of the networks a half-router could provide access to over a PTP     connection, but the connection is not currenty established. 
+    Response to a WhoIsRouterToNetwork request. Contains network numbers of the networks a half-router could provide access to over a PTP     connection, but the connection is not currently established.
 
     .. method:: encode(npdu)
                 decode(npdu)
@@ -162,7 +162,7 @@ Service Requests
 
 .. class:: InitializeRoutingTableAck(NPCI)
 
-    This is a message inicating the routing table of a router has been changed or the routing table has beed initialized.
+    This is a message indicating the routing table of a router has been changed or the routing table has been initialized.
 
     .. method:: encode(npdu)
                 decode(npdu)
