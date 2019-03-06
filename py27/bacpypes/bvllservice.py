@@ -15,7 +15,7 @@ from .task import OneShotTask, RecurringTask
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
-from .pdu import Address, LocalBroadcast, LocalStation, PDU, \
+from .pdu import Address, LocalBroadcast, PDU, \
     unpack_ip_addr
 from .bvll import BVLPDU, DeleteForeignDeviceTableEntry, \
     DistributeBroadcastToNetwork, FDTEntry, ForwardedNPDU, \
@@ -911,7 +911,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation( addr )
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -936,7 +936,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation( addr )
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -970,7 +970,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation(addr)
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -988,7 +988,7 @@ class BIPBBMD(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation(addr)
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -1209,7 +1209,7 @@ class BIPNAT(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation( addr )
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -1234,7 +1234,7 @@ class BIPNAT(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation( addr )
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -1268,7 +1268,7 @@ class BIPNAT(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation(addr)
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
@@ -1290,7 +1290,7 @@ class BIPNAT(BIPSAP, Client, Server, RecurringTask, DebugContents):
         if isinstance(addr, Address):
             pass
         elif isinstance(addr, str):
-            addr = LocalStation(addr)
+            addr = Address(addr)
         else:
             raise TypeError("addr must be a string or an Address")
 
