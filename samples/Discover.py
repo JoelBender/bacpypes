@@ -63,6 +63,8 @@ The application prints content during interactive sessions.
 
 import sys
 import time
+import json
+from collections import OrderedDict
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
@@ -70,7 +72,7 @@ from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.pdu import Address, LocalBroadcast, GlobalBroadcast
 from bacpypes.comm import bind
-from bacpypes.core import run, deferred, enable_sleeping
+from bacpypes.core import run, enable_sleeping
 from bacpypes.iocb import IOCB
 
 # application layer
