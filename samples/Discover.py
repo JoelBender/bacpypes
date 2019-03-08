@@ -588,6 +588,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
             # do something for success
             elif iocb.ioResponse:
                 apdu = iocb.ioResponse
+                if _debug: DiscoverConsoleCmd._debug("    - apdu: %r", apdu)
 
                 # should be an ack
                 if not isinstance(apdu, ReadPropertyACK):
@@ -723,6 +724,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
             # do something for success
             if iocb.ioResponse:
                 apdu = iocb.ioResponse
+                if _debug: DiscoverConsoleCmd._debug("    - apdu: %r", apdu)
 
                 # should be an ack
                 if not isinstance(apdu, ReadPropertyMultipleACK):
