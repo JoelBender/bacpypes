@@ -789,7 +789,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
                                 print("{}: {}".format(property_label, str_value))
 
                             # save it in the snapshot
-                            snapshot.upsert(devid, '{}:{}'.format(*objectIdentifier), propertyIdentifier, str_value)
+                            snapshot.upsert(devid, '{}:{}'.format(*objectIdentifier), property_label, str_value)
 
             # do something for error/reject/abort
             if iocb.ioError:
