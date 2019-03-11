@@ -17,7 +17,7 @@ import SimpleHTTPServer
 from bacpypes.debugging import class_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
-from bacpypes.core import run
+from bacpypes.core import run, deferred
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
@@ -138,7 +138,7 @@ class ThreadedHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             if _debug: ThreadedHTTPRequestHandler._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()

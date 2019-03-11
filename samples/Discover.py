@@ -72,7 +72,7 @@ from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.pdu import Address, LocalBroadcast, GlobalBroadcast
 from bacpypes.comm import bind
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 # application layer
@@ -490,7 +490,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
             if _debug: DiscoverConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # sleep for responses
             time.sleep(3.0)
@@ -575,7 +575,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
             if _debug: DiscoverConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -716,7 +716,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
             if _debug: DiscoverConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -789,7 +789,7 @@ class DiscoverConsoleCmd(ConsoleCmd):
                                 print("{}: {}".format(property_label, str_value))
 
                             # save it in the snapshot
-                            snapshot.upsert(devid, '{}:{}'.format(*objectIdentifier), propertyIdentifier, str_value)
+                            snapshot.upsert(devid, '{}:{}'.format(*objectIdentifier), property_label, str_value)
 
             # do something for error/reject/abort
             if iocb.ioError:
