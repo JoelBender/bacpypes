@@ -8,8 +8,6 @@ except ImportError:
     def ticks_ms():
         return time() * 1000
 
-# enabling print functions for basic debugging
-debug = True
 
 """
 TODOs
@@ -33,6 +31,7 @@ class Scheduler:
     def __init__(self, watchdog=False):
         self.tasks = []
         self.watchdog = watchdog
+        self.debug = False
 
     def main_loop(self, func):
         """
@@ -40,34 +39,34 @@ class Scheduler:
         that is due to be executed.
         """
 
-        if debug: print("Scheduler started at", round(ticks_ms()))
+        if self.debug: print("Scheduler started at", round(ticks_ms()))
 
         while True:
             try:
                 if self.tasks:
                     for task in self.tasks:
                         if ticks_ms() >= task.exec_time:
-                            if debug: print("\ntime for task:", task.name)
+                            if self.debug: print("\ntime for task:", task.name)
                             task.func()
 
                             if task.repeat:
-                                if debug: print("\n", task.name, "tasks has repeat")
-                                if debug: print(task.name, "task will be done again @", task.exec_time)
+                                if self.debug: print("\n", task.name, "tasks has repeat")
+                                if self.debug: print(task.name, "task will be done again @", task.exec_time)
                                 task.exec_time = round(ticks_ms() + (task.delay * 1000))
 
                             else:
-                                if debug: print("deleting task:", task.name)
+                                if self.debug: print("deleting task:", task.name)
                                 del self.tasks[self.tasks.index(task)]
 
             except Exception as err:
-                if debug: print('Scheduler error:', err)
+                if self.debug: print('Scheduler error:', err)
                 # TODO: save exception to log
                 # for now the watchdog just prints 'reboot'
                 if self.watchdog: print('reboot')
             try:
                 func()
             except Exception as err:
-                if debug: print('Main function error:', err)
+                if self.debug: print('Main function error:', err)
                 # TODO: save exception to log
                 # for now the watchdog just prints 'reboot'
                 if self.watchdog: print("reboot")
@@ -79,8 +78,14 @@ class Scheduler:
         :return:
             None
         """
-        if debug: print("registering task:", task.name)
+        if self.debug: print("registering task:", task.name)
         self.tasks.append(task)
+
+    def enable_debug(self):
+        self.debug = True
+
+    def disable_debug(self):
+        self.debug = False
 
     class Task:
         """
@@ -129,6 +134,7 @@ if __name__ == "__main__":
 
     # create the scheduler
     sch = Scheduler()
+    sch.enable_debug()
 
     # create bob and mike tasks. Mike task is repeating
     bob_task = sch.Task(bob, 'bob', 2)
