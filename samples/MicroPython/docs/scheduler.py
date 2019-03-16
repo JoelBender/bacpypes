@@ -47,8 +47,10 @@ class Scheduler:
                     for task in self.tasks:
                         if ticks_ms() >= task.exec_time:
                             if self.debug: print("\ntime for task:", task.name)
-                            task.func()
-
+                            if task.func_args is not None:
+                                task.func(task.func_args)
+                            else:
+                                task.func()
                             if task.repeat:
                                 if self.debug: print("\n", task.name, "tasks has repeat")
                                 if self.debug: print(task.name, "task will be done again @", task.exec_time)
@@ -94,7 +96,7 @@ class Scheduler:
         NOTE: micropython does not support the '__name__' attribute for functions so the name of the function has
             to be added manually. A better solution for this is on the TODO list.
         """
-        def __init__(self, func, name, delay, repeat=False):
+        def __init__(self, func, name, delay, repeat=False, func_args=None):
             """
 
             :param func:
@@ -105,11 +107,15 @@ class Scheduler:
                 Int: the delay before the function is executed
             :param repeat:
                 Bool: is this a repeating function or a one-shot
+            :param *func_args:
+                Any: args for func to be executed
+
             """
             self.delay = delay
             self.func = func
             self.func_name = name
             self.repeat = repeat
+            self.func_args = func_args
             self.exec_time = round(ticks_ms() + (delay * 1000))
             if repeat:
                 self.name = 'Do ' + name + ' every ' + str(delay)
