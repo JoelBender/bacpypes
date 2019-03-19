@@ -32,6 +32,13 @@ from bacpypes.basetypes import AccessCredentialDisable, AccessCredentialDisableR
     SetpointReference, ShedLevel, ShedState, SilencedState, SpecialEvent, \
     StatusFlags, TimeStamp, VTClass, VTSession, WriteStatus
 
+# TODO: add to objectIdentifier enumeration
+# TODO: add to objectTypesSupported
+# TODO: add new properties to propertyIdentifier
+# TODO: fix property names
+
+
+
 
 #
 #   NEW PRIMITIVES
@@ -217,75 +224,75 @@ class NameValue(Sequence):
 #
 
 class NetworkPortObject(Object):
-    objectType = 'NetworkPort'
+    objectType = 'NetworkPort'  #56
     properties = \
-        [ ReadableProperty('statusFlags', StatusFlags)
-        , ReadableProperty('reliability', Reliability)
-        , ReadableProperty('outOfService', Boolean)
-        , ReadableProperty('networkType', NetworkType)
-        , ReadableProperty('protocolLevel', ProtocolLevel)
-        , OptionalProperty('referencePort', Unsigned)
-        , ReadableProperty('networkNumber', Unsigned16)
-        , ReadableProperty('networkNumberQuality', NetworkNumberQuality)
-        , ReadableProperty('changesPending', Boolean)
-        , OptionalProperty('command', NetworkPortCommand)
-        , OptionalProperty('macAddress', OctetString)
-        , ReadableProperty('apduLength', Unsigned)
-        , ReadableProperty('linkSpeed', Real)
-        , OptionalProperty('linkSpeeds', ArrayOf(Real))
-        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp))
-        , OptionalProperty('linkSpeedAutonegotiate', Boolean)
-        , OptionalProperty('networkInterfaceName', CharacterString)
-        , OptionalProperty('ipMode', IPMode)
-        , OptionalProperty('ipAddress', OctetString)
-        , OptionalProperty('ipUDPPort', Unsigned16)
-        , OptionalProperty('ipSubnetMask', OctetString)
-        , OptionalProperty('ipDefaultGateway', OctetString)
-        , OptionalProperty('ipMulticastAddress', OctetString)
-        , OptionalProperty('ipDNSServer', ArrayOf(OctetString))
-        , OptionalProperty('ipDHCPEnable', Boolean)
-        , OptionalProperty('ipDHCPLeaseTime', Unsigned)
-        , OptionalProperty('ipDHCPLeaseTimeRemaining', Unsigned)
-        , OptionalProperty('ipDHCPServer', OctetString)
-        , OptionalProperty('ipNATTraversal', Boolean)
-        , OptionalProperty('ipGlobalAddress', HostNPort)
-        , OptionalProperty('broadcastDistributionTable', ListOf(BDTEntry))
-        , OptionalProperty('acceptFDRegistrations', Boolean)
-        , OptionalProperty('foreignDeviceTable', ListOf(FDTEntry))
-        , OptionalProperty('fdBBMDAddress', HostNPort)
-        , OptionalProperty('fdSubscriptionLifetime', Unsigned16)
-        , OptionalProperty('ipv6Mode', IPMode)
-        , OptionalProperty('ipv6Address', OctetString)
-        , OptionalProperty('ipv6PrefixLength', Unsigned8)
-        , OptionalProperty('ipv6UDPPort', Unsigned16)
-        , OptionalProperty('ipv6DefaultGateway', OctetString)
-        , OptionalProperty('ipv6MulticastAddress', OctetString)
-        , OptionalProperty('ipv6DNSServer', OctetString)
-        , OptionalProperty('ipv6AutoAddressingEnabled', Boolean)
-        , OptionalProperty('ipv6DHCPLeaseTime', Unsigned)
-        , OptionalProperty('ipv6DHCPLeaseTimeRemaining', Unsigned)
-        , OptionalProperty('ipv6DHCPServer', OctetString)
-        , OptionalProperty('ipv6ZoneIndex', CharacterString)
-        , OptionalProperty('maxMasters', Unsigned8) # range 0-127
-        , OptionalProperty('maxInfoFrames', Unsigned8)
-        , OptionalProperty('slaveProxyEnable', Boolean)
-        , OptionalProperty('manualSlaveAddressBinding', ListOf(AddressBinding))
-        , OptionalProperty('autoSlaveDiscovery', Boolean)
-        , OptionalProperty('slaveAddressBinding', ListOf(AddressBinding))
-        , OptionalProperty('virtualMACAddressTable', ListOf(VMACEntry))
-        , OptionalProperty('routingTable', ListOf(RouterEntry))
-        , OptionalProperty('eventDetectionEnabled', Boolean)
-        , OptionalProperty('notificationClass', Unsigned)
-        , OptionalProperty('eventEnable', EventTransitionBits)
-        , OptionalProperty('ackedTransitions', EventTransitionBits)
-        , OptionalProperty('notifyType', NotifyType)
-        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp, 3))
-        , OptionalProperty('eventMessageTexts', ArrayOf(CharacterString, 3))
-        , OptionalProperty('eventMessageTextsConfig', ArrayOf(CharacterString, 3))
-        , OptionalProperty('eventState', EventState)
-        , ReadableProperty('reliabilityEvaluationInhibit', Boolean)
-        , OptionalProperty('propertyList', ArrayOf(PropertyIdentifier))
-        , OptionalProperty('tags', ArrayOf(NameValue))
-        , OptionalProperty('profileLocation', CharacterString)
-        , OptionalProperty('profileName', CharacterString)
+        [ ReadableProperty('statusFlags', StatusFlags)  #111
+        , ReadableProperty('reliability', Reliability)  #103
+        , ReadableProperty('outOfService', Boolean) #81
+        , ReadableProperty('networkType', NetworkType)  #427
+        , ReadableProperty('protocolLevel', ProtocolLevel)  #482
+        , OptionalProperty('referencePort', Unsigned)   #483
+        , ReadableProperty('networkNumber', Unsigned16) #425
+        , ReadableProperty('networkNumberQuality', NetworkNumberQuality)    #427
+        , ReadableProperty('changesPending', Boolean)   #416
+        , OptionalProperty('command', NetworkPortCommand)   #417
+        , OptionalProperty('macAddress', OctetString)   #423
+        , ReadableProperty('apduLength', Unsigned)  #388
+        , ReadableProperty('linkSpeed', Real)   #420
+        , OptionalProperty('linkSpeeds', ArrayOf(Real)) #421
+        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp))   #130
+        , OptionalProperty('linkSpeedAutonegotiate', Boolean)   #422
+        , OptionalProperty('networkInterfaceName', CharacterString) #424
+        , OptionalProperty('ipMode', IPMode)    #408
+        , OptionalProperty('ipAddress', OctetString) #400
+        , OptionalProperty('ipUDPPort', Unsigned16) #412
+        , OptionalProperty('ipSubnetMask', OctetString) #411
+        , OptionalProperty('ipDefaultGateway', OctetString) #401
+        , OptionalProperty('ipMulticastAddress', OctetString)   #409
+        , OptionalProperty('ipDNSServer', ArrayOf(OctetString)) #406
+        , OptionalProperty('ipDHCPEnable', Boolean) #402
+        , OptionalProperty('ipDHCPLeaseTime', Unsigned) #403
+        , OptionalProperty('ipDHCPLeaseTimeRemaining', Unsigned)    #404
+        , OptionalProperty('ipDHCPServer', OctetString) #405
+        , OptionalProperty('ipNATTraversal', Boolean)   #410
+        , OptionalProperty('ipGlobalAddress', HostNPort)    #407
+        , OptionalProperty('broadcastDistributionTable', ListOf(BDTEntry))  #414
+        , OptionalProperty('acceptFDRegistrations', Boolean)    #413
+        , OptionalProperty('bbmdForeignDeviceTable', ListOf(FDTEntry))  #415
+        , OptionalProperty('fdBBMDAddress', HostNPort)  #418
+        , OptionalProperty('fdSubscriptionLifetime', Unsigned16)    #419
+        , OptionalProperty('ipv6Mode', IPMode)  #435
+        , OptionalProperty('ipv6Address', OctetString)  #436
+        , OptionalProperty('ipv6PrefixLength', Unsigned8)   #437
+        , OptionalProperty('ipv6UDPPort', Unsigned16)   #438
+        , OptionalProperty('ipv6DefaultGateway', OctetString)   #439
+        , OptionalProperty('ipv6MulticastAddress', OctetString) #440
+        , OptionalProperty('ipv6DNSServer', OctetString)    #441
+        , OptionalProperty('ipv6AutoAddressingEnabled', Boolean)    #442
+        , OptionalProperty('ipv6DHCPLeaseTime', Unsigned)   #443
+        , OptionalProperty('ipv6DHCPLeaseTimeRemaining', Unsigned)  #444
+        , OptionalProperty('ipv6DHCPServer', OctetString)   #445
+        , OptionalProperty('ipv6ZoneIndex', CharacterString)    #446
+        , OptionalProperty('maxMasters', Unsigned8) # range 0-127   #64
+        , OptionalProperty('maxInfoFrames', Unsigned8)  #63
+        , OptionalProperty('slaveProxyEnable', Boolean) #172
+        , OptionalProperty('manualSlaveAddressBinding', ListOf(AddressBinding)) #170
+        , OptionalProperty('autoSlaveDiscovery', Boolean)   #169
+        , OptionalProperty('slaveAddressBinding', ListOf(AddressBinding))   #171
+        , OptionalProperty('virtualMACAddressTable', ListOf(VMACEntry)) #429
+        , OptionalProperty('routingTable', ListOf(RouterEntry)) #428
+        , OptionalProperty('eventDetectionEnabled', Boolean)    #353
+        , OptionalProperty('notificationClass', Unsigned)   #17
+        , OptionalProperty('eventEnable', EventTransitionBits)  #35
+        , OptionalProperty('ackedTransitions', EventTransitionBits) #0
+        , OptionalProperty('notifyType', NotifyType)    #72
+        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp, 3))    #130
+        , OptionalProperty('eventMessageTexts', ArrayOf(CharacterString, 3))    #351
+        , OptionalProperty('eventMessageTextsConfig', ArrayOf(CharacterString, 3))  #352
+        , OptionalProperty('eventState', EventState)    #36
+        , ReadableProperty('reliabilityEvaluationInhibit', Boolean) #357
+        , OptionalProperty('propertyList', ArrayOf(PropertyIdentifier)) #371
+        , OptionalProperty('tags', ArrayOf(NameValue))  #486
+        , OptionalProperty('profileLocation', CharacterString)  #91
+        , OptionalProperty('profileName', CharacterString)  #168
         ]
