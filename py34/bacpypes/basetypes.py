@@ -1730,7 +1730,8 @@ class AccessRule(Sequence):
         ]
 
 class AccessThreatLevel(Unsigned):
-    pass
+    _low_limit = 0
+    _high_limit = 100
 
 class AccumulatorRecord(Sequence):
     sequenceElements = \

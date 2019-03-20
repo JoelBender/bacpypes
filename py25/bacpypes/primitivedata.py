@@ -594,34 +594,34 @@ class Boolean(Atomic):
 class Unsigned(Atomic):
 
     _app_tag = Tag.unsignedAppTag
+    _low_limit = 0
+    _high_limit = None
 
-    def __init__(self,arg = None):
-        self.value = 0L
+    def __init__(self, arg=None):
+        self.value = 0
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, int):
-            if (arg < 0):
-                raise ValueError("unsigned integer required")
-            self.value = long(arg)
-        elif isinstance(arg, long):
-            if (arg < 0):
-                raise ValueError("unsigned integer required")
+            if not self.is_valid(arg):
+                raise ValueError("value out of range")
             self.value = arg
         elif isinstance(arg, Unsigned):
+            if not self.is_valid(arg.value):
+                raise ValueError("value out of range")
             self.value = arg.value
         else:
             raise TypeError("invalid constructor datatype")
 
     def encode(self, tag):
         # rip apart the number
-        data = struct.pack('>L', self.value)
+        data = bytearray(struct.pack('>L', self.value))
 
         # reduce the value to the smallest number of octets
-        while (len(data) > 1) and (data[0] == '\x00'):
-            data = data[1:]
+        while (len(data) > 1) and (data[0] == 0):
+            del data[0]
 
         # encode the tag
         tag.set_app_data(Tag.unsignedAppTag, data)
@@ -633,9 +633,9 @@ class Unsigned(Atomic):
             raise InvalidTag("invalid tag length")
 
         # get the data
-        rslt = 0L
+        rslt = 0
         for c in tag.tagData:
-            rslt = (rslt << 8) + ord(c)
+            rslt = (rslt << 8) + c
 
         # save the result
         self.value = rslt
@@ -643,10 +643,24 @@ class Unsigned(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        return isinstance(arg, (int, long)) and (not isinstance(arg, bool)) and (arg >= 0)
+        if not isinstance(arg, int) or isinstance(arg, bool):
+            return False
+        if (arg < cls._low_limit):
+            return False
+        if (cls._high_limit is not None) and (arg > cls._high_limit):
+            return False
+        return True
 
     def __str__(self):
-        return "Unsigned(%s)" % (self.value, )
+        return "%s(%s)" % (self.__class__.__name__, self.value)
+
+class Unsigned8(Unsigned):
+    _low_limit = 0
+    _high_limit = 255
+
+class Unsigned16(Unsigned):
+    _low_limit = 0
+    _high_limit = 65535
 
 #
 #   Integer
