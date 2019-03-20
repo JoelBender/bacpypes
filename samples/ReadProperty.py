@@ -40,7 +40,7 @@ this_application = None
 class ReadPropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadPropertyConsoleCmd._debug("do_read %r", args)
 
