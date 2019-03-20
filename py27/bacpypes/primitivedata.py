@@ -602,13 +602,17 @@ class Unsigned(Atomic):
     _high_limit = None
 
     def __init__(self, arg=None):
-        self.value = 0
+        self.value = 0L
 
         if arg is None:
             pass
         elif isinstance(arg, Tag):
             self.decode(arg)
         elif isinstance(arg, int):
+            if not self.is_valid(arg):
+                raise ValueError("value out of range")
+            self.value = long(arg)
+        elif isinstance(arg, long):
             if not self.is_valid(arg):
                 raise ValueError("value out of range")
             self.value = arg
@@ -637,9 +641,9 @@ class Unsigned(Atomic):
             raise InvalidTag("invalid tag length")
 
         # get the data
-        rslt = 0
+        rslt = 0L
         for c in tag.tagData:
-            rslt = (rslt << 8) + c
+            rslt = (rslt << 8) + ord(c)
 
         # save the result
         self.value = rslt
@@ -647,7 +651,7 @@ class Unsigned(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        if not isinstance(arg, int) or isinstance(arg, bool):
+        if not isinstance(arg, (int, long)) or isinstance(arg, bool):
             return False
         if (arg < cls._low_limit):
             return False
