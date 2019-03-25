@@ -94,6 +94,7 @@ class ObjectTypesSupported(BitString):
         , 'accessUser':35
         , 'accessZone':36
         , 'credentialDataInput':37
+        , 'networkPort':56
         , 'networkSecurity':38
         , 'bitstringValue':39
         , 'characterstringValue':40
@@ -1101,9 +1102,50 @@ class ProgramState(Enumerated):
         }
 
 class PropertyIdentifier(Enumerated):
+    # TODO: Sort Alphabetically
     vendor_range = (512, 4194303)
     enumerations = \
         { 'absenteeLimit':244
+        , 'tags':486
+        , 'profileLocation':91
+        , 'eventDetectionEnabled':353
+        , 'apduLength':388
+        , 'linkSpeed':420
+        , 'linkSpeeds':421
+        , 'linkSpeedAutonegotiate':422
+        , 'networkInterfaceName':424
+        , 'bacnetIPMode':408
+        , 'ipAddress':400
+        , 'bacnetIPUDPPort':412
+        , 'ipSubnetMask':411
+        , 'ipDefaultGateway':401
+        , 'bacnetIPMulticastAddress':409
+        , 'ipDNSServer':406
+        , 'ipDHCPEnable':402
+        , 'ipDHCPLeaseTime':403
+        , 'ipDHCPLeaseTimeRemaining':404
+        , 'ipDHCPServer':405
+        , 'bacnetIPNATTraversal':410
+        , 'bacnetIPGlobalAddress':407
+        , 'bbmdBroadcastDistributionTable':414
+        , 'bbmdAcceptFDRegistrations':413
+        , 'bbmdForeignDeviceTable':415
+        , 'fdBBMDAddress':418
+        , 'fdSubscriptionLifetime':419
+        , 'bacnetIPv6Mode':435
+        , 'ipv6Address':436
+        , 'ipv6PrefixLength':437
+        , 'bacnetIPv6UDPPort':438
+        , 'ipv6DefaultGateway':439
+        , 'bacnetIPv6MulticastAddress':440
+        , 'ipv6DNSServer':441
+        , 'ipv6AutoAddressingEnabled':442
+        , 'ipv6DHCPLeaseTime':443
+        , 'ipv6DHCPLeaseTimeRemaining':444
+        , 'ipv6DHCPServer':445
+        , 'ipv6ZoneIndex':446
+        , 'virtualMACAddressTable':429
+        , 'routingTable':428
         , 'acceptedModes':175
         , 'accessAlarmEvents':245
         , 'accessDoors':246
@@ -1158,8 +1200,10 @@ class PropertyIdentifier(Enumerated):
         , 'bufferSize':126
         , 'changeOfStateCount':15
         , 'changeOfStateTime':16
+        , 'changesPending':416
         , 'channelNumber':366
         , 'clientCovIncrement':127
+        , 'command':417
         , 'configurationFiles':154
         , 'controlGroups':367
         , 'controlledVariableReference':19
@@ -1286,6 +1330,7 @@ class PropertyIdentifier(Enumerated):
         , 'loggingRecord':184
         , 'loggingType':197
         , 'lowLimit':59
+        , 'macAddress':423
         , 'maintenanceRequired':158
         , 'manipulatedVariableReference':60
         , 'manualSlaveAddressBinding':170
@@ -1317,6 +1362,9 @@ class PropertyIdentifier(Enumerated):
         , 'musterPoint':287
         , 'negativeAccessRules':288
         , 'networkAccessSecurityPolicies':332
+        , 'networkNumber':425
+        , 'networkNumberQuality':427
+        , 'networkType': 427
         , 'nodeSubtype':207
         , 'nodeType':208
         , 'notificationClass':17
@@ -1365,6 +1413,7 @@ class PropertyIdentifier(Enumerated):
         , 'propertyList':371
         , 'proportionalConstant':93
         , 'proportionalConstantUnits':94
+        , 'protocolLevel':482
         , 'protocolObjectTypesSupported':96
         , 'protocolRevision':139
         , 'protocolServicesSupported':97
@@ -1376,6 +1425,7 @@ class PropertyIdentifier(Enumerated):
         , 'recipientList':102
         , 'recordsSinceNotification':140
         , 'recordCount':141
+        , 'referencePort':483
         , 'reliability':103
         , 'reliabilityEvaluationInhibit':357
         , 'relinquishDefault':104
