@@ -1613,6 +1613,7 @@ class ObjectType(Enumerated):
         , 'multiStateInput':13
         , 'multiStateOutput':14
         , 'multiStateValue':19
+        , 'networkPort':56
         , 'networkSecurity':38
         , 'notificationClass':15
         , 'notificationForwarder':51
