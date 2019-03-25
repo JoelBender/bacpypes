@@ -1565,10 +1565,106 @@ class WriteStatus(Enumerated):
         , 'successful':2
         , 'failed':3
         }
+class NetworkType(Enumerated):
+    enumerations = \
+        { 'ethernet':0
+        , 'arcnet':1
+        , 'mstp':2
+        , 'ptp':3
+        , 'lontalk':4
+        , 'ipv4':5
+        , 'zigbee':6
+        , 'virtual': 7
+        # , 'non-bacnet': 8  Removed in Version 1, Revision 18
+        , 'ipv6':9
+        , 'serial':10
+        }
 
+class ProtocolLevel(Enumerated):
+    enumerations = \
+        { 'physical':0
+        , 'protocol':1
+        , 'bacnetApplication':2
+        , 'nonBacnetApplication':3
+        }
+
+class NetworkNumberQuality(Enumerated):
+    enumerations = \
+        { 'unknown':0
+        , 'learned':1
+        , 'learnedConfigured':2
+        , 'configured':3
+        }
+
+class NetworkPortCommand(Enumerated):
+    enumerations = \
+        { 'idle':0
+        , 'discardChanges':1
+        , 'renewFdDRegistration':2
+        , 'restartSlaveDiscovery':3
+        , 'renewDHCP':4
+        , 'restartAutonegotiation':5
+        , 'disconnect':6
+        , 'restartPort':7
+        }
+
+class IPMode(Enumerated):
+    enumerations = \
+        { 'normal':0
+        , 'foreign':1
+        , 'bbmd':2
+        }
+
+class RouterEntryStatus(Enumerated):
+    # This was defined directly in the RouterEntry Sequence in the standard, but I moved it up here because
+    # I didn't see anywhere else you defined something that way.
+    enumerations = \
+        { 'available':0
+        , 'busy':1
+        , 'disconnected':2
+        }
+    
 #
 #   Forward Sequences
 #
+
+class HostNPort(Sequence):
+    sequenceElements = \
+        [ Element('host', HostAddress)
+        , Element('port', Unsigned16)
+        ]
+
+class BDTEntry(Sequence):
+    sequenceElements = \
+        [ Element('bbmdAddress', HostNPort)
+        , Element('broadcastMask', OctetString)  # shall be present if BACnet/IP, and absent for BACnet/IPv6
+        ]
+
+class FDTEntry(Sequence):
+    sequenceElements = \
+        [ Element('bacnetIPAddress', OctetString)  # the 6-octet B/IP or 18-octet B/IPv6 address of the registrant
+        , Element('timeToLive', Unsigned16)  # time to live in seconds at the time of registration
+        , Element('remainingTimeToLive', Unsigned16)  # remaining time to live in seconds, incl. grace period
+        ]
+
+class VMACEntry(Sequence):
+    sequenceElements = \
+        [ Element('virtualMACAddress', OctetString)  # maximum size 6 octets
+        , Element('nativeMACAddress', OctetString)
+        ]
+
+class RouterEntry(Sequence):
+    sequenceElements = \
+        [ Element('networkNumber', Unsigned16)
+        , Element('macAddress', OctetString)
+        , Element('status', RouterEntryStatus)  # Defined Above
+        ]
+
+class NameValue(Sequence):
+    sequenceElements = \
+        [ Element('name', CharacterString)
+        , Element('value', Atomic)  # IS ATOMIC CORRECT HERE? value is limited to primitive datatypes and BACnetDateTime
+        ]
 
 class DeviceAddress(Sequence):
     sequenceElements = \
@@ -1623,6 +1719,13 @@ class ObjectPropertyReference(Sequence):
         [ Element('objectIdentifier', ObjectIdentifier, 0)
         , Element('propertyIdentifier', PropertyIdentifier, 1)
         , Element('propertyArrayIndex', Unsigned, 2, True)
+        ]
+    
+class HostAddress(Choice):
+    choiceElements = \
+        [ Element('none', Null)
+        , Element('ipAddress', OctetString)  # 4 octets for B/IP or 16 octets for B/IPv6
+        , Element('name', CharacterString)  # Internet host name (see RFC 1123)
         ]
 
 class ProcessIdSelection(Choice):
