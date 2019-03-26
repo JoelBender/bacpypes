@@ -22,24 +22,26 @@ from .basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
     AccessUserType, AccessZoneOccupancyState, AccumulatorRecord, Action, \
     ActionList, AddressBinding, AssignedAccessRights, AuthenticationFactor, \
     AuthenticationFactorFormat, AuthenticationPolicy, AuthenticationStatus, \
-    AuthorizationException, AuthorizationMode, BackupState, BinaryPV, \
+    AuthorizationException, AuthorizationMode, BackupState, BDTEntry, BinaryPV, \
     COVSubscription, CalendarEntry, ChannelValue, ClientCOV, \
     CredentialAuthenticationFactor, DailySchedule, DateRange, DateTime, \
     Destination, DeviceObjectPropertyReference, DeviceObjectReference, \
     DeviceStatus, DoorAlarmState, DoorSecuredStatus, DoorStatus, DoorValue, \
     EngineeringUnits, EventNotificationSubscription, EventParameter, \
     EventState, EventTransitionBits, EventType, FaultParameter, FaultType, \
-    FileAccessMethod, LifeSafetyMode, LifeSafetyOperation, LifeSafetyState, \
+    FileAccessMethod, FDTEntry, IPMode, HostNPort, LifeSafetyMode, LifeSafetyOperation, LifeSafetyState, \
     LightingCommand, LightingInProgress, LightingTransition, LimitEnable, \
     LockStatus, LogMultipleRecord, LogRecord, LogStatus, LoggingType, \
-    Maintenance, NetworkSecurityPolicy, NodeType, NotifyType, \
+    Maintenance, NameValue, NetworkNumberQuality, NetworkPortCommand, \
+    NetworkSecurityPolicy, NetworkType, NodeType, NotifyType, \
     ObjectPropertyReference, ObjectTypesSupported, OptionalCharacterString, \
     Polarity, PortPermission, Prescale, PriorityArray, ProcessIdSelection, \
     ProgramError, ProgramRequest, ProgramState, PropertyAccessResult, \
-    PropertyIdentifier, Recipient, Reliability, RestartReason, Scale, \
-    SecurityKeySet, SecurityLevel, Segmentation, ServicesSupported, \
-    SetpointReference, ShedLevel, ShedState, SilencedState, SpecialEvent, \
-    StatusFlags, TimeStamp, VTClass, VTSession, WriteStatus
+    PropertyIdentifier, ProtocolLevel, Recipient, Reliability, RestartReason, \
+    RouterEntry, Scale, SecurityKeySet, SecurityLevel, Segmentation, \
+    ServicesSupported, SetpointReference, ShedLevel, ShedState, SilencedState, \
+    SpecialEvent, StatusFlags, TimeStamp, VTClass, VTSession, VMACEntry, \
+    WriteStatus
 from .apdu import EventNotificationParameters, ReadAccessSpecification, \
     ReadAccessResult
 

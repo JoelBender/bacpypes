@@ -8,7 +8,7 @@ from .debugging import ModuleLogger
 
 from .primitivedata import BitString, Boolean, CharacterString, Date, Double, \
     Enumerated, Integer, Null, ObjectIdentifier, OctetString, Real, Time, \
-    Unsigned
+    Unsigned, Unsigned16
 from .constructeddata import Any, AnyAtomic, ArrayOf, Choice, Element, \
     Sequence, SequenceOf
 
@@ -1615,6 +1615,7 @@ class WriteStatus(Enumerated):
         , 'successful':2
         , 'failed':3
         }
+
 class NetworkType(Enumerated):
     enumerations = \
         { 'ethernet':0
@@ -1678,6 +1679,13 @@ class RouterEntryStatus(Enumerated):
 #   Forward Sequences
 #
 
+class HostAddress(Choice):
+    choiceElements = \
+        [ Element('none', Null)
+        , Element('ipAddress', OctetString)  # 4 octets for B/IP or 16 octets for B/IPv6
+        , Element('name', CharacterString)  # Internet host name (see RFC 1123)
+        ]
+
 class HostNPort(Sequence):
     sequenceElements = \
         [ Element('host', HostAddress)
@@ -1713,7 +1721,7 @@ class RouterEntry(Sequence):
 class NameValue(Sequence):
     sequenceElements = \
         [ Element('name', CharacterString)
-        , Element('value', Atomic)  # IS ATOMIC CORRECT HERE? value is limited to primitive datatypes and BACnetDateTime
+        , Element('value', AnyAtomic)  # IS ATOMIC CORRECT HERE? value is limited to primitive datatypes and BACnetDateTime
         ]
 
 class DeviceAddress(Sequence):
@@ -1771,13 +1779,6 @@ class ObjectPropertyReference(Sequence):
         , Element('propertyArrayIndex', Unsigned, 2, True)
         ]
     
-class HostAddress(Choice):
-    choiceElements = \
-        [ Element('none', Null)
-        , Element('ipAddress', OctetString)  # 4 octets for B/IP or 16 octets for B/IPv6
-        , Element('name', CharacterString)  # Internet host name (see RFC 1123)
-        ]
-
 class ProcessIdSelection(Choice):
     choiceElements = \
         [ Element('processIdentifier', Unsigned)
