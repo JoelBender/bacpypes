@@ -1667,14 +1667,12 @@ class IPMode(Enumerated):
         }
 
 class RouterEntryStatus(Enumerated):
-    # This was defined directly in the RouterEntry Sequence in the standard, but I moved it up here because
-    # I didn't see anywhere else you defined something that way.
     enumerations = \
         { 'available':0
         , 'busy':1
         , 'disconnected':2
         }
-    
+
 #
 #   Forward Sequences
 #
