@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
@@ -66,7 +66,7 @@ class ReadRangeConsoleCmd(ConsoleCmd):
             if _debug: ReadRangeConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()

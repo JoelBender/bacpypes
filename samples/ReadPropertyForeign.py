@@ -2,8 +2,18 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyRequest PDUs, then lines up the coorresponding
+ReadPropertyACK and prints the value.
+
+In addition to the usual INI parameters that are common to BACpypes applications,
+this application references two additional parameters:
+
+    foreignBBMD: the BACpypes IP Address of the BBMD to register
+    foreignTTL: the time-to-live to keep the registration alive
+
+The BBMDForeign class will send the BVLL registration request after the core
+starts up and maintain it.  If the device does not get an 'ack' then it will
+not send requests, even to devices that it would be able to talk otherwise.
 """
 
 import sys
@@ -20,7 +30,7 @@ from bacpypes.apdu import ReadPropertyRequest, ReadPropertyACK
 from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
-from bacpypes.app import BIPSimpleApplication
+from bacpypes.app import BIPForeignApplication
 from bacpypes.object import get_datatype
 from bacpypes.local.device import LocalDeviceObject
 
@@ -145,7 +155,11 @@ def main():
     if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
-    this_application = BIPSimpleApplication(this_device, args.ini.address)
+    this_application = BIPForeignApplication(
+        this_device, args.ini.address,
+        Address(args.ini.foreignbbmd),
+        int(args.ini.foreignttl),
+        )
 
     # make a console
     this_console = ReadPropertyConsoleCmd()

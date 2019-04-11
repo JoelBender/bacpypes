@@ -418,7 +418,7 @@ class BIPBBMDApplication(Application, WhoIsIAmServices, ReadWritePropertyService
             )
 
         # continue with initialization
-        Application.__init__(self, local_device, self.address)
+        Application.__init__(self, local_device)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()

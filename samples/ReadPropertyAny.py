@@ -13,13 +13,14 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
 
 from bacpypes.apdu import ReadPropertyRequest
 from bacpypes.primitivedata import Tag, ObjectIdentifier
+from bacpypes.constructeddata import ArrayOf
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
@@ -64,7 +65,7 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
             if _debug: ReadPropertyAnyConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()
@@ -72,27 +73,40 @@ class ReadPropertyAnyConsoleCmd(ConsoleCmd):
             # do something for success
             if iocb.ioResponse:
                 apdu = iocb.ioResponse
+                if _debug: ReadPropertyAnyConsoleCmd._debug("    - apdu: %r", apdu)
 
-                # peek at the value tag
-                value_tag = apdu.propertyValue.tagList.Peek()
-                if _debug: ReadPropertyAnyConsoleCmd._debug("    - value_tag: %r", value_tag)
+                try:
+                    tag_list = apdu.propertyValue.tagList
 
-                # make sure that it is application tagged
-                if value_tag.tagClass != Tag.applicationTagClass:
-                    sys.stdout.write("value is not application encoded\n")
+                    # all tags application encoded
+                    non_app_tags = [tag for tag in tag_list if tag.tagClass != Tag.applicationTagClass]
+                    if non_app_tags:
+                        raise RuntimeError("value has some non-application tags")
 
-                else:
+                    # all the same type
+                    first_tag = tag_list[0]
+                    other_type_tags = [tag for tag in tag_list[1:] if tag.tagNumber != first_tag.tagNumber]
+                    if other_type_tags:
+                        raise RuntimeError("all the tags must be the same type")
+
                     # find the datatype
-                    datatype = Tag._app_tag_class[value_tag.tagNumber]
+                    datatype = Tag._app_tag_class[first_tag.tagNumber]
                     if _debug: ReadPropertyAnyConsoleCmd._debug("    - datatype: %r", datatype)
                     if not datatype:
-                        raise TypeError("unknown datatype")
+                        raise RuntimeError("unknown datatype")
+
+                    # more than one then it's an array of these
+                    if len(tag_list) > 1:
+                        datatype = ArrayOf(datatype)
+                        if _debug: ReadPropertyAnyConsoleCmd._debug("    - array: %r", datatype)
 
                     # cast out the value
                     value = apdu.propertyValue.cast_out(datatype)
                     if _debug: ReadPropertyAnyConsoleCmd._debug("    - value: %r", value)
 
                     sys.stdout.write("%s (%s)\n" % (value, datatype))
+                except RuntimeError as err:
+                    sys.stdout.write("error: %s\n" % (err,))
 
                 sys.stdout.flush()
 
