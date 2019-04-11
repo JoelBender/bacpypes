@@ -157,7 +157,7 @@ class SSM(OneShotTask, DebugContents):
 
         # check for invalid segment number
         if indx >= self.segmentCount:
-            raise RuntimeError("invalid segment number {0}, APDU has {1} segments".format(indx, self.segmentCount))
+            raise RuntimeError("invalid segment number %r, APDU has %r segments" % (indx, self.segmentCount))
 
         if self.segmentAPDU.apduType == ConfirmedRequestPDU.pduType:
             if _debug: SSM._debug("    - confirmed request context")

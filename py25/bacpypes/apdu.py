@@ -76,7 +76,7 @@ def encode_max_segments_accepted(arg):
         if _max_segments_accepted_encoding[i] <= arg:
             return i
 
-    raise ValueError("invalid max max segments accepted: {0}".format(arg))
+    raise ValueError("invalid max max segments accepted: %r" % (arg,))
 
 def decode_max_segments_accepted(arg):
     """Decode the maximum number of segments the device will accept, Section
@@ -97,12 +97,12 @@ def encode_max_apdu_length_accepted(arg):
         if (arg >= _max_apdu_length_encoding[i]):
             return i
 
-    raise ValueError("invalid max APDU length accepted: {0}".format(arg))
+    raise ValueError("invalid max APDU length accepted: %r" % (arg,))
 
 def decode_max_apdu_length_accepted(arg):
     v = _max_apdu_length_encoding[arg]
     if not v:
-        raise ValueError("invalid max APDU length accepted: {0}".format(arg))
+        raise ValueError("invalid max APDU length accepted: %r" % (arg,))
 
     return v
 
