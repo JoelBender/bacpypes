@@ -1776,7 +1776,7 @@ class ObjectPropertyReference(Sequence):
         , Element('propertyIdentifier', PropertyIdentifier, 1)
         , Element('propertyArrayIndex', Unsigned, 2, True)
         ]
-    
+
 class ProcessIdSelection(Choice):
     choiceElements = \
         [ Element('processIdentifier', Unsigned)
