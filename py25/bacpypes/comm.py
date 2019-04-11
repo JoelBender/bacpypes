@@ -419,7 +419,9 @@ class Switch(Client, Server):
         Server.__init__(self)
 
         # wrap the terminals
-        self.terminals = {k:Switch.TerminalWrapper(self, v) for k, v in terminals.items()}
+        self.terminals = {}
+        for k, v in terminals.items():
+            self.terminals[k] = Switch.TerminalWrapper(self, v)
         self.current_terminal = None
 
     def __getitem__(self, key):
