@@ -8,8 +8,7 @@ import random
 import string
 import unittest
 
-from bacpypes.debugging import ModuleLogger, bacpypes_debugging, btox, xtob
-from bacpypes.consolelogging import ArgumentParser
+from bacpypes.debugging import ModuleLogger, bacpypes_debugging
 
 from bacpypes.primitivedata import CharacterString
 from bacpypes.constructeddata import Any
@@ -18,14 +17,11 @@ from bacpypes.comm import Client, bind
 from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.vlan import Network, Node
 
-from bacpypes.npdu import NPDU, npdu_types
-from bacpypes.apdu import APDU, apdu_types, \
-    confirmed_request_types, unconfirmed_request_types, complex_ack_types, error_types, \
-    ConfirmedRequestPDU, UnconfirmedRequestPDU, \
-    SimpleAckPDU, ComplexAckPDU, SegmentAckPDU, ErrorPDU, RejectPDU, AbortPDU
-
-from bacpypes.apdu import APDU, ErrorPDU, RejectPDU, AbortPDU, \
-    ConfirmedPrivateTransferRequest, ConfirmedPrivateTransferACK
+from bacpypes.npdu import NPDU
+from bacpypes.apdu import (
+    APDU, apdu_types,
+    ConfirmedPrivateTransferRequest, ConfirmedPrivateTransferACK,
+    )
 
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
@@ -175,7 +171,7 @@ class ApplicationStateMachine(Application, StateMachine):
         if _debug: ApplicationStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
-        Application.__init__(self, localDevice, self.address)
+        Application.__init__(self, localDevice)
         StateMachine.__init__(self, name=localDevice.objectName)
 
         # include a application decoder
@@ -244,102 +240,139 @@ class ApplicationStateMachine(Application, StateMachine):
         self.response(xapdu)
 
 
+#
+#   SegmentationTest
+#
+
+@bacpypes_debugging
+def SegmentationTest(prefix, c_len, s_len):
+    if _debug: SegmentationTest._debug("SegmentationTest %r %r %r", prefix, c_len, s_len)
+
+    # :-/
+    lowercase_letters = getattr(string, 'lowercase', None) or getattr(string, 'ascii_lowercase', None)
+
+    # client device object
+    td_device_object = LocalDeviceObject(
+        objectName="td",
+        objectIdentifier=("device", 10),
+        maxApduLengthAccepted=206,
+        segmentationSupported='segmentedBoth',
+        maxSegmentsAccepted=4,
+        vendorIdentifier=999,
+        )
+
+    # server device object
+    iut_device_object = LocalDeviceObject(
+        objectName="iut",
+        objectIdentifier=("device", 20),
+        maxApduLengthAccepted=206,
+        segmentationSupported='segmentedBoth',
+        maxSegmentsAccepted=99,
+        vendorIdentifier=999,
+        )
+
+    # create a network
+    anet = ApplicationNetwork(td_device_object, iut_device_object)
+
+    # network settings
+    c_ndpu_len = 50
+    s_ndpu_len = 50
+
+    # tell the device info cache of the client about the server
+    if 0:
+        iut_device_info = anet.td.deviceInfoCache.get_device_info(anet.iut.address)
+
+        # update the rest of the values
+        iut_device_info.maxApduLengthAccepted = iut_device_object.maxApduLengthAccepted
+        iut_device_info.segmentationSupported = iut_device_object.segmentationSupported
+        iut_device_info.vendorID = iut_device_object.vendorIdentifier
+        iut_device_info.maxSegmentsAccepted = iut_device_object.maxSegmentsAccepted
+        iut_device_info.maxNpduLength = s_ndpu_len
+
+    # tell the device info cache of the server device about the client
+    if 0:
+        td_device_info = anet.iut.deviceInfoCache.get_device_info(anet.td.address)
+
+        # update the rest of the values
+        td_device_info.maxApduLengthAccepted = td_device_object.maxApduLengthAccepted
+        td_device_info.segmentationSupported = td_device_object.segmentationSupported
+        td_device_info.vendorID = td_device_object.vendorIdentifier
+        td_device_info.maxSegmentsAccepted = td_device_object.maxSegmentsAccepted
+        td_device_info.maxNpduLength = c_ndpu_len
+
+    # build a request string
+    if c_len:
+        request_string = Any(
+            CharacterString(
+                ''.join(random.choice(lowercase_letters) for _ in range(c_len))
+                )
+            )
+    else:
+        request_string = None
+
+    # response string is stuffed into the server
+    if s_len:
+        anet.iut.confirmed_private_result = Any(
+            CharacterString(
+                ''.join(random.choice(lowercase_letters) for _ in range(s_len))
+                )
+            )
+    else:
+        anet.iut.confirmed_private_result = None
+
+    # send the request, get it acked
+    anet.td.start_state.doc(prefix + "-0") \
+        .send(ConfirmedPrivateTransferRequest(
+            vendorID=999, serviceNumber=1,
+            serviceParameters=request_string,
+            destination=anet.iut.address,
+            )).doc(prefix + "-1") \
+        .receive(ConfirmedPrivateTransferACK).doc(prefix + "-2") \
+        .success()
+
+    # no IUT application layer matching
+    anet.iut.start_state.success()
+
+    # run the group
+    anet.run()
+
+
 @bacpypes_debugging
 class TestSegmentation(unittest.TestCase):
 
     def test_1(self):
-        """9.39.1 Unsupported Confirmed Services Test"""
         if _debug: TestSegmentation._debug("test_1")
+        SegmentationTest("7-1", 0, 0)
 
-        # client device object
-        td_device_object = LocalDeviceObject(
-            objectName="td",
-            objectIdentifier=("device", 10),
-            maxApduLengthAccepted=206,
-            segmentationSupported='segmentedBoth',
-            maxSegmentsAccepted=4,
-            vendorIdentifier=999,
-            )
+    def test_2(self):
+        if _debug: TestSegmentation._debug("test_2")
+        SegmentationTest("7-2", 10, 0)
 
-        # server device object
-        iut_device_object = LocalDeviceObject(
-            objectName="iut",
-            objectIdentifier=("device", 20),
-            maxApduLengthAccepted=206,
-            segmentationSupported='segmentedBoth',
-            maxSegmentsAccepted=99,
-            vendorIdentifier=999,
-            )
+    def test_3(self):
+        if _debug: TestSegmentation._debug("test_3")
+        SegmentationTest("7-3", 100, 0)
 
-        # create a network
-        anet = ApplicationNetwork(td_device_object, iut_device_object)
+    def test_4(self):
+        if _debug: TestSegmentation._debug("test_4")
+        SegmentationTest("7-4", 200, 0)
 
-        # client settings
-        c_ndpu_len = 50
-        c_len = 0
+    def test_5(self):
+        if _debug: TestSegmentation._debug("test_5")
+        SegmentationTest("7-5", 0, 10)
 
-        # server settings
-        s_ndpu_len = 50
-        s_len = 0
+    def test_6(self):
+        if _debug: TestSegmentation._debug("test_6")
+        SegmentationTest("7-6", 0, 200)
 
-        # tell the device info cache of the client about the server
-        if 0:
-            iut_device_info = anet.td.deviceInfoCache.get_device_info(anet.iut.address)
+    def test_7(self):
+        if _debug: TestSegmentation._debug("test_7")
+        SegmentationTest("7-7", 300, 0)
 
-            # update the rest of the values
-            iut_device_info.maxApduLengthAccepted = iut_device_object.maxApduLengthAccepted
-            iut_device_info.segmentationSupported = iut_device_object.segmentationSupported
-            iut_device_info.vendorID = iut_device_object.vendorIdentifier
-            iut_device_info.maxSegmentsAccepted = iut_device_object.maxSegmentsAccepted
-            iut_device_info.maxNpduLength = s_ndpu_len
+    def test_8(self):
+        if _debug: TestSegmentation._debug("test_8")
+        SegmentationTest("7-8", 300, 300)
 
-        # tell the device info cache of the server device about the client
-        if 0:
-            td_device_info = anet.iut.deviceInfoCache.get_device_info(anet.td.address)
-
-            # update the rest of the values
-            td_device_info.maxApduLengthAccepted = td_device_object.maxApduLengthAccepted
-            td_device_info.segmentationSupported = td_device_object.segmentationSupported
-            td_device_info.vendorID = td_device_object.vendorIdentifier
-            td_device_info.maxSegmentsAccepted = td_device_object.maxSegmentsAccepted
-            td_device_info.maxNpduLength = c_ndpu_len
-
-        # build a request string
-        if c_len:
-            request_string = Any(
-                CharacterString(
-                    ''.join(random.choice(string.lowercase) for _ in range(c_len))
-                    )
-                )
-        else:
-            request_string = None
-
-        # response string is stuffed into the server
-        if s_len:
-            anet.iut.confirmed_private_result = Any(
-                CharacterString(
-                    ''.join(random.choice(string.lowercase) for _ in range(s_len))
-                    )
-                )
-        else:
-            anet.iut.confirmed_private_result = None
-
-        # send the request, get it rejected
-        s761 = anet.td.start_state.doc("7-6-0") \
-            .send(ConfirmedPrivateTransferRequest(
-                vendorID=999, serviceNumber=1,
-                serviceParameters=request_string,
-                destination=anet.iut.address,
-                )).doc("7-6-1")
-
-        s761.receive(ConfirmedPrivateTransferACK).doc("7-6-2") \
-            .success()
-        s761.receive(AbortPDU, apduAbortRejectReason=11).doc("7-6-3") \
-            .success()
-
-        # no IUT application layer matching
-        anet.iut.start_state.success()
-
-        # run the group
-        anet.run()
+    def test_9(self):
+        if _debug: TestSegmentation._debug("test_9")
+        SegmentationTest("7-9", 600, 600)
 

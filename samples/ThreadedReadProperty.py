@@ -86,7 +86,7 @@ class ReadPointListThread(Thread):
             if _debug: ReadPointListThread._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for the response
             iocb.wait()

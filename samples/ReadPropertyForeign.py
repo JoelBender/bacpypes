@@ -2,8 +2,18 @@
 
 """
 This application presents a 'console' prompt to the user asking for read commands
-which create ReadPropertyRequest PDUs, then lines up the coorresponding ReadPropertyACK
-and prints the value.
+which create ReadPropertyRequest PDUs, then lines up the coorresponding
+ReadPropertyACK and prints the value.
+
+In addition to the usual INI parameters that are common to BACpypes applications,
+this application references two additional parameters:
+
+    foreignBBMD: the BACpypes IP Address of the BBMD to register
+    foreignTTL: the time-to-live to keep the registration alive
+
+The BBMDForeign class will send the BVLL registration request after the core
+starts up and maintain it.  If the device does not get an 'ack' then it will
+not send requests, even to devices that it would be able to talk otherwise.
 """
 
 import sys
@@ -12,7 +22,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
@@ -40,7 +50,7 @@ this_application = None
 class ReadPropertyConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> <type> <inst> <prop> [ <indx> ]"""
+        """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
         if _debug: ReadPropertyConsoleCmd._debug("do_read %r", args)
 
@@ -68,7 +78,7 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
             if _debug: ReadPropertyConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()

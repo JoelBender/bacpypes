@@ -80,7 +80,7 @@ class WriteSomethingConsoleCmd(ConsoleCmd):
             if _debug: WriteSomethingConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()

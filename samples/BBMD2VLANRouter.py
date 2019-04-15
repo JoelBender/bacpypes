@@ -90,7 +90,7 @@ class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
-        Application.__init__(self, vlan_device, vlan_address, aseID)
+        Application.__init__(self, vlan_device, aseID=aseID)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()

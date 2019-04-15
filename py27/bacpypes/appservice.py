@@ -50,7 +50,7 @@ class SSM(OneShotTask, DebugContents):
     _debug_contents = ('ssmSAP', 'localDevice', 'device_info', 'invokeID'
         , 'state', 'segmentAPDU', 'segmentSize', 'segmentCount', 'maxSegmentsAccepted'
         , 'retryCount', 'segmentRetryCount', 'sentAllSegments', 'lastSequenceNumber'
-        , 'initialSequenceNumber', 'actualWindowSize', 'proposedWindowSize'
+        , 'initialSequenceNumber', 'actualWindowSize'
         )
 
     def __init__(self, sap, pdu_address):
@@ -194,8 +194,8 @@ class SSM(OneShotTask, DebugContents):
 
             # first segment sends proposed window size, rest get actual
             if indx == 0:
-                if _debug: SSM._debug("    - proposedWindowSize: %r", self.proposedWindowSize)
-                segAPDU.apduWin = self.proposedWindowSize
+                if _debug: SSM._debug("    - proposedWindowSize: %r", self.ssmSAP.proposedWindowSize)
+                segAPDU.apduWin = self.ssmSAP.proposedWindowSize
             else:
                 if _debug: SSM._debug("    - actualWindowSize: %r", self.actualWindowSize)
                 segAPDU.apduWin = self.actualWindowSize
@@ -506,7 +506,7 @@ class ClientSSM(SSM):
                 self.set_segmentation_context(apdu)
 
                 # minimum of what the server is proposing and this client proposes
-                self.actualWindowSize = min(apdu.apduWin, self.proposedWindowSize)
+                self.actualWindowSize = min(apdu.apduWin, self.ssmSAP.proposedWindowSize)
                 self.lastSequenceNumber = 0
                 self.initialSequenceNumber = 0
                 self.set_state(SEGMENTED_CONFIRMATION, self.segmentTimeout)
@@ -824,15 +824,15 @@ class ServerSSM(SSM):
                     return
 
                 # make sure client supports segmented receive
-                if self.device_info.segmentationSupported not in ('segmentedReceive', 'segmentedBoth'):
+                if not self.segmented_response_accepted:
                     if _debug: ServerSSM._debug("    - client can't receive segmented responses")
                     abort = self.abort(AbortReason.segmentationNotSupported)
                     self.response(abort)
                     return
 
                 # make sure we dont exceed the number of segments in our response
-                # that the device said it was willing to accept in the request
-                if self.segmentCount > self.maxSegmentsAccepted:
+                # that the client said it was willing to accept in the request
+                if (self.maxSegmentsAccepted is not None) and (self.segmentCount > self.maxSegmentsAccepted):
                     if _debug: ServerSSM._debug("    - client can't receive enough segments")
                     abort = self.abort(AbortReason.apduTooLong)
                     self.response(abort)
@@ -897,11 +897,12 @@ class ServerSSM(SSM):
         self.invokeID = apdu.apduInvokeID
         if _debug: ServerSSM._debug("    - invoke ID: %r", self.invokeID)
 
-        if apdu.apduSA:
-            if not self.device_info:
-                if _debug: ServerSSM._debug("    - no client device info")
+        # remember if the client accepts segmented responses
+        self.segmented_response_accepted = apdu.apduSA
 
-            elif self.device_info.segmentationSupported == 'noSegmentation':
+        # if there is a cache record, check to see if it needs to be updated
+        if apdu.apduSA and self.device_info:
+            if self.device_info.segmentationSupported == 'noSegmentation':
                 if _debug: ServerSSM._debug("    - client actually supports segmented receive")
                 self.device_info.segmentationSupported = 'segmentedReceive'
 
@@ -957,8 +958,11 @@ class ServerSSM(SSM):
 
         # the window size is the minimum of what I would propose and what the
         # device has proposed
-        self.actualWindowSize = min(apdu.apduWin, self.proposedWindowSize)
-        if _debug: ServerSSM._debug("    - actualWindowSize? min(%r, %r) -> %r", apdu.apduWin, self.proposedWindowSize, self.actualWindowSize)
+        self.actualWindowSize = min(apdu.apduWin, self.ssmSAP.proposedWindowSize)
+        if _debug: ServerSSM._debug(
+            "    - actualWindowSize? min(%r, %r) -> %r",
+            apdu.apduWin, self.ssmSAP.proposedWindowSize, self.actualWindowSize,
+            )
 
         # initialize the state
         self.lastSequenceNumber = 0

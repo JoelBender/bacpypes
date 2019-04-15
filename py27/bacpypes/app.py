@@ -593,7 +593,7 @@ class BIPForeignApplication(ApplicationIOController, WhoIsIAmServices, ReadWrite
 @bacpypes_debugging
 class BIPNetworkApplication(NetworkServiceElement):
 
-    def __init__(self, localAddress, eID=None):
+    def __init__(self, localAddress, bbmdAddress=None, bbmdTTL=None, eID=None):
         if _debug: BIPNetworkApplication._debug("__init__ %r eID=%r", localAddress, eID)
         NetworkServiceElement.__init__(self, eID)
 
@@ -611,9 +611,12 @@ class BIPNetworkApplication(NetworkServiceElement):
 
         # create a generic BIP stack, bound to the Annex J server
         # on the UDP multiplexer
-        self.bip = BIPSimple()
+        if (not bbmdAddress) and (not bbmdTTL):
+            self.bip = BIPSimple()
+        else:
+            self.bip = BIPForeign(bbmdAddress, bbmdTTL)
         self.annexj = AnnexJCodec()
-        self.mux = UDPMultiplexer(self.localAddress)
+        self.mux = UDPMultiplexer(self.localAddress, noBroadcast=True)
 
         # bind the bottom layers
         bind(self.bip, self.annexj, self.mux.annexJ)

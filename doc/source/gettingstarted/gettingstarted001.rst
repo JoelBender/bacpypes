@@ -134,10 +134,10 @@ Updating the INI File
 
 Now that you know what these values are going to be, you can 
 configure the BACnet portion of your workstation.  Change into the 
-samples directory that you checked out earlier, make a copy
+bacpypes directory that you checked out earlier, make a copy
 of the sample configuration file, and edit it for your site::
 
-    $ cd bacpypes/samples
+    $ cd bacpypes
     $ cp BACpypes~.ini BACpypes.ini
 
 .. tip:: 

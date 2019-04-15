@@ -12,15 +12,15 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.object import get_object_class, get_datatype
+from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyMultipleRequest, PropertyReference, \
     ReadAccessSpecification, ReadPropertyMultipleACK
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 from bacpypes.basetypes import PropertyIdentifier
 
@@ -41,7 +41,7 @@ this_application = None
 class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
     def do_read(self, args):
-        """read <addr> ( <type> <inst> ( <prop> [ <indx> ] )... )..."""
+        """read <addr> ( <objid> ( <prop> [ <indx> ] )... )..."""
         args = args.split()
         if _debug: ReadPropertyMultipleConsoleCmd._debug("do_read %r", args)
 
@@ -52,15 +52,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
             read_access_spec_list = []
             while i < len(args):
-                obj_type = args[i]
-                i += 1
-
-                if obj_type.isdigit():
-                    obj_type = int(obj_type)
-                elif not get_object_class(obj_type):
-                    raise ValueError("unknown object type")
-
-                obj_inst = int(args[i])
+                obj_id = ObjectIdentifier(args[i]).value
                 i += 1
 
                 prop_reference_list = []
@@ -73,7 +65,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
                     if prop_id in ('all', 'required', 'optional'):
                         pass
                     else:
-                        datatype = get_datatype(obj_type, prop_id)
+                        datatype = get_datatype(obj_id[0], prop_id)
                         if not datatype:
                             raise ValueError("invalid property for object type")
 
@@ -96,7 +88,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
 
                 # build a read access specification
                 read_access_spec = ReadAccessSpecification(
-                    objectIdentifier=(obj_type, obj_inst),
+                    objectIdentifier=obj_id,
                     listOfPropertyReferences=prop_reference_list,
                     )
 
@@ -119,7 +111,7 @@ class ReadPropertyMultipleConsoleCmd(ConsoleCmd):
             if _debug: ReadPropertyMultipleConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
-            this_application.request_io(iocb)
+            deferred(this_application.request_io, iocb)
 
             # wait for it to complete
             iocb.wait()

@@ -69,11 +69,11 @@ class ReadWritePropertyServices(Capability):
                 elif issubclass(datatype.subtype, Atomic):
                     value = datatype.subtype(value)
                 elif not isinstance(value, datatype.subtype):
-                    raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                        .format(datatype.subtype.__name__, type(value).__name__))
+                    raise TypeError("invalid result datatype, expecting %r and got %r" \
+                        % (datatype.subtype.__name__, type(value).__name__))
             elif not isinstance(value, datatype):
-                raise TypeError("invalid result datatype, expecting {0} and got {1}" \
-                    .format(datatype.__name__, type(value).__name__))
+                raise TypeError("invalid result datatype, expecting %r and got %r" \
+                    % (datatype.__name__, type(value).__name__))
             if _debug: ReadWritePropertyServices._debug("    - encodeable value: %r", value)
 
             # this is a ReadProperty ack

@@ -14,7 +14,7 @@ from .debugging import bacpypes_debugging, ModuleLogger
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, \
     Double, Integer, ObjectIdentifier, ObjectType, OctetString, Real, Time, \
-    Unsigned
+    Unsigned, Unsigned8, Unsigned16
 from .constructeddata import AnyAtomic, Array, ArrayOf, List, ListOf, \
     Choice, Element, Sequence
 from .basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
@@ -22,24 +22,26 @@ from .basetypes import AccessCredentialDisable, AccessCredentialDisableReason, \
     AccessUserType, AccessZoneOccupancyState, AccumulatorRecord, Action, \
     ActionList, AddressBinding, AssignedAccessRights, AuthenticationFactor, \
     AuthenticationFactorFormat, AuthenticationPolicy, AuthenticationStatus, \
-    AuthorizationException, AuthorizationMode, BackupState, BinaryPV, \
+    AuthorizationException, AuthorizationMode, BackupState, BDTEntry, BinaryPV, \
     COVSubscription, CalendarEntry, ChannelValue, ClientCOV, \
     CredentialAuthenticationFactor, DailySchedule, DateRange, DateTime, \
     Destination, DeviceObjectPropertyReference, DeviceObjectReference, \
     DeviceStatus, DoorAlarmState, DoorSecuredStatus, DoorStatus, DoorValue, \
     EngineeringUnits, EventNotificationSubscription, EventParameter, \
     EventState, EventTransitionBits, EventType, FaultParameter, FaultType, \
-    FileAccessMethod, LifeSafetyMode, LifeSafetyOperation, LifeSafetyState, \
+    FileAccessMethod, FDTEntry, IPMode, HostNPort, LifeSafetyMode, LifeSafetyOperation, LifeSafetyState, \
     LightingCommand, LightingInProgress, LightingTransition, LimitEnable, \
     LockStatus, LogMultipleRecord, LogRecord, LogStatus, LoggingType, \
-    Maintenance, NetworkSecurityPolicy, NodeType, NotifyType, \
+    Maintenance, NameValue, NetworkNumberQuality, NetworkPortCommand, \
+    NetworkSecurityPolicy, NetworkType, NodeType, NotifyType, \
     ObjectPropertyReference, ObjectTypesSupported, OptionalCharacterString, \
     Polarity, PortPermission, Prescale, PriorityArray, ProcessIdSelection, \
     ProgramError, ProgramRequest, ProgramState, PropertyAccessResult, \
-    PropertyIdentifier, Recipient, Reliability, RestartReason, Scale, \
-    SecurityKeySet, SecurityLevel, Segmentation, ServicesSupported, \
-    SetpointReference, ShedLevel, ShedState, SilencedState, SpecialEvent, \
-    StatusFlags, TimeStamp, VTClass, VTSession, WriteStatus
+    PropertyIdentifier, ProtocolLevel, Recipient, Reliability, RestartReason, \
+    RouterEntry, Scale, SecurityKeySet, SecurityLevel, Segmentation, \
+    ServicesSupported, SetpointReference, ShedLevel, ShedState, SilencedState, \
+    SpecialEvent, StatusFlags, TimeStamp, VTClass, VTSession, VMACEntry, \
+    WriteStatus
 from .apdu import EventNotificationParameters, ReadAccessSpecification, \
     ReadAccessResult
 
@@ -329,6 +331,8 @@ class Property:
                 arry[arrayIndex] = value
             except IndexError:
                 raise ExecutionError(errorClass='property', errorCode='invalidArrayIndex')
+            except TypeError:
+                raise ExecutionError(errorClass='property', errorCode='valueOutOfRange')
 
             # check for monitors, call each one with the old and new value
             if is_monitored:
@@ -1877,6 +1881,81 @@ class MultiStateValueObject(Object):
         , OptionalProperty('eventAlgorithmInhibit', Boolean)
         , OptionalProperty('timeDelayNormal', Unsigned)
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
+        ]
+
+@register_object_type
+class NetworkPortObject(Object):
+    objectType = 'networkPort'  #56
+    properties = \
+        [ ReadableProperty('statusFlags', StatusFlags)  #111
+        , ReadableProperty('reliability', Reliability)  #103
+        , ReadableProperty('outOfService', Boolean)  #81
+        , ReadableProperty('networkType', NetworkType)  #427
+        , ReadableProperty('protocolLevel', ProtocolLevel)  #482
+        , OptionalProperty('referencePort', Unsigned)  #483
+        , ReadableProperty('networkNumber', Unsigned16)  #425
+        , ReadableProperty('networkNumberQuality', NetworkNumberQuality)  #427
+        , ReadableProperty('changesPending', Boolean)  #416
+        , OptionalProperty('command', NetworkPortCommand)   #417
+        , OptionalProperty('macAddress', OctetString)   #423
+        , ReadableProperty('apduLength', Unsigned)  #388
+        , ReadableProperty('linkSpeed', Real)  #420
+        , OptionalProperty('linkSpeeds', ArrayOf(Real))  #421
+        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp))  #130
+        , OptionalProperty('linkSpeedAutonegotiate', Boolean)  #422
+        , OptionalProperty('networkInterfaceName', CharacterString)  #424
+        , OptionalProperty('bacnetIPMode', IPMode)  #408
+        , OptionalProperty('ipAddress', OctetString)  #400
+        , OptionalProperty('bacnetIPUDPPort', Unsigned16)  #412
+        , OptionalProperty('ipSubnetMask', OctetString)  #411
+        , OptionalProperty('ipDefaultGateway', OctetString)  #401
+        , OptionalProperty('bacnetIPMulticastAddress', OctetString)  #409
+        , OptionalProperty('ipDNSServer', ArrayOf(OctetString))  #406
+        , OptionalProperty('ipDHCPEnable', Boolean)  #402
+        , OptionalProperty('ipDHCPLeaseTime', Unsigned)  #403
+        , OptionalProperty('ipDHCPLeaseTimeRemaining', Unsigned)  #404
+        , OptionalProperty('ipDHCPServer', OctetString)  #405
+        , OptionalProperty('bacnetIPNATTraversal', Boolean)  #410
+        , OptionalProperty('bacnetIPGlobalAddress', HostNPort)  #407
+        , OptionalProperty('bbmdBroadcastDistributionTable', ListOf(BDTEntry))  #414
+        , OptionalProperty('bbmdAcceptFDRegistrations', Boolean)  #413
+        , OptionalProperty('bbmdForeignDeviceTable', ListOf(FDTEntry))  #415
+        , OptionalProperty('fdBBMDAddress', HostNPort)  #418
+        , OptionalProperty('fdSubscriptionLifetime', Unsigned16)  #419
+        , OptionalProperty('bacnetIPv6Mode', IPMode)  #435
+        , OptionalProperty('ipv6Address', OctetString)  #436
+        , OptionalProperty('ipv6PrefixLength', Unsigned8)  #437
+        , OptionalProperty('bacnetIPv6UDPPort', Unsigned16)  #438
+        , OptionalProperty('ipv6DefaultGateway', OctetString)  #439
+        , OptionalProperty('bacnetIPv6MulticastAddress', OctetString)  #440
+        , OptionalProperty('ipv6DNSServer', OctetString)  #441
+        , OptionalProperty('ipv6AutoAddressingEnabled', Boolean)  #442
+        , OptionalProperty('ipv6DHCPLeaseTime', Unsigned)  #443
+        , OptionalProperty('ipv6DHCPLeaseTimeRemaining', Unsigned)  #444
+        , OptionalProperty('ipv6DHCPServer', OctetString)  #445
+        , OptionalProperty('ipv6ZoneIndex', CharacterString)  #446
+        , OptionalProperty('maxMaster', Unsigned8)  #64
+        , OptionalProperty('maxInfoFrames', Unsigned8)  #63
+        , OptionalProperty('slaveProxyEnable', Boolean)  #172
+        , OptionalProperty('manualSlaveAddressBinding', ListOf(AddressBinding))  #170
+        , OptionalProperty('autoSlaveDiscovery', Boolean)  #169
+        , OptionalProperty('slaveAddressBinding', ListOf(AddressBinding))  #171
+        , OptionalProperty('virtualMACAddressTable', ListOf(VMACEntry))  #429
+        , OptionalProperty('routingTable', ListOf(RouterEntry))  #428
+        , OptionalProperty('eventDetectionEnabled', Boolean)  #353
+        , OptionalProperty('notificationClass', Unsigned)  #17
+        , OptionalProperty('eventEnable', EventTransitionBits)  #35
+        , OptionalProperty('ackedTransitions', EventTransitionBits)  #0
+        , OptionalProperty('notifyType', NotifyType)  #72
+        , OptionalProperty('eventTimeStamps', ArrayOf(TimeStamp, 3))  #130
+        , OptionalProperty('eventMessageTexts', ArrayOf(CharacterString, 3))  #351
+        , OptionalProperty('eventMessageTextsConfig', ArrayOf(CharacterString, 3))  #352
+        , OptionalProperty('eventState', EventState)  #36
+        , ReadableProperty('reliabilityEvaluationInhibit', Boolean) #357
+        , OptionalProperty('propertyList', ArrayOf(PropertyIdentifier)) #371
+        , OptionalProperty('tags', ArrayOf(NameValue))  #486
+        , OptionalProperty('profileLocation', CharacterString)  #91
+        , OptionalProperty('profileName', CharacterString)  #168
         ]
 
 @register_object_type

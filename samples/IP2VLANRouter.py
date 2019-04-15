@@ -25,11 +25,17 @@ from bacpypes.bvllservice import BIPSimple, AnnexJCodec, UDPMultiplexer
 from bacpypes.app import Application
 from bacpypes.appservice import StateMachineAccessPoint, ApplicationServiceAccessPoint
 from bacpypes.local.device import LocalDeviceObject
-from bacpypes.service.device import WhoIsIAmServices
-from bacpypes.service.object import ReadWritePropertyServices
+from bacpypes.local.object import CurrentPropertyList
+from bacpypes.service.device import (
+    WhoIsIAmServices,
+    )
+from bacpypes.service.object import (
+    ReadWritePropertyServices,
+    ReadWritePropertyMultipleServices,
+    )
 
 from bacpypes.primitivedata import Real
-from bacpypes.object import AnalogValueObject, Property
+from bacpypes.object import register_object_type, AnalogValueObject, Property
 
 from bacpypes.vlan import Network, Node
 from bacpypes.errors import ExecutionError
@@ -37,6 +43,9 @@ from bacpypes.errors import ExecutionError
 # some debugging
 _debug = 0
 _log = ModuleLogger(globals())
+
+# globals
+args = None
 
 #
 #   RandomValueProperty
@@ -60,11 +69,21 @@ class RandomValueProperty(Property):
         value = random.random() * 100.0
         if _debug: RandomValueProperty._debug("    - value: %r", value)
 
+        # save the value that was generated
+        super(RandomValueProperty, self).WriteProperty(obj, value, direct=True)
+
+        # now return it to the client
         return value
 
     def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
         if _debug: RandomValueProperty._debug("WriteProperty %r %r arrayIndex=%r priority=%r direct=%r", obj, value, arrayIndex, priority, direct)
-        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+        if not direct:
+            raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+        if arrayIndex is not None:
+            raise ExecutionError(errorClass='property', errorCode='propertyIsNotAnArray')
+
+        # continue along
+        super(RandomValueProperty, self).WriteProperty(obj, value, direct=True)
 
 #
 #   Random Value Object Type
@@ -81,16 +100,31 @@ class RandomAnalogValueObject(AnalogValueObject):
         if _debug: RandomAnalogValueObject._debug("__init__ %r", kwargs)
         AnalogValueObject.__init__(self, **kwargs)
 
+        # if a value hasn't already been provided, initialize with a random one
+        if 'presentValue' not in kwargs:
+            self.presentValue = random.random() * 100.0
+
 #
 #   VLANApplication
 #
 
 @bacpypes_debugging
-class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
+class VLANApplication(
+    Application,
+    WhoIsIAmServices,
+    ReadWritePropertyServices,
+    ):
 
     def __init__(self, vlan_device, vlan_address, aseID=None):
         if _debug: VLANApplication._debug("__init__ %r %r aseID=%r", vlan_device, vlan_address, aseID)
-        Application.__init__(self, vlan_device, vlan_address, aseID)
+        global args
+
+        # normal initialization
+        Application.__init__(self, vlan_device, aseID=aseID)
+
+        # optional read property multiple
+        if args.rpm:
+            self.add_capability(ReadWritePropertyMultipleServices)
 
         # include a application decoder
         self.asap = ApplicationServiceAccessPoint()
@@ -169,6 +203,8 @@ class VLANRouter:
 #
 
 def main():
+    global args
+
     # parse the command line arguments
     parser = ArgumentParser(
         description=__doc__,
@@ -177,24 +213,36 @@ def main():
 
     # add an argument for interval
     parser.add_argument('addr1', type=str,
-          help='address of first network',
-          )
+        help='address of first network',
+        )
 
     # add an argument for interval
     parser.add_argument('net1', type=int,
-          help='network number of first network',
-          )
+        help='network number of first network',
+        )
 
     # add an argument for interval
     parser.add_argument('net2', type=int,
-          help='network number of second network',
-          )
+        help='network number of second network',
+        )
 
     # add an argument for how many virtual devices
     parser.add_argument('--count', type=int,
-          help='number of virtual devices',
-          default=1,
-          )
+        help='number of virtual devices',
+        default=1,
+        )
+
+    # add an argument for how many virtual devices
+    parser.add_argument('--rpm',
+        help='enable read property multiple',
+        action="store_true",
+        )
+
+    # add an argument for including the property list
+    parser.add_argument('--plist',
+        help='enable property list property',
+        action="store_true",
+        )
 
     # now parse the arguments
     args = parser.parse_args()
@@ -221,6 +269,13 @@ def main():
 
     # send network topology
     deferred(router.nse.i_am_router_to_network)
+
+    # add the dynamic property list
+    if args.plist:
+        RandomAnalogValueObject.properties.append(CurrentPropertyList())
+
+    # register it now that all its properties are defined
+    register_object_type(RandomAnalogValueObject, vendor_id=999)
 
     # make some devices
     for device_number in range(2, 2 + args.count):
