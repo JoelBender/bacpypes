@@ -120,7 +120,7 @@ class VLANApplication(
         global args
 
         # normal initialization
-        Application.__init__(self, vlan_device, vlan_address, aseID)
+        Application.__init__(self, vlan_device, aseID=aseID)
 
         # optional read property multiple
         if args.rpm:
