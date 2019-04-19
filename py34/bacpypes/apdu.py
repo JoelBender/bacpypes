@@ -920,7 +920,7 @@ class RangeByPosition(Sequence):
 
 class RangeBySequenceNumber(Sequence):
     sequenceElements = \
-        [ Element('referenceIndex', Unsigned)
+        [ Element('referenceSequenceNumber', Unsigned)
         , Element('count', Integer)
         ]
 

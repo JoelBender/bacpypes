@@ -7,7 +7,7 @@ Constructed Data
 import sys
 from copy import deepcopy as _deepcopy
 
-from .errors import DecodingError, \
+from .errors import DecodingError, EncodingError, \
     MissingRequiredParameter, InvalidParameterDatatype, InvalidTag
 from .debugging import ModuleLogger, bacpypes_debugging
 
@@ -1458,6 +1458,50 @@ class AnyAtomic(Atomic):
             desc += ' ' + str(self.value)
 
         return '<' + desc + ' instance at 0x%08x' % (id(self),) + '>'
+
+bacpypes_debugging(AnyAtomic)
+
+#
+#   SequenceOfAny
+#
+
+class SequenceOfAny(Any):
+
+    def cast_in(self, element):
+        """encode the element into the internal tag list."""
+        if _debug: SequenceOfAny._debug("cast_in %r", element)
+
+        # make sure it is a list
+        if not isinstance(element, List):
+            raise EncodingError("%r is not a list" % (element,))
+
+        t = TagList()
+        element.encode(t)
+
+        self.tagList.extend(t.tagList)
+
+    def cast_out(self, klass):
+        """Interpret the content as a particular class."""
+        if _debug: SequenceOfAny._debug("cast_out %r", klass)
+
+        # make sure it is a list
+        if not issubclass(klass, List):
+            raise DecodingError("%r is not a list" % (klass,))
+
+        # build a helper
+        helper = klass()
+
+        # make a copy of the tag list
+        t = TagList(self.tagList[:])
+
+        # let it decode itself
+        helper.decode(t)
+
+        # make sure everything was consumed
+        if len(t) != 0:
+            raise DecodingError("incomplete cast")
+
+        return helper.value
 
 bacpypes_debugging(AnyAtomic)
 
