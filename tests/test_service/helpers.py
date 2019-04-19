@@ -249,7 +249,7 @@ class ApplicationStateMachine(ApplicationIOController, StateMachine):
         if _debug: ApplicationStateMachine._debug("    - address: %r", self.address)
 
         # continue with initialization
-        ApplicationIOController.__init__(self, localDevice, self.address)
+        ApplicationIOController.__init__(self, localDevice)
         StateMachine.__init__(self, name=localDevice.objectName)
 
         # include a application decoder

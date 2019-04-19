@@ -194,9 +194,13 @@ def decode_packet(data):
     if (pdu.pduData[0] == '\x81'):
         if _debug: decode_packet._debug("    - BVLL header found")
 
-        xpdu = BVLPDU()
-        xpdu.decode(pdu)
-        pdu = xpdu
+        try:
+            xpdu = BVLPDU()
+            xpdu.decode(pdu)
+            pdu = xpdu
+        except Exception as err:
+            if _debug: decode_packet._debug("    - BVLPDU decoding error: %r", err)
+            return pdu
 
         # make a more focused interpretation
         atype = bvl_pdu_types.get(pdu.bvlciFunction)

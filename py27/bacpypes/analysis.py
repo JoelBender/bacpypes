@@ -191,9 +191,13 @@ def decode_packet(data):
     if (pdu.pduData[0] == '\x81'):
         if _debug: decode_packet._debug("    - BVLL header found")
 
-        xpdu = BVLPDU()
-        xpdu.decode(pdu)
-        pdu = xpdu
+        try:
+            xpdu = BVLPDU()
+            xpdu.decode(pdu)
+            pdu = xpdu
+        except Exception as err:
+            if _debug: decode_packet._debug("    - BVLPDU decoding error: %r", err)
+            return pdu
 
         # make a more focused interpretation
         atype = bvl_pdu_types.get(pdu.bvlciFunction)
@@ -360,8 +364,12 @@ def decode_file(fname):
 
     # loop through the packets
     for i, (timestamp, data) in enumerate(p):
-        pkt = decode_packet(data)
-        if not pkt:
+        try:
+            pkt = decode_packet(data)
+            if not pkt:
+                continue
+        except Exception as err:
+            if _debug: decode_file._debug("    - exception decoding packet %d: %r", i+1, err)
             continue
 
         # save the packet number (as viewed in Wireshark) and timestamp

@@ -1,0 +1,52 @@
+Install Notes for Flashing MicroPython on Sonoff WiFi Switch
+
+**Read these instructions first. They help with FTDI connections. 
+https://medium.com/cloud4rpi/getting-micropython-on-a-sonoff-smart-switch-1df6c071720a
+
+**You will need a FDTI USB adapter. The one I used:
+HiLetgo FT232RL FTDI Mini USB to TTL Serial Converter Adapter Module 
+Got it from Amazon.
+
+
+1. download esptool -> $ pip install esptool
+
+2. download latest micropython firmware -> http://micropython.org/download
+    Current version - esp8266-20190125-v1.10.bin
+
+3. With power disconnected, hold down the button, while holing down the button,
+   plug in the usb cable to the computer and continue to hold for 3 seconds. This puts the device in flash mode.
+   
+   ** line voltage to the sonoff is not necessary for any step in this process. The device will be powered from
+   the 3.3v of the FTDI adapter.
+   
+4. $ esptool.py --port [USB adapter com port] erase_flash
+    in my case: esptool.py --port COM22 erase_flash
+  
+5. After erase is completed, unplug usb from computer, and put the device in flash mode again.
+
+6. $ esptool.py --port [USB adapter com port] write_flash -fs 1MB -fm dout 0x0 [path to firmware .bin file]
+    in my case: esptool.py --port COM22 write_flash -fs 1MB -fm dout 0x0 C:\uPyCraft\esp8266-20190125-v1.10.bin
+    
+    ^^ THIS ONE IS IMPORTANT ^^
+  All the instructions I found online use a different command to install the firmware but because of the manufacurer
+  of the chip used by Sonoff the command below is the correct one to use.
+  
+  
+  
+    
+You should be cooking with propane now!
+
+Other Helpfull Notes:
+
+- Micropython for esp8266 Docs:
+  http://docs.micropython.org/en/latest/esp8266/quickref.html
+
+- uPyCraft IDE for MicroPython:
+  ** I was not able to get the firmware update feature of this IDE to work. Most likely because of the special esptool command
+    needed to flash firmware.
+  
+  https://randomnerdtutorials.com/install-upycraft-ide-windows-pc-instructions/
+  If you dont trust their download:
+  https://github.com/DFRobot/uPyCraft
+  
+  
