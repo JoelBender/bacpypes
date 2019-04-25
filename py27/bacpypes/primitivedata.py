@@ -920,8 +920,17 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf_8')
-            self.value = str(udata.encode('ascii', 'backslashreplace'))
+            try:
+                udata = self.strValue.decode('utf_8')
+                self.value = str(udata.encode('ascii', 'backslashreplace'))
+            except UnicodeDecodeError:
+            # Wrong encoding... trying with latin-1 as
+            # we probably face a Windows software encoding issue
+                try:
+                    udata = self.strValue.decode('latin_1')
+                    self.value = str(udata.encode('ascii', 'backslashreplace'))
+                except UnicodeDecodeError:
+                    raise
         elif (self.strEncoding == 3):
             udata = self.strValue.decode('utf_32be')
             self.value = str(udata.encode('ascii', 'backslashreplace'))
