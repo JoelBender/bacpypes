@@ -20,6 +20,7 @@ _log = ModuleLogger(globals())
 
 # globals
 fox_message = "the quick brown fox jumped over the lazy dog"
+wronglyencodeddeltastring = b"Some description with a temperature of \xb0F"
 
 @bacpypes_debugging
 def character_string_tag(x):
@@ -99,6 +100,17 @@ class TestCharacterString(unittest.TestCase):
         obj = CharacterString(u"hello")
         assert obj.value == u"hello"
         assert str(obj) == "CharacterString(0,X'68656c6c6f')"
+
+    def test_character_string_unicode_with_latin(self):
+        if _debug: TestCharacterString._debug("test_character_string_unicode_with_latin")
+        # We saw Delta controllers encoding character string mixing latin-1 and utf-8
+        # try to cover those cases without failing
+        b = b"\x00Some description with a temperature of \xb0F"
+        tag = Tag(Tag.applicationTagClass, Tag.characterStringAppTag, len(b), b)
+        obj = CharacterString()
+        obj.decode(tag)
+        assert obj.value == u"Some description with a temperature of °F"
+        assert str(obj) == "CharacterString(0,X'536f6d65206465736372697074696f6e207769746820612074656d7065726174757265206f6620b046')"
 
     def test_character_string_tag(self):
         if _debug: TestCharacterString._debug("test_character_string_tag")
