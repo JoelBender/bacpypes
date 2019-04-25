@@ -914,16 +914,25 @@ class CharacterString(Atomic):
         self.strValue = tag_data[1:]
 
         # normalize the value
-        if (self.strEncoding == 0):
-            self.value = self.strValue.decode('utf-8')
-        elif (self.strEncoding == 3):
-            self.value = self.strValue.decode('utf_32be')
-        elif (self.strEncoding == 4):
-            self.value = self.strValue.decode('utf_16be')
-        elif (self.strEncoding == 5):
-            self.value = self.strValue.decode('latin_1')
-        else:
-            self.value = '### unknown encoding: %d ###' % (self.strEncoding,)
+        try:
+            if self.strEncoding == 0:
+                try:
+                    self.value = self.strValue.decode("utf-8", "strict")
+                except UnicodeDecodeError:
+                # Wrong encoding... trying with latin-1 as
+                # we probably face a Windows software encoding issue
+                    try:
+                        self.value = self.strValue.decode("latin-1")
+                    except UnicodeDecodeError:
+                        raise
+            elif self.strEncoding == 3:
+                self.value = self.strValue.decode("utf_32be")
+            elif self.strEncoding == 4:
+                self.value = self.strValue.decode("utf_16be")
+            elif self.strEncoding == 5:
+                self.value = self.strValue.decode("latin_1")
+        except UnicodeDecodeError:
+            self.value = "### unknown encoding: %d ###" % (self.strEncoding,)
 
     @classmethod
     def is_valid(cls, arg):
