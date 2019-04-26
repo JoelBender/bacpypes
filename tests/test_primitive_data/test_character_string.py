@@ -6,6 +6,7 @@ Test Primitive Data Character String
 ------------------------------------
 """
 
+import sys
 import unittest
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
@@ -102,14 +103,20 @@ class TestCharacterString(unittest.TestCase):
 
     def test_character_string_unicode_with_latin(self):
         if _debug: TestCharacterString._debug("test_character_string_unicode_with_latin")
-        # We saw Delta controllers encoding character string mixing latin-1 and utf-8
+        # some controllers encoding character string mixing latin-1 and utf-8
         # try to cover those cases without failing
         b = xtob('00b0') # degree symbol
         tag = Tag(Tag.applicationTagClass, Tag.characterStringAppTag, len(b), b)
         obj = CharacterString()
         obj.decode(tag)
-        assert obj.value == "°"
-#       assert str(obj) == "CharacterString(0,X'536f6d65206465736372697074696f6e207769746820612074656d7065726174757265206f6620b046')"
+        assert str(obj) == "CharacterString(0,X'b0')"
+
+        if sys.version_info[0] == 2:
+            assert obj.value == "\\xb0" # backslash escaped
+        elif sys.version_info[0] == 3:
+            assert obj.value == "°"
+        else:
+            raise RuntimeError("unsupported version")
 
     def test_character_string_tag(self):
         if _debug: TestCharacterString._debug("test_character_string_tag")
