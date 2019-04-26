@@ -8,6 +8,7 @@ import sys
 import struct
 import time
 import re
+import unicodedata
 
 from .debugging import ModuleLogger, btox
 
@@ -928,7 +929,8 @@ class CharacterString(Atomic):
             # we probably face a Windows software encoding issue
                 try:
                     udata = self.strValue.decode('latin_1')
-                    self.value = str(udata.encode('ascii', 'backslashreplace'))
+                    norm = unicodedata.normalize('NFKD', udata)
+                    self.value = str(norm.encode('ascii', 'ignore'))
                 except UnicodeDecodeError:
                     raise
         elif (self.strEncoding == 3):
