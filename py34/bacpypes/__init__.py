@@ -18,11 +18,7 @@ if _sys.platform not in _supported_platforms:
 #   Project Metadata
 #
 
-<<<<<<< HEAD
-__version__ = '0.17.6'
-=======
 __version__ = '0.17.7'
->>>>>>> stage
 __author__ = 'Joel Bender'
 __email__ = 'joel@carrickbender.com'
 
