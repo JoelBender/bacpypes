@@ -915,7 +915,15 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            self.value = self.strValue.decode('utf-8')
+            try:
+                self.value = self.strValue.decode("utf-8", "strict")
+            except UnicodeDecodeError:
+            # Wrong encoding... trying with latin-1 as
+            # we probably face a Windows software encoding issue
+                try:
+                    self.value = self.strValue.decode("latin-1")
+                except UnicodeDecodeError:
+                    raise
         elif (self.strEncoding == 3):
             self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
