@@ -28,7 +28,7 @@ class TPDU:
 
     def __repr__(self):
         return '<TPDU {}>'.format(', '.join(
-            '{}={}'.format(k, v) for k,v in self.__dict__.items(),
+            ('{}={}'.format(k, v) for k,v in self.__dict__.items()),
             ))
 
 
