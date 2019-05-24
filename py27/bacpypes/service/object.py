@@ -288,6 +288,11 @@ class ReadWritePropertyMultipleServices(Capability):
                     else:
                         for propId, prop in obj._properties.items():
                             if _debug: ReadWritePropertyMultipleServices._debug("    - checking: %r %r", propId, prop.optional)
+                            
+                            # skip propertyList for ReadPropertyMultiple
+                            if (propId == 'propertyList'):
+                                if _debug: ReadWritePropertyMultipleServices._debug("    - ignore propertyList")
+                                continue
 
                             if (propertyIdentifier == 'all'):
                                 pass
