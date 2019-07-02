@@ -151,7 +151,12 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
             self.set_reuse_addr()
 
         # proceed with the bind
-        self.bind(address)
+        try:
+            self.bind(address)
+        except:
+            self.close()
+            raise
+
         if _debug: UDPDirector._debug("    - getsockname: %r", self.socket.getsockname())
 
         # allow it to send broadcasts
