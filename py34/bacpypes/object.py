@@ -150,7 +150,7 @@ def get_datatype(object_type, propid, vendor_id=0):
 @bacpypes_debugging
 class Property:
 
-    def __init__(self, identifier, datatype, default=None, optional=True, mutable=True):
+    def __init__(self, identifier, datatype, default=None, optional=True, mutable=True, writable_if_oos=False):
         if _debug:
             Property._debug("__init__ %s %s default=%r optional=%r mutable=%r",
                 identifier, datatype, default, optional, mutable
@@ -167,6 +167,7 @@ class Property:
         self.optional = optional
         self.mutable = mutable
         self.default = default
+        self.writable_if_oos = writable_if_oos
 
     def ReadProperty(self, obj, arrayIndex=None):
         if _debug:
@@ -360,7 +361,7 @@ class Property:
 @bacpypes_debugging
 class StandardProperty(Property):
 
-    def __init__(self, identifier, datatype, default=None, optional=True, mutable=True):
+    def __init__(self, identifier, datatype, default=None, optional=True, mutable=True, writable_if_oos=False):
         if _debug:
             StandardProperty._debug("__init__ %s %s default=%r optional=%r mutable=%r",
                 identifier, datatype, default, optional, mutable
@@ -375,7 +376,7 @@ class StandardProperty(Property):
             raise ConfigurationError("unknown standard property identifier: %s" % (identifier,))
 
         # continue with the initialization
-        Property.__init__(self, identifier, datatype, default, optional, mutable)
+        Property.__init__(self, identifier, datatype, default, optional, mutable, writable_if_oos)
 
 #
 #   OptionalProperty
@@ -386,14 +387,14 @@ class OptionalProperty(StandardProperty):
 
     """The property is required to be present and readable using BACnet services."""
 
-    def __init__(self, identifier, datatype, default=None, optional=True, mutable=False):
+    def __init__(self, identifier, datatype, default=None, optional=True, mutable=False, writable_if_oos=False):
         if _debug:
             OptionalProperty._debug("__init__ %s %s default=%r optional=%r mutable=%r",
                 identifier, datatype, default, optional, mutable
                 )
 
         # continue with the initialization
-        StandardProperty.__init__(self, identifier, datatype, default, optional, mutable)
+        StandardProperty.__init__(self, identifier, datatype, default, optional, mutable, writable_if_oos)
 
 #
 #   ReadableProperty
@@ -404,14 +405,14 @@ class ReadableProperty(StandardProperty):
 
     """The property is required to be present and readable using BACnet services."""
 
-    def __init__(self, identifier, datatype, default=None, optional=False, mutable=False):
+    def __init__(self, identifier, datatype, default=None, optional=False, mutable=False, writable_if_oos=False):
         if _debug:
             ReadableProperty._debug("__init__ %s %s default=%r optional=%r mutable=%r",
                 identifier, datatype, default, optional, mutable
                 )
 
         # continue with the initialization
-        StandardProperty.__init__(self, identifier, datatype, default, optional, mutable)
+        StandardProperty.__init__(self, identifier, datatype, default, optional, mutable, writable_if_oos)
 
 #
 #   WritableProperty
@@ -590,6 +591,11 @@ class Object:
         if not prop:
             raise PropertyError(propid)
 
+        if prop.writable_if_oos:
+            # Reset mutability if no longer needed
+            if not self._properties.get("outOfService"):
+                prop.mutable = False
+
         # defer to the property to get the value
         return prop.ReadProperty(self, arrayIndex)
 
@@ -600,6 +606,13 @@ class Object:
         prop = self._properties.get(propid)
         if not prop:
             raise PropertyError(propid)
+
+        if prop.writable_if_oos:
+            if self._properties.get("outOfService"):
+                # Turn on mutability as OutOfService is true
+                prop.mutable = True
+            else:
+                prop.mutable = False
 
         # defer to the property to set the value
         return prop.WriteProperty(self, value, arrayIndex, priority, direct)
@@ -949,11 +962,11 @@ class AlertEnrollmentObject(Object):
 class AnalogInputObject(Object):
     objectType = 'analogInput'
     properties = \
-        [ ReadableProperty('presentValue', Real)
+        [ ReadableProperty('presentValue', Real, writable_if_oos=True)
         , OptionalProperty('deviceType', CharacterString)
         , ReadableProperty('statusFlags', StatusFlags)
         , ReadableProperty('eventState', EventState)
-        , OptionalProperty('reliability', Reliability)
+        , OptionalProperty('reliability', Reliability, writable_if_oos=True)
         , ReadableProperty('outOfService', Boolean)
         , OptionalProperty('updateInterval', Unsigned)
         , ReadableProperty('units', EngineeringUnits)
