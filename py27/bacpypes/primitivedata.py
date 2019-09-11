@@ -1669,6 +1669,7 @@ class ObjectType(Enumerated):
         , 'timeValue':50
         , 'trendLog':20
         , 'trendLogMultiple':27
+        , 'networkPort':56
         }
 
 expand_enumerations(ObjectType)
