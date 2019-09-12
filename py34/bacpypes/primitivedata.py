@@ -660,7 +660,7 @@ class Unsigned(Atomic):
                 arg = int(arg)
             except ValueError:
                 return False
-        if not isinstance(arg, int) or isinstance(arg, bool):
+        elif not isinstance(arg, int) or isinstance(arg, bool):
             return False
         if (arg < cls._low_limit):
             return False
