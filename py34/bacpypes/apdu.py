@@ -1579,6 +1579,7 @@ class ReinitializeDeviceRequestReinitializedStateOfDevice(Enumerated):
         , 'startrestore':4
         , 'endrestore':5
         , 'abortrestore':6
+        , 'activate-changes':7
         }
 
 class ReinitializeDeviceRequest(ConfirmedRequestSequence):
