@@ -1574,11 +1574,12 @@ class ReinitializeDeviceRequestReinitializedStateOfDevice(Enumerated):
     enumerations = \
         { 'coldstart':0
         , 'warmstart':1
-        , 'startbackup':2
-        , 'endbackup':3
-        , 'startrestore':4
-        , 'endrestore':5
-        , 'abortrestore':6
+        , 'startBackup':2
+        , 'endBackup':3
+        , 'startRestore':4
+        , 'endRestore':5
+        , 'abortRestore':6
+        , 'activateChanges':7
         }
 
 class ReinitializeDeviceRequest(ConfirmedRequestSequence):
