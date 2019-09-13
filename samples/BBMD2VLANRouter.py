@@ -116,7 +116,7 @@ class VLANApplication(Application, WhoIsIAmServices, ReadWritePropertyServices):
         # create a vlan node at the assigned address
         self.vlan_node = Node(vlan_address)
 
-        # bind the stack to the node, no network number
+        # bind the stack to the node, no network number, no address
         self.nsap.bind(self.vlan_node)
 
     def request(self, apdu):
@@ -213,11 +213,12 @@ def main():
     vlan = Network(broadcast_address=LocalBroadcast())
 
     # create a node for the router, address 1 on the VLAN
-    router_node = Node(Address(1))
+    router_addr = Address(1)
+    router_node = Node(router_addr)
     vlan.add_node(router_node)
 
     # bind the router stack to the vlan network through this node
-    router.nsap.bind(router_node, vlan_network)
+    router.nsap.bind(router_node, vlan_network, router_addr)
 
     # send network topology
     deferred(router.nse.i_am_router_to_network)

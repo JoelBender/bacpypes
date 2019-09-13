@@ -25,6 +25,12 @@ class WhoIsIAmServices(Capability):
         if _debug: WhoIsIAmServices._debug("__init__")
         Capability.__init__(self)
 
+    def startup(self):
+        if _debug: WhoIsIAmServices._debug("startup")
+
+        # send a global broadcast I-Am
+        self.i_am()
+
     def who_is(self, low_limit=None, high_limit=None, address=None):
         if _debug: WhoIsIAmServices._debug("who_is")
 

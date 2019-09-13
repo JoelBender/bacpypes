@@ -61,7 +61,7 @@ class NATRouter:
         bind(self.s1_bip, self.s1_annexj, self.s1_mux.annexJ)
 
         # bind the BIP stack to the local network
-        self.nsap.bind(self.s1_bip, net1, addr1)
+        self.nsap.bind(self.s1_bip, net1, local_addr)
 
         #== Second stack
 
@@ -78,7 +78,7 @@ class NATRouter:
         bind(self.s2_bip, self.s2_annexj, self.s2_mux.annexJ)
 
         # bind the BIP stack to the global network
-        self.nsap.bind(self.s2_bip, net2)
+        self.nsap.bind(self.s2_bip, net2, global_addr)
 
 #
 #   __main__

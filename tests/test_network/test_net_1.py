@@ -105,6 +105,8 @@ class TNetwork(StateMachineGroup):
 
         # check for success
         all_success, some_failed = super(TNetwork, self).check_for_success()
+        if _debug: TNetwork._debug("    - all_success, some_failed: %r, %r", all_success, some_failed)
+
         assert all_success
 
 

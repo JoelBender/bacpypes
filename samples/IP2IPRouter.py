@@ -75,7 +75,7 @@ class IP2IPRouter:
         bind(self.s2_bip, self.s2_annexj, self.s2_mux.annexJ)
 
         # bind the BIP stack to the local network
-        self.nsap.bind(self.s2_bip, net2)
+        self.nsap.bind(self.s2_bip, net2, addr2)
 
 #
 #   __main__
