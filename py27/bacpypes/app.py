@@ -626,7 +626,7 @@ class BIPNetworkApplication(NetworkServiceElement):
         else:
             self.bip = BIPForeign(bbmdAddress, bbmdTTL)
         self.annexj = AnnexJCodec()
-        self.mux = UDPMultiplexer(self.localAddress)
+        self.mux = UDPMultiplexer(self.localAddress, noBroadcast=True)
 
         # bind the bottom layers
         bind(self.bip, self.annexj, self.mux.annexJ)

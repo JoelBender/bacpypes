@@ -616,6 +616,7 @@ class Unsigned(Atomic):
         elif isinstance(arg, long):
             if not self.is_valid(arg):
                 raise ValueError("value out of range")
+<<<<<<< HEAD
             self.value = arg
         elif isinstance(arg, str):
             try:
@@ -624,6 +625,8 @@ class Unsigned(Atomic):
                 raise TypeError("invalid constructor datatype")
             if not self.is_valid(arg):
                 raise ValueError("value out of range")
+=======
+>>>>>>> Jean-Simon-udp-bind-issue
             self.value = arg
         elif isinstance(arg, Unsigned):
             if not self.is_valid(arg.value):
