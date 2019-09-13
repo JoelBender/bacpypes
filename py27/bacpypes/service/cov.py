@@ -471,6 +471,7 @@ class PulseConverterCriteria(COVIncrementCriteria):
 
 # mapping from object type to appropriate criteria class
 criteria_type_map = {
+#   'accessDoor': GenericCriteria,  #TODO: needs AccessDoorCriteria
     'accessPoint': AccessPointCriteria,
     'analogInput': COVIncrementCriteria,
     'analogOutput': COVIncrementCriteria,
@@ -497,6 +498,7 @@ criteria_type_map = {
     'dateTimePatternValue': GenericCriteria,
     'credentialDataInput': CredentialDataInputCriteria,
     'loadControl': LoadControlCriteria,
+    'loop': GenericCriteria,
     'pulseConverter': PulseConverterCriteria,
     }
 
@@ -691,6 +693,10 @@ class ChangeOfValueServices(Capability):
         if _debug: ChangeOfValueServices._debug("    - object: %r", obj)
         if not obj:
             raise ExecutionError(errorClass='object', errorCode='unknownObject')
+
+        # check to see if the object supports COV
+        if not obj._object_supports_cov:
+            raise ExecutionError(errorClass='services', errorCode='covSubscriptionFailed')
 
         # look for an algorithm already associated with this object
         cov_detection = self.cov_detections.get(obj, None)
