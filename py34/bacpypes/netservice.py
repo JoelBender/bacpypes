@@ -110,7 +110,7 @@ class RouterInfoCache:
             for dnet in dnets:
                 if dnet not in existing_router_info.dnets:
                     self.path_info[(snet, dnet)] = existing_router_info
-                    if _debug: RouterInfoCache._debug("    - add path: %r -> %r via %r", snet, dnet, router_info.address)
+                    if _debug: RouterInfoCache._debug("    - add path: %r -> %r", snet, dnet)
                 existing_router_info.dnets[dnet] = status
 
     def update_router_status(self, snet, address, status):
