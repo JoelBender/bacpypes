@@ -158,7 +158,7 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
         network_list = [int(arg) for arg in args[1:]]
 
         # pass along to the service access point
-        this_application.nsap.add_router_references(None, router_address, network_list)
+        this_application.nsap.update_router_references(None, router_address, network_list)
 
 
 #
