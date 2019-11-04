@@ -363,7 +363,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 npdu.npduDADR = apdu.pduDestination
 
             npdu.pduDestination = npdu.pduDestination.addrRoute
-            adapter.process_npdu(npdu)
+            local_adapter.process_npdu(npdu)
             return
 
         # local stations given to local adapter
