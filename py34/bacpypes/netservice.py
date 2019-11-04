@@ -6,6 +6,7 @@ Network Service
 
 from copy import deepcopy as _deepcopy
 
+from .settings import settings
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 from .errors import ConfigurationError
 
@@ -14,7 +15,8 @@ from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 from .task import FunctionTask
 
-from .pdu import Address, LocalBroadcast, LocalStation, PDU, RemoteStation
+from .pdu import Address, LocalBroadcast, LocalStation, PDU, RemoteStation, \
+    GlobalBroadcast
 from .npdu import NPDU, npdu_types, IAmRouterToNetwork, WhoIsRouterToNetwork, \
     WhatIsNetworkNumber, NetworkNumberIs
 from .apdu import APDU as _APDU
@@ -348,6 +350,22 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
         # the hop count always starts out big
         npdu.npduHopCount = 255
 
+        # if this is route aware, use it for the destination
+        if settings.route_aware and npdu.pduDestination.addrRoute:
+            # always a local station for now, in theory this could also be
+            # a local braodcast address, remote station, or remote broadcast
+            # but that is not supported by the patterns
+            assert npdu.pduDestination.addrRoute.addrType == Address.localStationAddr
+            if _debug: NetworkServiceAccessPoint._debug("    - routed: %r", npdu.pduDestination.addrRoute)
+
+            if npdu.pduDestination.addrType in (Address.remoteStationAddr, Address.remoteBroadcastAddr, Address.globalBroadcastAddr):
+                if _debug: NetworkServiceAccessPoint._debug("    - continue DADR: %r", apdu.pduDestination)
+                npdu.npduDADR = apdu.pduDestination
+
+            npdu.pduDestination = npdu.pduDestination.addrRoute
+            adapter.process_npdu(npdu)
+            return
+
         # local stations given to local adapter
         if (npdu.pduDestination.addrType == Address.localStationAddr):
             local_adapter.process_npdu(npdu)
@@ -517,15 +535,17 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                 if (len(self.adapters) > 1) and (adapter != self.local_adapter):
                     # combine the source address
                     if not npdu.npduSADR:
-                        apdu.pduSource = RemoteStation( adapter.adapterNet, npdu.pduSource.addrAddr )
+                        apdu.pduSource = RemoteStation(adapter.adapterNet, npdu.pduSource.addrAddr)
                     else:
                         apdu.pduSource = npdu.npduSADR
+                    if settings.route_aware:
+                        apdu.pduSource.addrRoute = npdu.pduSource
 
                     # map the destination
                     if not npdu.npduDADR:
                         apdu.pduDestination = self.local_adapter.adapterAddr
                     elif npdu.npduDADR.addrType == Address.globalBroadcastAddr:
-                        apdu.pduDestination = npdu.npduDADR
+                        apdu.pduDestination = GlobalBroadcast()
                     elif npdu.npduDADR.addrType == Address.remoteBroadcastAddr:
                         apdu.pduDestination = LocalBroadcast()
                     else:
@@ -534,12 +554,15 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     # combine the source address
                     if npdu.npduSADR:
                         apdu.pduSource = npdu.npduSADR
+                        if settings.route_aware:
+                            if _debug: NetworkServiceAccessPoint._debug("    - adding route")
+                            apdu.pduSource.addrRoute = npdu.pduSource
                     else:
                         apdu.pduSource = npdu.pduSource
 
                     # pass along global broadcast
                     if npdu.npduDADR and npdu.npduDADR.addrType == Address.globalBroadcastAddr:
-                        apdu.pduDestination = npdu.npduDADR
+                        apdu.pduDestination = GlobalBroadcast()
                     else:
                         apdu.pduDestination = npdu.pduDestination
                 if _debug:

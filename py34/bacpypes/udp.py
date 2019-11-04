@@ -205,7 +205,7 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
         return 1
 
     def handle_read(self):
-        if _debug: UDPDirector._debug("handle_read")
+        if _debug: UDPDirector._debug("handle_read(%r)", self.address)
 
         try:
             msg, addr = self.socket.recvfrom(65536)
@@ -232,7 +232,7 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
     def handle_write(self):
         """get a PDU from the queue and send it."""
-        if _debug: UDPDirector._debug("handle_write")
+        if _debug: UDPDirector._debug("handle_write(%r)", self.address)
 
         try:
             pdu = self.request.get()

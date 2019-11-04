@@ -9,7 +9,7 @@ and prints the value.
 import sys
 
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
-from bacpypes.consolelogging import ConfigArgumentParser
+from bacpypes.consolelogging import ConfigArgumentParser, ConsoleLogHandler
 from bacpypes.consolecmd import ConsoleCmd
 
 from bacpypes.core import run, deferred, enable_sleeping
@@ -133,6 +133,7 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 
 def main():
     global this_application
+    ConsoleLogHandler('bacpypes.consolelogging')
 
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()

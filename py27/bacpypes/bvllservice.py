@@ -6,8 +6,8 @@ BACnet Virtual Link Layer Service
 
 import sys
 import struct
-from time import time as _time
 
+from .settings import settings
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .udp import UDPDirector
@@ -90,6 +90,7 @@ class UDPMultiplexer:
             UDPMultiplexer._debug("    - address: %r", self.address)
             UDPMultiplexer._debug("    - addrTuple: %r", self.addrTuple)
             UDPMultiplexer._debug("    - addrBroadcastTuple: %r", self.addrBroadcastTuple)
+            UDPMultiplexer._debug("    - route_aware: %r", settings.route_aware)
 
         # create and bind the direct address
         self.direct = _MultiplexClient(self)
@@ -100,7 +101,7 @@ class UDPMultiplexer:
         if specialBroadcast and (not noBroadcast) and sys.platform in ('linux2', 'darwin'):
             self.broadcast = _MultiplexClient(self)
             self.broadcastPort = UDPDirector(self.addrBroadcastTuple, reuse=True)
-            bind(self.direct, self.broadcastPort)
+            bind(self.broadcast, self.broadcastPort)
         else:
             self.broadcast = None
             self.broadcastPort = None
@@ -120,7 +121,7 @@ class UDPMultiplexer:
     def indication(self, server, pdu):
         if _debug: UDPMultiplexer._debug("indication %r %r", server, pdu)
 
-        # check for a broadcast message
+        # broadcast message
         if pdu.pduDestination.addrType == Address.localBroadcastAddr:
             dest = self.addrBroadcastTuple
             if _debug: UDPMultiplexer._debug("    - requesting local broadcast: %r", dest)
@@ -129,6 +130,7 @@ class UDPMultiplexer:
             if not dest:
                 return
 
+        # unicast message
         elif pdu.pduDestination.addrType == Address.localStationAddr:
             dest = unpack_ip_addr(pdu.pduDestination.addrAddr)
             if _debug: UDPMultiplexer._debug("    - requesting local station: %r", dest)

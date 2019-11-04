@@ -242,7 +242,7 @@ class ApplicationLayerStateMachine(ApplicationServiceElement, ClientStateMachine
         self.receive(apdu)
 
     def confirmation(self, apdu):
-        if _debug: ApplicationLayerStateMachine._debug("confirmation %r %r", apdu)
+        if _debug: ApplicationLayerStateMachine._debug("confirmation %r", apdu)
         self.receive(apdu)
 
 #

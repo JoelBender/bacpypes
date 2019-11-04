@@ -22,6 +22,8 @@ __version__ = '0.17.7'
 __author__ = 'Joel Bender'
 __email__ = 'joel@carrickbender.com'
 
+from . import settings
+
 #
 #   Communications Core Modules
 #
