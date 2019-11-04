@@ -60,7 +60,7 @@ setup(
         'bacpypes.service',
     ],
     package_dir={
-        'bacpypes': os.path.join(source_folder, 'bacpypes'),
+        '': os.path.join(source_folder, ''),
     },
     include_package_data=True,
     install_requires=requirements,
