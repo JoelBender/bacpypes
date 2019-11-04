@@ -152,6 +152,10 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 
 def main():
     global this_application
+
+    # create a console log handler to show how settings are gathered from
+    # the JSON file.  The settings may include debugging, so this is to
+    # debug the debugging and usually isn't necessary
     ConsoleLogHandler("bacpypes.consolelogging")
 
     # parse the command line arguments
