@@ -18,6 +18,7 @@ from . import test_comm
 from . import test_pdu
 from . import test_primitive_data
 from . import test_constructed_data
+from . import test_base_types
 from . import test_utilities
 from . import test_vlan
 
