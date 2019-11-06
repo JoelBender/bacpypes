@@ -5,7 +5,7 @@ from ..capability import Capability
 
 from ..basetypes import ErrorType, PropertyIdentifier
 from ..primitivedata import Atomic, Null, Unsigned
-from ..constructeddata import Any, Array, ArrayOf
+from ..constructeddata import Any, Array, ArrayOf, List
 
 from ..apdu import \
     SimpleAckPDU, ReadPropertyACK, ReadPropertyMultipleACK, \
@@ -72,6 +72,8 @@ class ReadWritePropertyServices(Capability):
                 elif not isinstance(value, datatype.subtype):
                     raise TypeError("invalid result datatype, expecting {0} and got {1}" \
                         .format(datatype.subtype.__name__, type(value).__name__))
+            elif issubclass(datatype, List):
+                value = datatype(value)
             elif not isinstance(value, datatype):
                 raise TypeError("invalid result datatype, expecting {0} and got {1}" \
                     .format(datatype.__name__, type(value).__name__))
