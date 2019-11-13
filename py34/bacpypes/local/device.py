@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ..debugging import bacpypes_debugging, ModuleLogger
+from ..debugging import bacpypes_debugging, ModuleLogger, xtob
 
 from ..primitivedata import Null, Boolean, Unsigned, Integer, Real, Double, \
     OctetString, CharacterString, BitString, Enumerated, Date, Time, \

@@ -1,15 +1,8 @@
 #!/usr/bin/env python
 
 from ..debugging import bacpypes_debugging, ModuleLogger
-from ..capability import Capability
 
 from ..object import FileObject
-
-from ..apdu import AtomicReadFileACK, AtomicReadFileACKAccessMethodChoice, \
-    AtomicReadFileACKAccessMethodRecordAccess, \
-    AtomicReadFileACKAccessMethodStreamAccess, \
-    AtomicWriteFileACK
-from ..errors import ExecutionError, MissingRequiredParameter
 
 # some debugging
 _debug = 0
