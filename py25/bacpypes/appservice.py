@@ -516,7 +516,6 @@ class ClientSSM(SSM):
             if _debug: ClientSSM._debug("    - error/reject/abort")
 
             self.set_state(COMPLETED)
-            self.response = apdu
             self.response(apdu)
 
         else:
