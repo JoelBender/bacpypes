@@ -23,7 +23,8 @@ try:
 except:
     pass
 
-from .debugging import ModuleLogger, bacpypes_debugging, btox, xtob
+from .settings import settings
+from .debugging import ModuleLogger, bacpypes_debugging, btox
 
 from .pdu import PDU, Address
 from .bvll import BVLPDU, bvl_pdu_types, ForwardedNPDU, \
@@ -216,7 +217,10 @@ def decode_packet(data):
 
             # lift the address for forwarded NPDU's
             if atype is ForwardedNPDU:
+                old_pdu_source = pdu.pduSource
                 pdu.pduSource = bpdu.bvlciAddress
+                if settings.route_aware:
+                    pdu.pduSource.addrRoute = old_pdu_source
             # no deeper decoding for some
             elif atype not in (DistributeBroadcastToNetwork, OriginalUnicastNPDU, OriginalBroadcastNPDU):
                 return pdu
@@ -254,6 +258,8 @@ def decode_packet(data):
         # "lift" the source and destination address
         if npdu.npduSADR:
             apdu.pduSource = npdu.npduSADR
+            if settings.route_aware:
+                apdu.pduSource.addrRoute = npdu.pduSource
         else:
             apdu.pduSource = npdu.pduSource
         if npdu.npduDADR:

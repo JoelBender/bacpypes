@@ -13,6 +13,7 @@ try:
 except ImportError:
     netifaces = None
 
+from .settings import settings
 from .debugging import ModuleLogger, bacpypes_debugging, btox, xtob
 from .comm import PCI as _PCI, PDUData
 
@@ -28,9 +29,26 @@ _log = ModuleLogger(globals())
 #   Address
 #
 
-ip_address_mask_port_re = re.compile(r'^(?:(\d+):)?(\d+\.\d+\.\d+\.\d+)(?:/(\d+))?(?::(\d+))?$')
+_field_address = r"((?:\d+)|(?:0x(?:[0-9A-Fa-f][0-9A-Fa-f])+))"
+_ip_address_port = r"(\d+\.\d+\.\d+\.\d+)(?::(\d+))?"
+_ip_address_mask_port = r"(\d+\.\d+\.\d+\.\d+)(?:/(\d+))?(?::(\d+))?"
+_net_ip_address_port = r"(\d+):" + _ip_address_port
+_at_route = "(?:[@](?:" + _field_address + "|" + _ip_address_port + "))?"
+
+field_address_re = re.compile("^" + _field_address + "$")
+ip_address_port_re = re.compile("^" + _ip_address_port + "$")
+ip_address_mask_port_re = re.compile("^" + _ip_address_mask_port + "$")
+net_ip_address_port_re = re.compile("^" + _net_ip_address_port + "$")
+net_ip_address_mask_port_re = re.compile("^" + _net_ip_address_port + "$")
+
 ethernet_re = re.compile(r'^([0-9A-Fa-f][0-9A-Fa-f][:]){5}([0-9A-Fa-f][0-9A-Fa-f])$' )
 interface_re = re.compile(r'^(?:([\w]+))(?::(\d+))?$')
+
+net_broadcast_route_re = re.compile("^([0-9])+:[*]" + _at_route + "$")
+net_station_route_re = re.compile("^([0-9])+:" + _field_address + _at_route + "$")
+net_ip_address_route_re = re.compile("^([0-9])+:" + _ip_address_port + _at_route + "$")
+
+combined_pattern = re.compile("^(?:(?:([0-9]+)|([*])):)?(?:([*])|" + _field_address + "|" + _ip_address_mask_port + ")" + _at_route + "$")
 
 @bacpypes_debugging
 class Address:
@@ -45,8 +63,9 @@ class Address:
         if _debug: Address._debug("__init__ %r", args)
         self.addrType = Address.nullAddr
         self.addrNet = None
-        self.addrLen = 0
-        self.addrAddr = b''
+        self.addrAddr = None
+        self.addrLen = None
+        self.addrRoute = None
 
         if len(args) == 1:
             self.decode_address(args[0])
@@ -65,25 +84,22 @@ class Address:
         """Initialize the address from a string.  Lots of different forms are supported."""
         if _debug: Address._debug("decode_address %r (%s)", addr, type(addr))
 
-        # start out assuming this is a local station
+        # start out assuming this is a local station and didn't get routed
         self.addrType = Address.localStationAddr
         self.addrNet = None
+        self.addrAddr = None
+        self.addrLen = None
+        self.addrRoute = None
 
         if addr == "*":
             if _debug: Address._debug("    - localBroadcast")
 
             self.addrType = Address.localBroadcastAddr
-            self.addrNet = None
-            self.addrAddr = None
-            self.addrLen = None
 
         elif addr == "*:*":
             if _debug: Address._debug("   - globalBroadcast")
 
             self.addrType = Address.globalBroadcastAddr
-            self.addrNet = None
-            self.addrAddr = None
-            self.addrLen = None
 
         elif isinstance(addr, int):
             if _debug: Address._debug("    - int")
@@ -96,44 +112,100 @@ class Address:
         elif isinstance(addr, basestring):
             if _debug: Address._debug("    - str")
 
-            m = ip_address_mask_port_re.match(addr)
+            m = combined_pattern.match(addr)
             if m:
-                if _debug: Address._debug("    - IP address")
+                if _debug: Address._debug("    - combined pattern")
 
-                net, addr, mask, port = m.groups()
-                if not mask: mask = '32'
-                if not port: port = '47808'
-                if _debug: Address._debug("    - net, addr, mask, port: %r, %r, %r, %r", net, addr, mask, port)
+                (net, global_broadcast,
+                local_broadcast,
+                local_addr,
+                local_ip_addr, local_ip_net, local_ip_port,
+                route_addr, route_ip_addr, route_ip_port
+                ) = m.groups()
 
-                if net:
-                    net = int(net)
-                    if (net >= 65535):
+                if global_broadcast and local_broadcast:
+                    if _debug: Address._debug("    - global broadcast")
+                    self.addrType = Address.globalBroadcastAddr
+
+                elif net and local_broadcast:
+                    if _debug: Address._debug("    - remote broadcast")
+                    net_addr = int(net)
+                    if (net_addr >= 65535):
+                        raise ValueError("network out of range")
+                    self.addrType = Address.remoteBroadcastAddr
+                    self.addrNet = net_addr
+
+                elif local_broadcast:
+                    if _debug: Address._debug("    - local broadcast")
+                    self.addrType = Address.localBroadcastAddr
+
+                elif net:
+                    if _debug: Address._debug("    - remote station")
+                    net_addr = int(net)
+                    if (net_addr >= 65535):
                         raise ValueError("network out of range")
                     self.addrType = Address.remoteStationAddr
-                    self.addrNet = net
+                    self.addrNet = net_addr
 
-                self.addrPort = int(port)
-                self.addrTuple = (addr, self.addrPort)
+                if local_addr:
+                    if _debug: Address._debug("    - simple address")
+                    if local_addr.startswith("0x"):
+                        self.addrAddr = xtob(local_addr[2:])
+                        self.addrLen = len(self.addrAddr)
+                    else:
+                        local_addr = int(local_addr)
+                        if local_addr >= 256:
+                            raise ValueError("address out of range")
 
-                addrstr = socket.inet_aton(addr)
-                self.addrIP = struct.unpack('!L', addrstr)[0]
-                self.addrMask = (_long_mask << (32 - int(mask))) & _long_mask
-                self.addrHost = (self.addrIP & ~self.addrMask)
-                self.addrSubnet = (self.addrIP & self.addrMask)
+                        self.addrAddr = struct.pack('B', local_addr)
+                        self.addrLen = 1
 
-                bcast = (self.addrSubnet | ~self.addrMask)
-                self.addrBroadcastTuple = (socket.inet_ntoa(struct.pack('!L', bcast & _long_mask)), self.addrPort)
+                if local_ip_addr:
+                    if _debug: Address._debug("    - ip address")
+                    if not local_ip_port:
+                        local_ip_port = '47808'
+                    if not local_ip_net:
+                        local_ip_net = '32'
 
-                self.addrAddr = addrstr + struct.pack('!H', self.addrPort & _short_mask)
-                self.addrLen = 6
+                    self.addrPort = int(local_ip_port)
+                    self.addrTuple = (local_ip_addr, self.addrPort)
+                    if _debug: Address._debug("    - addrTuple: %r", self.addrTuple)
 
-            elif ethernet_re.match(addr):
+                    addrstr = socket.inet_aton(local_ip_addr)
+                    self.addrIP = struct.unpack('!L', addrstr)[0]
+                    self.addrMask = (_long_mask << (32 - int(local_ip_net))) & _long_mask
+                    self.addrHost = (self.addrIP & ~self.addrMask)
+                    self.addrSubnet = (self.addrIP & self.addrMask)
+
+                    bcast = (self.addrSubnet | ~self.addrMask)
+                    self.addrBroadcastTuple = (socket.inet_ntoa(struct.pack('!L', bcast & _long_mask)), self.addrPort)
+                    if _debug: Address._debug("    - addrBroadcastTuple: %r", self.addrBroadcastTuple)
+
+                    self.addrAddr = addrstr + struct.pack('!H', self.addrPort & _short_mask)
+                    self.addrLen = 6
+
+                if (not settings.route_aware) and (route_addr or route_ip_addr):
+                    Address._warning("route provided but not route aware: %r", addr)
+
+                if route_addr:
+                    self.addrRoute = Address(int(route_addr))
+                    if _debug: Address._debug("    - addrRoute: %r", self.addrRoute)
+                elif route_ip_addr:
+                    if not route_ip_port:
+                        route_ip_port = '47808'
+                    self.addrRoute = Address((route_ip_addr, int(route_ip_port)))
+                    if _debug: Address._debug("    - addrRoute: %r", self.addrRoute)
+
+                return
+
+            if ethernet_re.match(addr):
                 if _debug: Address._debug("    - ethernet")
 
                 self.addrAddr = xtob(addr, ':')
                 self.addrLen = len(self.addrAddr)
+                return
 
-            elif re.match(r"^\d+$", addr):
+            if re.match(r"^\d+$", addr):
                 if _debug: Address._debug("    - int")
 
                 addr = int(addr)
@@ -142,8 +214,9 @@ class Address:
 
                 self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
+                return
 
-            elif re.match(r"^\d+:[*]$", addr):
+            if re.match(r"^\d+:[*]$", addr):
                 if _debug: Address._debug("    - remote broadcast")
 
                 addr = int(addr[:-2])
@@ -154,8 +227,9 @@ class Address:
                 self.addrNet = addr
                 self.addrAddr = None
                 self.addrLen = None
+                return
 
-            elif re.match(r"^\d+:\d+$",addr):
+            if re.match(r"^\d+:\d+$",addr):
                 if _debug: Address._debug("    - remote station")
 
                 net, addr = addr.split(':')
@@ -170,20 +244,23 @@ class Address:
                 self.addrNet = net
                 self.addrAddr = struct.pack('B', addr)
                 self.addrLen = 1
+                return
 
-            elif re.match(r"^0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
+            if re.match(r"^0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
                 if _debug: Address._debug("    - modern hex string")
 
                 self.addrAddr = xtob(addr[2:])
                 self.addrLen = len(self.addrAddr)
+                return
 
-            elif re.match(r"^X'([0-9A-Fa-f][0-9A-Fa-f])+'$",addr):
+            if re.match(r"^X'([0-9A-Fa-f][0-9A-Fa-f])+'$",addr):
                 if _debug: Address._debug("    - old school hex string")
 
                 self.addrAddr = xtob(addr[2:-1])
                 self.addrLen = len(self.addrAddr)
+                return
 
-            elif re.match(r"^\d+:0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
+            if re.match(r"^\d+:0x([0-9A-Fa-f][0-9A-Fa-f])+$",addr):
                 if _debug: Address._debug("    - remote station with modern hex string")
 
                 net, addr = addr.split(':')
@@ -195,8 +272,9 @@ class Address:
                 self.addrNet = net
                 self.addrAddr = xtob(addr[2:])
                 self.addrLen = len(self.addrAddr)
+                return
 
-            elif re.match(r"^\d+:X'([0-9A-Fa-f][0-9A-Fa-f])+'$",addr):
+            if re.match(r"^\d+:X'([0-9A-Fa-f][0-9A-Fa-f])+'$",addr):
                 if _debug: Address._debug("    - remote station with old school hex string")
 
                 net, addr = addr.split(':')
@@ -208,8 +286,11 @@ class Address:
                 self.addrNet = net
                 self.addrAddr = xtob(addr[2:-1])
                 self.addrLen = len(self.addrAddr)
+                return
 
-            elif netifaces and interface_re.match(addr):
+            if netifaces and interface_re.match(addr):
+                if _debug: Address._debug("    - interface name with optional port")
+
                 interface, port = interface_re.match(addr).groups()
                 if port is not None:
                     self.addrPort = int(port)
@@ -219,6 +300,7 @@ class Address:
                 interfaces = netifaces.interfaces()
                 if interface not in interfaces:
                     raise ValueError("not an interface: %s" % (interface,))
+                if _debug: Address._debug("    - interfaces: %r", interfaces)
 
                 ifaddresses = netifaces.ifaddresses(interface)
                 if netifaces.AF_INET not in ifaddresses:
@@ -228,9 +310,11 @@ class Address:
                 if len(ipv4addresses) > 1:
                     raise ValueError("interface supports multiple IPv4 addresses: %s" % (interface,))
                 ifaddress = ipv4addresses[0]
+                if _debug: Address._debug("    - ifaddress: %r", ifaddress)
 
                 addr = ifaddress['addr']
                 self.addrTuple = (addr, self.addrPort)
+                if _debug: Address._debug("    - addrTuple: %r", self.addrTuple)
 
                 addrstr = socket.inet_aton(addr)
                 self.addrIP = struct.unpack('!L', addrstr)[0]
@@ -248,12 +332,13 @@ class Address:
                     self.addrBroadcastTuple = (ifaddress['broadcast'], self.addrPort)
                 else:
                     self.addrBroadcastTuple = None
+                if _debug: Address._debug("    - addrBroadcastTuple: %r", self.addrBroadcastTuple)
 
                 self.addrAddr = addrstr + struct.pack('!H', self.addrPort & _short_mask)
                 self.addrLen = 6
+                return
 
-            else:
-                raise ValueError("unrecognized format")
+            raise ValueError("unrecognized format")
 
         elif isinstance(addr, tuple):
             addr, port = addr
@@ -285,16 +370,15 @@ class Address:
 
             self.addrAddr = addrstr + struct.pack('!H', self.addrPort & _short_mask)
             self.addrLen = 6
-
         else:
             raise TypeError("integer, string or tuple required")
 
     def __str__(self):
         if self.addrType == Address.nullAddr:
-            return 'Null'
+            rslt = 'Null'
 
         elif self.addrType == Address.localBroadcastAddr:
-            return '*'
+            rslt = '*'
 
         elif self.addrType == Address.localStationAddr:
             rslt = ''
@@ -308,10 +392,9 @@ class Address:
                         rslt += ':' + str(port)
                 else:
                     rslt += '0x' + btox(self.addrAddr)
-            return rslt
 
         elif self.addrType == Address.remoteBroadcastAddr:
-            return '%d:*' % (self.addrNet,)
+            rslt = '%d:*' % (self.addrNet,)
 
         elif self.addrType == Address.remoteStationAddr:
             rslt = '%d:' % (self.addrNet,)
@@ -325,30 +408,51 @@ class Address:
                         rslt += ':' + str(port)
                 else:
                     rslt += '0x' + btox(self.addrAddr)
-            return rslt
 
         elif self.addrType == Address.globalBroadcastAddr:
-            return '*:*'
+            rslt = "*:*"
 
         else:
             raise TypeError("unknown address type %d" % self.addrType)
 
+        if self.addrRoute:
+            rslt += "@" + str(self.addrRoute)
+
+        return rslt
+
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__, self.__str__())
 
-    def __hash__(self):
-        return hash( (self.addrType, self.addrNet, self.addrAddr) )
+    def _tuple(self):
+        if (not settings.route_aware) or (self.addrRoute is None):
+            return (self.addrType, self.addrNet, self.addrAddr, None)
+        else:
+            return (self.addrType, self.addrNet, self.addrAddr, self.addrRoute._tuple())
 
-    def __eq__(self,arg):
+    def __hash__(self):
+        return hash(self._tuple())
+
+    def __eq__(self, arg):
         # try an coerce it into an address
         if not isinstance(arg, Address):
             arg = Address(arg)
 
-        # all of the components must match
-        return (self.addrType == arg.addrType) and (self.addrNet == arg.addrNet) and (self.addrAddr == arg.addrAddr)
+        # basic components must match
+        rslt = (self.addrType == arg.addrType)
+        rslt = rslt and (self.addrNet == arg.addrNet)
+        rslt = rslt and (self.addrAddr == arg.addrAddr)
 
-    def __ne__(self,arg):
+        # if both have routes they must match
+        if rslt and self.addrRoute and arg.addrRoute:
+            rslt = rslt and (self.addrRoute == arg.addrRoute)
+
+        return rslt
+
+    def __ne__(self, arg):
         return not self.__eq__(arg)
+
+    def __lt__(self, arg):
+        return self._tuple() < arg._tuple()
 
     def dict_contents(self, use_dict=None, as_class=None):
         """Return the contents of an object as a dict."""
@@ -377,9 +481,10 @@ def unpack_ip_addr(addr):
 
 class LocalStation(Address):
 
-    def __init__(self, addr):
+    def __init__(self, addr, route=None):
         self.addrType = Address.localStationAddr
         self.addrNet = None
+        self.addrRoute = route
 
         if isinstance(addr, int):
             if (addr < 0) or (addr >= 256):
@@ -403,7 +508,7 @@ class LocalStation(Address):
 
 class RemoteStation(Address):
 
-    def __init__(self, net, addr):
+    def __init__(self, net, addr, route=None):
         if not isinstance(net, int):
             raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
@@ -411,6 +516,7 @@ class RemoteStation(Address):
 
         self.addrType = Address.remoteStationAddr
         self.addrNet = net
+        self.addrRoute = route
 
         if isinstance(addr, int):
             if (addr < 0) or (addr >= 256):
@@ -434,11 +540,12 @@ class RemoteStation(Address):
 
 class LocalBroadcast(Address):
 
-    def __init__(self):
+    def __init__(self, route=None):
         self.addrType = Address.localBroadcastAddr
         self.addrNet = None
         self.addrAddr = None
         self.addrLen = None
+        self.addrRoute = route
 
 #
 #   RemoteBroadcast
@@ -446,7 +553,7 @@ class LocalBroadcast(Address):
 
 class RemoteBroadcast(Address):
 
-    def __init__(self, net):
+    def __init__(self, net, route=None):
         if not isinstance(net, int):
             raise TypeError("integer network required")
         if (net < 0) or (net >= 65535):
@@ -456,6 +563,7 @@ class RemoteBroadcast(Address):
         self.addrNet = net
         self.addrAddr = None
         self.addrLen = None
+        self.addrRoute = route
 
 #
 #   GlobalBroadcast
@@ -463,11 +571,12 @@ class RemoteBroadcast(Address):
 
 class GlobalBroadcast(Address):
 
-    def __init__(self):
+    def __init__(self, route=None):
         self.addrType = Address.globalBroadcastAddr
         self.addrNet = None
         self.addrAddr = None
         self.addrLen = None
+        self.addrRoute = route
 
 #
 #   PCI

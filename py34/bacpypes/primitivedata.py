@@ -612,6 +612,14 @@ class Unsigned(Atomic):
             if not self.is_valid(arg):
                 raise ValueError("value out of range")
             self.value = arg
+        elif isinstance(arg, str):
+            try:
+                arg = int(arg)
+            except ValueError:
+                raise TypeError("invalid constructor datatype")
+            if not self.is_valid(arg):
+                raise ValueError("value out of range")
+            self.value = arg
         elif isinstance(arg, Unsigned):
             if not self.is_valid(arg.value):
                 raise ValueError("value out of range")
@@ -647,7 +655,12 @@ class Unsigned(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        if not isinstance(arg, int) or isinstance(arg, bool):
+        if isinstance(arg, str):
+            try:
+                arg = int(arg)
+            except ValueError:
+                return False
+        elif not isinstance(arg, int) or isinstance(arg, bool):
             return False
         if (arg < cls._low_limit):
             return False
@@ -915,7 +928,15 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            self.value = self.strValue.decode('utf-8')
+            try:
+                self.value = self.strValue.decode("utf-8", "strict")
+            except UnicodeDecodeError:
+            # Wrong encoding... trying with latin-1 as
+            # we probably face a Windows software encoding issue
+                try:
+                    self.value = self.strValue.decode("latin-1")
+                except UnicodeDecodeError:
+                    raise
         elif (self.strEncoding == 3):
             self.value = self.strValue.decode('utf_32be')
         elif (self.strEncoding == 4):
@@ -1644,6 +1665,7 @@ class ObjectType(Enumerated):
         , 'timeValue':50
         , 'trendLog':20
         , 'trendLogMultiple':27
+        , 'networkPort':56
         }
 
 expand_enumerations(ObjectType)

@@ -4,7 +4,6 @@
 Local Schedule Object
 """
 
-import sys
 import calendar
 from time import mktime as _mktime
 

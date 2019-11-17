@@ -384,7 +384,7 @@ class StandardProperty(Property):
 @bacpypes_debugging
 class OptionalProperty(StandardProperty):
 
-    """The property is required to be present and readable using BACnet services."""
+    """The property is optional and need not be present."""
 
     def __init__(self, identifier, datatype, default=None, optional=True, mutable=False):
         if _debug:
@@ -462,6 +462,7 @@ class ObjectIdentifierProperty(ReadableProperty):
 class Object(object):
 
     _debug_contents = ('_app',)
+    _object_supports_cov = False
 
     properties = \
         [ ObjectIdentifierProperty('objectIdentifier', ObjectIdentifier, optional=False)
@@ -469,6 +470,9 @@ class Object(object):
         , OptionalProperty('description', CharacterString)
         , OptionalProperty('profileName', CharacterString)
         , ReadableProperty('propertyList', ArrayOf(PropertyIdentifier))
+        , OptionalProperty('tags', ArrayOf(NameValue))
+        , OptionalProperty('profileLocation', CharacterString)
+        , OptionalProperty('profileName', CharacterString)
         ]
     _properties = {}
 
@@ -732,6 +736,8 @@ class AccessCredentialObject(Object):
 @register_object_type
 class AccessDoorObject(Object):
     objectType = 'accessDoor'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', DoorValue)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -769,6 +775,8 @@ class AccessDoorObject(Object):
 @register_object_type
 class AccessPointObject(Object):
     objectType = 'accessPoint'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('statusFlags', StatusFlags)
         , ReadableProperty('eventState', EventState)
@@ -948,6 +956,8 @@ class AlertEnrollmentObject(Object):
 @register_object_type
 class AnalogInputObject(Object):
     objectType = 'analogInput'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Real)
         , OptionalProperty('deviceType', CharacterString)
@@ -983,6 +993,8 @@ class AnalogInputObject(Object):
 @register_object_type
 class AnalogOutputObject(Object):
     objectType = 'analogOutput'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', Real)
         , OptionalProperty('deviceType', CharacterString)
@@ -1019,6 +1031,8 @@ class AnalogOutputObject(Object):
 @register_object_type
 class AnalogValueObject(Object):
     objectType = 'analogValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Real)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1071,6 +1085,8 @@ class AveragingObject(Object):
 @register_object_type
 class BinaryInputObject(Object):
     objectType = 'binaryInput'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', BinaryPV)
         , OptionalProperty('deviceType', CharacterString)
@@ -1105,6 +1121,8 @@ class BinaryInputObject(Object):
 @register_object_type
 class BinaryOutputObject(Object):
     objectType = 'binaryOutput'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', BinaryPV)
         , OptionalProperty('deviceType', CharacterString)
@@ -1143,6 +1161,8 @@ class BinaryOutputObject(Object):
 @register_object_type
 class BinaryValueObject(Object):
     objectType = 'binaryValue'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', BinaryPV)
         , ReadableProperty('statusFlags',StatusFlags)
@@ -1243,6 +1263,8 @@ class ChannelObject(Object):
 @register_object_type
 class CharacterStringValueObject(Object):
     objectType = 'characterstringValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', CharacterString)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1282,6 +1304,8 @@ class CommandObject(Object):
 @register_object_type
 class CredentialDataInputObject(Object):
     objectType = 'credentialDataInput'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', AuthenticationFactor)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1304,6 +1328,8 @@ class CredentialDataInputObject(Object):
 @register_object_type
 class DatePatternValueObject(Object):
     objectType = 'datePatternValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Date)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1317,6 +1343,8 @@ class DatePatternValueObject(Object):
 @register_object_type
 class DateValueObject(Object):
     objectType = 'dateValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Date)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1330,6 +1358,8 @@ class DateValueObject(Object):
 @register_object_type
 class DateTimePatternValueObject(Object):
     objectType = 'datetimePatternValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', DateTime)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1344,6 +1374,8 @@ class DateTimePatternValueObject(Object):
 @register_object_type
 class DateTimeValueObject(Object):
     objectType = 'datetimeValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', DateTime)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1543,6 +1575,8 @@ class GroupObject(Object):
 @register_object_type
 class IntegerValueObject(Object):
     objectType = 'integerValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Integer)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1578,6 +1612,8 @@ class IntegerValueObject(Object):
 @register_object_type
 class LargeAnalogValueObject(Object):
     objectType = 'largeAnalogValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Double)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1613,6 +1649,8 @@ class LargeAnalogValueObject(Object):
 @register_object_type
 class LifeSafetyPointObject(Object):
     objectType = 'lifeSafetyPoint'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', LifeSafetyState)
         , ReadableProperty('trackingValue', LifeSafetyState)
@@ -1651,6 +1689,8 @@ class LifeSafetyPointObject(Object):
 @register_object_type
 class LifeSafetyZoneObject(Object):
     objectType = 'lifeSafetyZone'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', LifeSafetyState)
         , ReadableProperty('trackingValue', LifeSafetyState)
@@ -1687,6 +1727,8 @@ class LifeSafetyZoneObject(Object):
 @register_object_type
 class LightingOutputObject(Object):
     objectType = 'lightingOutput'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', Real)
         , ReadableProperty('trackingValue', Real)
@@ -1717,6 +1759,8 @@ class LightingOutputObject(Object):
 @register_object_type
 class LoadControlObject(Object):
     objectType = 'loadControl'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', ShedState)
         , OptionalProperty('stateDescription', CharacterString)
@@ -1751,6 +1795,8 @@ class LoadControlObject(Object):
 @register_object_type
 class LoopObject(Object):
     objectType = 'loop'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Real)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1797,6 +1843,8 @@ class LoopObject(Object):
 @register_object_type
 class MultiStateInputObject(Object):
     objectType = 'multiStateInput'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Unsigned)
         , OptionalProperty('deviceType', CharacterString)
@@ -1826,6 +1874,8 @@ class MultiStateInputObject(Object):
 @register_object_type
 class MultiStateOutputObject(Object):
     objectType = 'multiStateOutput'
+    _object_supports_cov = True
+
     properties = \
         [ WritableProperty('presentValue', Unsigned)
         , OptionalProperty('deviceType', CharacterString)
@@ -1856,6 +1906,8 @@ class MultiStateOutputObject(Object):
 @register_object_type
 class MultiStateValueObject(Object):
     objectType = 'multiStateValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Unsigned)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -1952,10 +2004,6 @@ class NetworkPortObject(Object):
         , OptionalProperty('eventMessageTextsConfig', ArrayOf(CharacterString, 3))  #352
         , OptionalProperty('eventState', EventState)  #36
         , ReadableProperty('reliabilityEvaluationInhibit', Boolean) #357
-        , OptionalProperty('propertyList', ArrayOf(PropertyIdentifier)) #371
-        , OptionalProperty('tags', ArrayOf(NameValue))  #486
-        , OptionalProperty('profileLocation', CharacterString)  #91
-        , OptionalProperty('profileName', CharacterString)  #168
         ]
 
 @register_object_type
@@ -2003,6 +2051,8 @@ class NotificationForwarderObject(Object):
 @register_object_type
 class OctetStringValueObject(Object):
     objectType = 'octetstringValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', CharacterString)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -2016,6 +2066,8 @@ class OctetStringValueObject(Object):
 @register_object_type
 class PositiveIntegerValueObject(Object):
     objectType = 'positiveIntegerValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Unsigned)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -2075,6 +2127,8 @@ class ProgramObject(Object):
 @register_object_type
 class PulseConverterObject(Object):
     objectType = 'pulseConverter'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Real)
         , OptionalProperty('inputReference', ObjectPropertyReference)
@@ -2149,6 +2203,8 @@ class StructuredViewObject(Object):
 @register_object_type
 class TimePatternValueObject(Object):
     objectType = 'timePatternValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Time)
         , ReadableProperty('statusFlags', StatusFlags)
@@ -2162,6 +2218,8 @@ class TimePatternValueObject(Object):
 @register_object_type
 class TimeValueObject(Object):
     objectType = 'timeValue'
+    _object_supports_cov = True
+
     properties = \
         [ ReadableProperty('presentValue', Time)
         , ReadableProperty('statusFlags', StatusFlags)

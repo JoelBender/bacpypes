@@ -8,6 +8,7 @@ Nose Test PDU Address
 
 import unittest
 
+from bacpypes.settings import settings
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger, xtob
 from bacpypes.pdu import Address, LocalStation, RemoteStation, \
     LocalBroadcast, RemoteBroadcast, GlobalBroadcast
@@ -53,7 +54,7 @@ class TestAddress(unittest.TestCase, MatchAddressMixin):
 
         # null address
         test_addr = Address()
-        self.match_address(test_addr, 0, None, 0, '')
+        self.match_address(test_addr, 0, None, None, None)
         assert str(test_addr) == "Null"
 
     def test_address_int(self):
@@ -397,8 +398,6 @@ class TestRemoteStation(unittest.TestCase, MatchAddressMixin):
         with self.assertRaises(TypeError):
             RemoteStation()
         with self.assertRaises(TypeError):
-            RemoteStation(1, 2, 3)
-        with self.assertRaises(TypeError):
             RemoteStation('x', 2)
 
         # test bad network
@@ -442,6 +441,49 @@ class TestRemoteStation(unittest.TestCase, MatchAddressMixin):
         self.match_address(test_addr, 4, 1, 6, '01020304bac0')
         assert str(test_addr) == "1:1.2.3.4"
 
+    def test_remote_station_ints_routed(self):
+        if _debug: TestRemoteStation._debug("test_remote_station_ints_routed")
+
+        if not settings.route_aware:
+            if _debug: TestRemoteStation._debug("    - not route aware")
+            return
+
+        # test integer
+        test_addr = RemoteStation(1, 1, route=Address("1.2.3.4"))
+        self.match_address(test_addr, 4, 1, 1, '01')
+        assert str(test_addr) == "1:1@1.2.3.4"
+
+        test_addr = RemoteStation(1, 254, route=Address("1.2.3.4"))
+        self.match_address(test_addr, 4, 1, 1, 'fe')
+        assert str(test_addr) == "1:254@1.2.3.4"
+
+        # test station address
+        with self.assertRaises(ValueError):
+            RemoteStation(1, -1)
+        with self.assertRaises(ValueError):
+            RemoteStation(1, 256)
+
+    def test_remote_station_bytes_routed(self):
+        if _debug: TestRemoteStation._debug("test_remote_station_bytes_routed")
+
+        if not settings.route_aware:
+            if _debug: TestRemoteStation._debug("    - not route aware")
+            return
+
+        # multi-byte strings are hex encoded
+        test_addr = RemoteStation(1, xtob('0102'), route=Address("1.2.3.4"))
+        self.match_address(test_addr, 4, 1, 2, '0102')
+        assert str(test_addr) == "1:0x0102@1.2.3.4"
+
+        test_addr = RemoteStation(1, xtob('010203'), route=Address("1.2.3.4"))
+        self.match_address(test_addr, 4, 1, 3, '010203')
+        assert str(test_addr) == "1:0x010203@1.2.3.4"
+
+        # match with an IPv4 address
+        test_addr = RemoteStation(1, xtob('01020304bac0'), route=Address("1.2.3.4"))
+        self.match_address(test_addr, 4, 1, 6, '01020304bac0')
+        assert str(test_addr) == "1:1.2.3.4@1.2.3.4"
+
 
 @bacpypes_debugging
 class TestLocalBroadcast(unittest.TestCase, MatchAddressMixin):
@@ -449,14 +491,20 @@ class TestLocalBroadcast(unittest.TestCase, MatchAddressMixin):
     def test_local_broadcast(self):
         if _debug: TestLocalBroadcast._debug("test_local_broadcast")
 
-        # no parameters
-        with self.assertRaises(TypeError):
-            LocalBroadcast(1)
-
         test_addr = LocalBroadcast()
         self.match_address(test_addr, 1, None, None, None)
         assert str(test_addr) == "*"
 
+    def test_local_broadcast_routed(self):
+        if _debug: TestLocalBroadcast._debug("test_local_broadcast_routed")
+
+        if not settings.route_aware:
+            if _debug: TestLocalBroadcast._debug("    - not route aware")
+            return
+
+        test_addr = LocalBroadcast(route=Address("1.2.3.4"))
+        self.match_address(test_addr, 1, None, None, None)
+        assert str(test_addr) == "*@1.2.3.4"
 
 @bacpypes_debugging
 class TestRemoteBroadcast(unittest.TestCase, MatchAddressMixin):
@@ -481,6 +529,18 @@ class TestRemoteBroadcast(unittest.TestCase, MatchAddressMixin):
         self.match_address(test_addr, 3, 1, None, None)
         assert str(test_addr) == "1:*"
 
+    def test_remote_broadcast_routed(self):
+        if _debug: TestRemoteBroadcast._debug("test_remote_broadcast_routed")
+
+        if not settings.route_aware:
+            if _debug: TestRemoteBroadcast._debug("    - not route aware")
+            return
+
+        # match
+        test_addr = RemoteBroadcast(1, route=Address("1.2.3.4"))
+        self.match_address(test_addr, 3, 1, None, None)
+        assert str(test_addr) == "1:*@1.2.3.4"
+
 
 @bacpypes_debugging
 class TestGlobalBroadcast(unittest.TestCase, MatchAddressMixin):
@@ -488,13 +548,20 @@ class TestGlobalBroadcast(unittest.TestCase, MatchAddressMixin):
     def test_global_broadcast(self):
         if _debug: TestGlobalBroadcast._debug("test_global_broadcast")
 
-        # no parameters
-        with self.assertRaises(TypeError):
-            GlobalBroadcast(1)
-
         test_addr = GlobalBroadcast()
         self.match_address(test_addr, 5, None, None, None)
         assert str(test_addr) == "*:*"
+
+    def test_global_broadcast_routed(self):
+        if _debug: TestGlobalBroadcast._debug("test_global_broadcast_routed")
+
+        if not settings.route_aware:
+            if _debug: TestGlobalBroadcast._debug("    - not route aware")
+            return
+
+        test_addr = GlobalBroadcast(route=Address("1.2.3.4"))
+        self.match_address(test_addr, 5, None, None, None)
+        assert str(test_addr) == "*:*@1.2.3.4"
 
 
 @bacpypes_debugging
@@ -508,7 +575,19 @@ class TestAddressEquality(unittest.TestCase, MatchAddressMixin):
         assert Address("*") == LocalBroadcast()
         assert Address("3:4") == RemoteStation(3, 4)
         assert Address("5:*") == RemoteBroadcast(5)
+
         assert Address("*:*") == GlobalBroadcast()
+
+    def test_address_equality_str_routed(self):
+        if _debug: TestAddressEquality._debug("test_address_equality_str_routed")
+
+        if not settings.route_aware:
+            if _debug: TestAddressEquality._debug("    - not route aware")
+            return
+
+        assert Address("3:4@6.7.8.9") == RemoteStation(3, 4, route=Address("6.7.8.9"))
+        assert Address("5:*@6.7.8.9") == RemoteBroadcast(5, route=Address("6.7.8.9"))
+        assert Address("*:*@6.7.8.9") == GlobalBroadcast(route=Address("6.7.8.9"))
 
     def test_address_equality_unicode(self):
         if _debug: TestAddressEquality._debug("test_address_equality_unicode")

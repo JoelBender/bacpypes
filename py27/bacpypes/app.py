@@ -7,6 +7,8 @@ Application Module
 import warnings
 
 from .debugging import bacpypes_debugging, DebugContents, ModuleLogger
+
+from .core import deferred
 from .comm import ApplicationServiceElement, bind
 from .iocb import IOController, SieveQueue
 
@@ -209,6 +211,8 @@ class DeviceInfoCache:
 @bacpypes_debugging
 class Application(ApplicationServiceElement, Collector):
 
+    _startup_disabled = False
+
     def __init__(self, localDevice=None, localAddress=None, deviceInfoCache=None, aseID=None):
         if _debug: Application._debug("__init__ %r %r deviceInfoCache=%r aseID=%r", localDevice, localAddress, deviceInfoCache, aseID)
         ApplicationServiceElement.__init__(self, aseID)
@@ -249,6 +253,12 @@ class Application(ApplicationServiceElement, Collector):
 
         # now set up the rest of the capabilities
         Collector.__init__(self)
+
+        # if starting up is enabled, find all the startup functions
+        if not self._startup_disabled:
+            for fn in self.capability_functions('startup'):
+                if _debug: Application._debug("    - startup fn: %r" , fn)
+                deferred(fn, self)
 
     def add_object(self, obj):
         """Add an object to the local collection."""
@@ -616,7 +626,7 @@ class BIPNetworkApplication(NetworkServiceElement):
         else:
             self.bip = BIPForeign(bbmdAddress, bbmdTTL)
         self.annexj = AnnexJCodec()
-        self.mux = UDPMultiplexer(self.localAddress, noBroadcast=True)
+        self.mux = UDPMultiplexer(self.localAddress, noBroadcast=False)
 
         # bind the bottom layers
         bind(self.bip, self.annexj, self.mux.annexJ)

@@ -8,6 +8,7 @@ import sys
 import struct
 import time
 import re
+import unicodedata
 
 from .debugging import ModuleLogger, btox
 
@@ -616,6 +617,14 @@ class Unsigned(Atomic):
             if not self.is_valid(arg):
                 raise ValueError("value out of range")
             self.value = arg
+        elif isinstance(arg, str):
+            try:
+                arg = int(arg)
+            except ValueError:
+                raise TypeError("invalid constructor datatype")
+            if not self.is_valid(arg):
+                raise ValueError("value out of range")
+            self.value = arg
         elif isinstance(arg, Unsigned):
             if not self.is_valid(arg.value):
                 raise ValueError("value out of range")
@@ -651,7 +660,12 @@ class Unsigned(Atomic):
     @classmethod
     def is_valid(cls, arg):
         """Return True if arg is valid value for the class."""
-        if not isinstance(arg, (int, long)) or isinstance(arg, bool):
+        if isinstance(arg, str):
+            try:
+                arg = int(arg)
+            except ValueError:
+                return False
+        elif not isinstance(arg, (int, long)) or isinstance(arg, bool):
             return False
         if (arg < cls._low_limit):
             return False
@@ -920,8 +934,18 @@ class CharacterString(Atomic):
 
         # normalize the value
         if (self.strEncoding == 0):
-            udata = self.strValue.decode('utf_8')
-            self.value = str(udata.encode('ascii', 'backslashreplace'))
+            try:
+                udata = self.strValue.decode('utf_8')
+                self.value = str(udata.encode('ascii', 'backslashreplace'))
+            except UnicodeDecodeError:
+            # Wrong encoding... trying with latin-1 as
+            # we probably face a Windows software encoding issue
+                try:
+                    udata = self.strValue.decode('latin_1')
+                    norm = unicodedata.normalize('NFKD', udata)
+                    self.value = str(norm.encode('ascii', 'ignore'))
+                except UnicodeDecodeError:
+                    raise
         elif (self.strEncoding == 3):
             udata = self.strValue.decode('utf_32be')
             self.value = str(udata.encode('ascii', 'backslashreplace'))
@@ -1658,6 +1682,7 @@ class ObjectType(Enumerated):
         , 'timeValue':50
         , 'trendLog':20
         , 'trendLogMultiple':27
+        , 'networkPort':56
         }
 
 expand_enumerations(ObjectType)

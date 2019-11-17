@@ -80,6 +80,7 @@ class TestUnsigned(unittest.TestCase):
         assert obj.value == 0
 
         assert Unsigned.is_valid(1)
+        assert Unsigned.is_valid('1')
         assert not Unsigned.is_valid(-1)
         if sys.version[0] == 2:
             assert Unsigned.is_valid(long(1))

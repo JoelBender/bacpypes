@@ -28,6 +28,16 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
+class _NetworkServiceElement(NetworkServiceElement):
+
+    """
+    This class turns off the deferred startup function call that broadcasts
+    I-Am-Router-To-Network and Network-Number-Is messages.
+    """
+
+    _startup_disabled = True
+
+
 #
 #   ApplicationNetwork
 #
@@ -267,7 +277,7 @@ class ApplicationStateMachine(ApplicationIOController, StateMachine):
         self.nsap = NetworkServiceAccessPoint()
 
         # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
+        self.nse = _NetworkServiceElement()
         bind(self.nse, self.nsap)
 
         # bind the top layers

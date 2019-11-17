@@ -37,14 +37,15 @@ bugfile=${bugfile/.sh/.txt}
 
 # debugging file can rotate, set the file size large to keep
 # it from rotating a lot
-export BACPYPES_MAXBYTES=10485760
+export BACPYPES_DEBUG_FILE=$bugfile
+export BACPYPES_MAX_BYTES=10485760
 
 # add the modules or classes that need debugging and redirect
 # the output to the file
 export BACPYPES_DEBUG=" \
-    tests.test_service.helpers.ApplicationNetwork:$bugfile \
-    tests.test_service.helpers.SnifferStateMachine:$bugfile \
-    tests.state_machine.match_pdu:$bugfile \
+    tests.test_service.helpers.ApplicationNetwork \
+    tests.test_service.helpers.SnifferStateMachine \
+    tests.state_machine.match_pdu \
     "
 
 # debugging output will open the file 'append' which is

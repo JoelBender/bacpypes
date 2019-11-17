@@ -151,7 +151,12 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
             self.set_reuse_addr()
 
         # proceed with the bind
-        self.bind(address)
+        try:
+            self.bind(address)
+        except socket.error as err:
+            if _debug: UDPDirector._debug("    - bind error: %r", err)
+            self.close()
+            raise
         if _debug: UDPDirector._debug("    - getsockname: %r", self.socket.getsockname())
 
         # allow it to send broadcasts
@@ -200,7 +205,7 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
         return 1
 
     def handle_read(self):
-        if _debug: UDPDirector._debug("handle_read")
+        if _debug: UDPDirector._debug("handle_read(%r)", self.address)
 
         try:
             msg, addr = self.socket.recvfrom(65536)
@@ -227,7 +232,7 @@ class UDPDirector(asyncore.dispatcher, Server, ServiceAccessPoint):
 
     def handle_write(self):
         """get a PDU from the queue and send it."""
-        if _debug: UDPDirector._debug("handle_write")
+        if _debug: UDPDirector._debug("handle_write(%r)", self.address)
 
         try:
             pdu = self.request.get()

@@ -27,6 +27,16 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 
+class _NetworkServiceElement(NetworkServiceElement):
+
+    """
+    This class turns off the deferred startup function call that broadcasts
+    I-Am-Router-To-Network and Network-Number-Is messages.
+    """
+
+    _startup_disabled = True
+
+
 @bacpypes_debugging
 class NPDUCodec(Client, Server):
 
@@ -132,7 +142,7 @@ class RouterNode:
         self.nsap = NetworkServiceAccessPoint()
 
         # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
+        self.nse = _NetworkServiceElement()
         bind(self.nse, self.nsap)
 
     def add_network(self, address, vlan, net):
@@ -146,7 +156,7 @@ class RouterNode:
         if _debug: RouterNode._debug("    - node: %r", node)
 
         # bind the BIP stack to the local network
-        self.nsap.bind(node, net)
+        self.nsap.bind(node, net, address)
 
 #
 #   RouterStateMachine
@@ -214,7 +224,7 @@ class ApplicationLayerStateMachine(ApplicationServiceElement, ClientStateMachine
         self.nsap = NetworkServiceAccessPoint()
 
         # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
+        self.nse = _NetworkServiceElement()
         bind(self.nse, self.nsap)
 
         # bind the top layers
@@ -232,7 +242,7 @@ class ApplicationLayerStateMachine(ApplicationServiceElement, ClientStateMachine
         self.receive(apdu)
 
     def confirmation(self, apdu):
-        if _debug: ApplicationLayerStateMachine._debug("confirmation %r %r", apdu)
+        if _debug: ApplicationLayerStateMachine._debug("confirmation %r", apdu)
         self.receive(apdu)
 
 #
@@ -240,6 +250,8 @@ class ApplicationLayerStateMachine(ApplicationServiceElement, ClientStateMachine
 #
 
 class ApplicationNode(Application, WhoIsIAmServices, ReadWritePropertyServices):
+
+    _startup_disabled = True
 
     def __init__(self, address, vlan):
         if _debug: ApplicationNode._debug("__init__ %r %r", address, vlan)
@@ -277,7 +289,7 @@ class ApplicationNode(Application, WhoIsIAmServices, ReadWritePropertyServices):
         self.nsap = NetworkServiceAccessPoint()
 
         # give the NSAP a generic network layer service element
-        self.nse = NetworkServiceElement()
+        self.nse = _NetworkServiceElement()
         bind(self.nse, self.nsap)
 
         # bind the top layers
