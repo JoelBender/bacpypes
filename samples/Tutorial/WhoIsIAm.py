@@ -16,7 +16,6 @@ from bacpypes.core import run, enable_sleeping
 
 from bacpypes.pdu import Address, GlobalBroadcast
 from bacpypes.apdu import WhoIsRequest, IAmRequest
-from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 from bacpypes.app import BIPSimpleApplication
@@ -100,7 +99,6 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 
         try:
             # gather the parameters
-            request = WhoIsRequest()
             if (len(args) == 1) or (len(args) == 3):
                 addr = Address(args[0])
                 del args[0]

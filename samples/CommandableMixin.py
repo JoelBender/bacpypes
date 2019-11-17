@@ -5,7 +5,7 @@ Rebuilt Commandable
 """
 
 from bacpypes.debugging import ModuleLogger
-from bacpypes.consolelogging import ConfigArgumentParser, ConsoleLogHandler
+from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
 
