@@ -530,7 +530,11 @@ class ClientSSM(SSM):
 
             self.segmentRetryCount += 1
             self.start_timer(self.segmentTimeout)
-            self.fill_window(self.initialSequenceNumber)
+
+            if self.initialSequenceNumber == 0:
+                self.request(self.get_segment(0))
+            else:
+                self.fill_window(self.initialSequenceNumber)
         else:
             if _debug: ClientSSM._debug("    - abort, no response from the device")
 
