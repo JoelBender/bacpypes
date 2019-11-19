@@ -171,7 +171,7 @@ def run(spin=SPIN, sigterm=stop, sigusr1=print_stack):
             if _debug: run._info("keyboard interrupt")
             running = False
         except Exception as err:
-            if _debug: run._exception("an error has occurred: %s", err)
+            run._exception("an error has occurred: %s", err)
 
     running = False
 
@@ -220,7 +220,7 @@ def run_once():
     except KeyboardInterrupt:
         if _debug: run_once._info("keyboard interrupt")
     except Exception as err:
-        if _debug: run_once._exception("an error has occurred: %s", err)
+        run_once._exception("an error has occurred: %s", err)
 
 #
 #   deferred
