@@ -85,7 +85,7 @@ class SSM(OneShotTask, DebugContents):
         self.apduTimeout = getattr(sap.localDevice, 'apduTimeout', sap.apduTimeout)
 
         self.segmentationSupported = getattr(sap.localDevice, 'segmentationSupported', sap.segmentationSupported)
-        self.segmentTimeout = getattr(sap.localDevice, 'segmentTimeout', sap.segmentTimeout)
+        self.segmentTimeout = getattr(sap.localDevice, 'apduSegmentTimeout', sap.segmentTimeout)
         self.maxSegmentsAccepted = getattr(sap.localDevice, 'maxSegmentsAccepted', sap.maxSegmentsAccepted)
         self.maxApduLengthAccepted = getattr(sap.localDevice, 'maxApduLengthAccepted', sap.maxApduLengthAccepted)
 
