@@ -2624,8 +2624,8 @@ class PropertyReference(Sequence):
 
 class Scale(Choice):
     choiceElements = \
-        [ Element('floatScale', Real)
-        , Element('integerScale', Integer)
+        [ Element('floatScale', Real, 0)
+        , Element('integerScale', Integer, 1)
         ]
 
 class SecurityKeySet(Sequence):
