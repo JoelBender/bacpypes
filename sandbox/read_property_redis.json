@@ -1,0 +1,29 @@
+{
+    "bacpypes": {
+        "debug": ["__main__"],
+        "color": true
+    },
+    "local-device": {
+        "objectName": "Betelgeuse-47808",
+        "address": "wlp2s0:47809",
+        "objectIdentifier": 599,
+        "maxApduLengthAccepted": 1024,
+        "segmentationSupported": "segmentedBoth",
+        "maxSegmentsAccepted": 1024,
+        "vendorIdentifier": 15,
+        "foreignBBMD": "128.253.109.254",
+        "foreignTTL": 30
+    },
+    "redis": {
+        "host": "enterprise"
+    },
+    "redis-stream": "read-prop-stream",
+    "point-list": [
+        {
+            "key": "random1",
+            "address": "wlp2s0:47808",
+            "objectIdentifier": "analogValue:1",
+            "propertyIdentifier": "presentValue"
+        }
+    ]
+}
