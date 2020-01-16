@@ -419,7 +419,7 @@ class ApplicationIOController(IOController, Application):
         # look up the queue
         queue = self.queue_by_address.get(destination_address, None)
         if not queue:
-            queue = SieveQueue(self.request, destination_address)
+            queue = SieveQueue(self._app_request, destination_address)
             self.queue_by_address[destination_address] = queue
         if _debug: ApplicationIOController._debug("    - queue: %r", queue)
 
@@ -455,15 +455,26 @@ class ApplicationIOController(IOController, Application):
             if _debug: ApplicationIOController._debug("    - queue is empty")
             del self.queue_by_address[address]
 
-    def request(self, apdu):
-        if _debug: ApplicationIOController._debug("request %r", apdu)
+    def _app_request(self, apdu):
+        if _debug: ApplicationIOController._debug("_app_request %r", apdu)
 
-        # send it downstream
+        # send it downstream, bypass the guard
         super(ApplicationIOController, self).request(apdu)
 
         # if this was an unconfirmed request, it's complete, no message
         if isinstance(apdu, UnconfirmedRequestPDU):
             self._app_complete(apdu.pduDestination, None)
+
+    def request(self, apdu):
+        if _debug: ApplicationIOController._debug("request %r", apdu)
+
+        # if this is not unconfirmed request, tell the application to use
+        # the IOCB interface
+        if not isinstance(apdu, UnconfirmedRequestPDU):
+            raise RuntimeError("use IOCB for confirmed requests")
+
+        # send it downstream
+        super(ApplicationIOController, self).request(apdu)
 
     def confirmation(self, apdu):
         if _debug: ApplicationIOController._debug("confirmation %r", apdu)
