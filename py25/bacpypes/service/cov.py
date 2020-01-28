@@ -523,8 +523,8 @@ class ActiveCOVSubscriptions(Property):
         current_time = TaskManager().get_time()
         if _debug: ActiveCOVSubscriptions._debug("    - current_time: %r", current_time)
 
-        # start with an empty sequence
-        cov_subscriptions = ListOf(COVSubscription)()
+        # start with an empty list
+        cov_subscriptions = []
 
         # loop through the subscriptions
         for cov in obj._app.subscriptions():
@@ -552,6 +552,10 @@ class ActiveCOVSubscriptions(Property):
                 processIdentifier=cov.proc_id,
                 )
             if _debug: ActiveCOVSubscriptions._debug("    - recipient_process: %r", recipient_process)
+
+            # look for the algorithm already associated with this object
+            cov_detection = cov.obj_ref._app.cov_detections[cov.obj_ref]
+            if _debug: ActiveCOVSubscriptions._debug("    - cov_detection: %r", cov_detection)
 
             cov_subscription = COVSubscription(
                 recipient=recipient_process,
