@@ -113,11 +113,8 @@ class ThreadedHTTPRequestHandler(SimpleHTTPRequestHandler):
         else:
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
-            #           self.send_header("Content-Length", len(favicon))
             self.end_headers()
             self.wfile.write(b"'read' or 'whois' expected")
-
-    #           json.dump({'x':'send', 'y':'whois'}, self.wfile)
 
     def do_read(self, args):
         if _debug:
