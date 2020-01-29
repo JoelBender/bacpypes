@@ -10,7 +10,7 @@ rm -Rfv build/
 # python2.5 setup.py bdist_egg
 # rm -Rfv build/
 
-for version in 2.7 3.4 3.5 3.6 3.7; do
+for version in 2.7 3.4 3.5 3.6 3.7 3.8; do
     if [ -a "`which python$version`" ]; then
         python$version setup.py bdist_egg
         python$version setup.py bdist_wheel
