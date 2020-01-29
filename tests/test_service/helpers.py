@@ -8,6 +8,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.capability import Capability
 
 from bacpypes.comm import Client, bind
+from bacpypes.iocb import IOCB
 from bacpypes.pdu import Address, LocalBroadcast
 from bacpypes.npdu import NPDU
 from bacpypes.apdu import apdu_types, APDU, SimpleAckPDU, RejectPDU, AbortPDU
@@ -292,8 +293,9 @@ class ApplicationStateMachine(ApplicationIOController, StateMachine):
     def send(self, apdu):
         if _debug: ApplicationStateMachine._debug("send(%s) %r", self.name, apdu)
 
-        # send the apdu down the stack
-        self.request(apdu)
+        # build an IOCB to wrap the request
+        iocb = IOCB(apdu)
+        self.request_io(iocb)
 
     def indication(self, apdu):
         if _debug: ApplicationStateMachine._debug("indication(%s) %r", self.name, apdu)

@@ -84,7 +84,7 @@ class SSM(OneShotTask, DebugContents):
         self.apduTimeout = getattr(sap.localDevice, 'apduTimeout', sap.apduTimeout)
 
         self.segmentationSupported = getattr(sap.localDevice, 'segmentationSupported', sap.segmentationSupported)
-        self.segmentTimeout = getattr(sap.localDevice, 'segmentTimeout', sap.segmentTimeout)
+        self.segmentTimeout = getattr(sap.localDevice, 'apduSegmentTimeout', sap.segmentTimeout)
         self.maxSegmentsAccepted = getattr(sap.localDevice, 'maxSegmentsAccepted', sap.maxSegmentsAccepted)
         self.maxApduLengthAccepted = getattr(sap.localDevice, 'maxApduLengthAccepted', sap.maxApduLengthAccepted)
 
@@ -530,7 +530,11 @@ class ClientSSM(SSM):
 
             self.segmentRetryCount += 1
             self.start_timer(self.segmentTimeout)
-            self.fill_window(self.initialSequenceNumber)
+
+            if self.initialSequenceNumber == 0:
+                self.request(self.get_segment(0))
+            else:
+                self.fill_window(self.initialSequenceNumber)
         else:
             if _debug: ClientSSM._debug("    - abort, no response from the device")
 
