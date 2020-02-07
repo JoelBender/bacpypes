@@ -685,7 +685,7 @@ def Commandable(datatype, presentValue='presentValue', priorityArray='priorityAr
                     if _debug: Commandable._debug("    - priority_value: %r", priority_value)
 
                     # the null or the choice has to be set, the other clear
-                    if value is ():
+                    if value == ():
                         if _debug: Commandable._debug("    - write a null")
                         priority_value.null = value
                         setattr(priority_value, _Commando._pv_choice, None)
