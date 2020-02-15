@@ -311,9 +311,6 @@ class DiscoverNetworkServiceElement(NetworkServiceElement, IOQController):
         NetworkServiceElement.__init__(self)
         IOQController.__init__(self)
 
-        # no pending request
-        self._request = None
-
     def process_io(self, iocb):
         if _debug: DiscoverNetworkServiceElement._debug("process_io %r", iocb)
 
@@ -417,9 +414,6 @@ class DiscoverApplication(ApplicationIOController, WhoIsIAmServices, ReadWritePr
 
         # bind the BIP stack to the network, no network number
         self.nsap.bind(self.bip, address=self.localAddress)
-
-        # keep track of requests to line up responses
-        self._request = None
 
     def close_socket(self):
         if _debug: DiscoverApplication._debug("close_socket")
