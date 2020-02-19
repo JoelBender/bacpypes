@@ -54,14 +54,14 @@ class WhoIsIAmApplication(BIPForeignApplication):
         # keep track of requests to line up responses
         self._request = None
 
-    def request(self, apdu):
-        if _debug: WhoIsIAmApplication._debug("request %r", apdu)
+    def process_io(self, iocb):
+        if _debug: WhoIsIAmApplication._debug("process_io %r", iocb)
 
         # save a copy of the request
-        self._request = apdu
+        self._request = iocb.args[0]
 
         # forward it along
-        BIPForeignApplication.request(self, apdu)
+        BIPForeignApplication.process_io(self, iocb)
 
     def confirmation(self, apdu):
         if _debug: WhoIsIAmApplication._debug("confirmation %r", apdu)
