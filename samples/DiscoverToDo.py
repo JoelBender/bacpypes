@@ -890,7 +890,7 @@ class ReadObjectListLen(ReadPropertyToDo):
 
         # start with an empty list
         devobj = device_profile[self.devid]
-        devobj.objectList = ArrayOf(ObjectIdentifier)
+        devobj.objectList = ArrayOf(ObjectIdentifier)()
 
         # read each of the individual items
         for i in range(1, value+1):
