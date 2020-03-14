@@ -159,6 +159,12 @@ class TestEnumerated(unittest.TestCase):
         obj2 = Enumerated(obj1)
         assert obj2.value == 12
 
+    def test_enumerated_keylist(self):
+        if _debug: TestEnumerated._debug("test_enumerated_keylist")
+
+        obj1 = QuickBrownFox(0)
+        assert obj1.keylist() == ['quick', 'brown', 'fox']
+
     def test_enumerated_endec(self):
         if _debug: TestEnumerated._debug("test_enumerated_endec")
 
