@@ -522,7 +522,7 @@ class ReadForeignDeviceTableAck(BVLPDU):
         """Return the contents of an object as a dict."""
         foreign_device_table = []
         for fdte in self.bvlciFDT:
-            foreign_device_table.append(fdte.dict_contents(as_class=as_class))
+            foreign_device_table.append(fdte.bvlpdu_contents(as_class=as_class))
 
         return key_value_contents(use_dict=use_dict, as_class=as_class,
             key_values=(
