@@ -2215,7 +2215,7 @@ class ScheduleObject(Object):
     properties = \
         [ ReadableProperty('presentValue', AnyAtomic)
         , ReadableProperty('effectivePeriod', DateRange)
-        , OptionalProperty('weeklySchedule', ArrayOf(DailySchedule))
+        , OptionalProperty('weeklySchedule', ArrayOf(DailySchedule, 7))
         , OptionalProperty('exceptionSchedule', ArrayOf(SpecialEvent))
         , ReadableProperty('scheduleDefault', AnyAtomic)
         , ReadableProperty('listOfObjectPropertyReferences', ListOf(DeviceObjectPropertyReference))
