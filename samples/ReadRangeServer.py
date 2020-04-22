@@ -8,9 +8,9 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 
 from bacpypes.core import run
-from bacpypes.errors import ExecutionError
+from bacpypes.errors import ExecutionError, RejectException
 from bacpypes.primitivedata import Date, Time
-from bacpypes.constructeddata import Array, List, SequenceOfAny
+from bacpypes.constructeddata import Array, List, ListOf, SequenceOfAny
 from bacpypes.basetypes import DateTime, LogRecord, LogRecordLogDatum, StatusFlags
 from bacpypes.apdu import ReadRangeACK
 
@@ -77,6 +77,26 @@ class ReadRangeApplication(BIPSimpleApplication):
             ReadRangeApplication._debug("    - value: %r", value)
         if value is None:
             raise PropertyError(apdu.propertyIdentifier)
+        if isinstance(value, List):
+            ReadRangeApplication._debug("    - value is a list of: %r", datatype.subtype)
+
+        if apdu.range.byPosition:
+            range_by_position = apdu.range.byPosition
+            if _debug:
+                ReadRangeApplication._debug("    - range_by_position: %r", range_by_position)
+
+        elif apdu.range.bySequenceNumber:
+            range_by_sequence_number = apdu.range.bySequenceNumber
+            if _debug:
+                ReadRangeApplication._debug("    - range_by_sequence_number: %r", range_by_sequence_number)
+
+        elif apdu.range.byTime:
+            range_by_time = apdu.range.byTime
+            if _debug:
+                ReadRangeApplication._debug("    - range_by_time: %r", range_by_time)
+
+        else:
+            raise RejectException("missingRequiredParameter")
 
         # this is an ack
         resp = ReadRangeACK(context=apdu)

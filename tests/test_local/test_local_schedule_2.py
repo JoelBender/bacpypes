@@ -10,7 +10,7 @@ import unittest
 from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 
 from bacpypes.primitivedata import Null, Real
-from bacpypes.constructeddata import ArrayOf
+from bacpypes.constructeddata import ArrayOf, ListOf
 from bacpypes.basetypes import DailySchedule, DateRange, \
     DeviceObjectPropertyReference, TimeValue
 from bacpypes.object import register_object_type, \
@@ -85,12 +85,14 @@ class TestLocalSchedule(unittest.TestCase):
                         ]
                     ),
                 ] * 7),
-            listOfObjectPropertyReferences=[
-                DeviceObjectPropertyReference(
-                    objectIdentifier=('analogValue', 1),
-                    propertyIdentifier='presentValue',
-                    ),
+            listOfObjectPropertyReferences=ListOf(DeviceObjectPropertyReference)(
+                [
+                    DeviceObjectPropertyReference(
+                        objectIdentifier=('analogValue', 1),
+                        propertyIdentifier='presentValue',
+                        ),
                 ],
+            ),
             priorityForWriting=7,
             scheduleDefault=Real(0.0),
             )

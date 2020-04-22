@@ -192,7 +192,10 @@ class ThreadedHTTPRequestHandler(SimpleHTTPRequestHandler):
                         datatype = Unsigned
                     else:
                         datatype = datatype.subtype
-                    if _debug: ThreadedHTTPRequestHandler._debug("    - datatype: %r", datatype)
+                    if _debug:
+                        ThreadedHTTPRequestHandler._debug(
+                            "    - datatype: %r", datatype
+                        )
 
                 # convert the value to a dict if possible
                 value = apdu.propertyValue.cast_out(datatype)

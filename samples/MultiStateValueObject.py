@@ -45,7 +45,7 @@ def main():
         objectName='My Special Object',
         presentValue=1,
         numberOfStates=3,
-        stateText=ArrayOf(CharacterString)(['red', 'green', 'blue']),
+        stateText=['red', 'green', 'blue'],
         )
     _log.debug("    - msvo: %r", msvo)
 

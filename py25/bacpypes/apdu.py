@@ -11,7 +11,8 @@ from .pdu import PCI, PDUData
 from .primitivedata import Boolean, CharacterString, Enumerated, Integer, \
     ObjectIdentifier, ObjectType, OctetString, Real, TagList, Unsigned, \
     expand_enumerations
-from .constructeddata import Any, Choice, Element, Sequence, SequenceOf
+from .constructeddata import Any, Choice, Element, \
+    Sequence, SequenceOf, SequenceOfAny
 from .basetypes import ChannelValue, DateTime, DeviceAddress, ErrorType, \
     EventState, EventTransitionBits, EventType, LifeSafetyOperation, \
     NotificationParameters, NotifyType, ObjectPropertyReference, \
@@ -963,7 +964,7 @@ class ReadRangeACK(ComplexAckSequence):
         , Element('propertyArrayIndex', Unsigned, 2, True)
         , Element('resultFlags', ResultFlags, 3)
         , Element('itemCount', Unsigned, 4)
-        , Element('itemData', SequenceOf(Any), 5)
+        , Element('itemData', SequenceOfAny, 5)
         , Element('firstSequenceNumber', Unsigned, 6, True)
         ]
 

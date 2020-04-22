@@ -106,7 +106,7 @@ def main():
     # make a random input object
     ravo1 = RandomAnalogValueObject(
         objectIdentifier=('analogValue', 1), objectName='Random1',
-        eventMessageTexts=ArrayOf(CharacterString)(["to", "infinity", "and", "beyond"]),
+        eventMessageTexts=["infinity", "and", "beyond"],
         )
     _log.debug("    - ravo1: %r", ravo1)
 

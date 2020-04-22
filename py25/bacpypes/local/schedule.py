@@ -358,6 +358,8 @@ class LocalScheduleInterpreter(OneShotTask):
 
         # add a monitor for the present value
         sched_obj._property_monitors['presentValue'].append(self.present_value_changed)
+        sched_obj._property_monitors['weeklySchedule'].append(self.schedule_changed)
+        sched_obj._property_monitors['exceptionSchedule'].append(self.schedule_changed)
 
         # call to interpret the schedule
         deferred(self.process_task)
@@ -405,6 +407,24 @@ class LocalScheduleInterpreter(OneShotTask):
                 if _debug: LocalScheduleInterpreter._debug("    - success")
             except Exception as err:
                 if _debug: LocalScheduleInterpreter._debug("    - error: %r", err)
+
+    def schedule_changed(self, old_value, new_value):
+        """This function is called when the weeklySchedule or the exceptionSchedule
+        property of the local schedule object has changed, both internally by
+        this interpreter, or externally by some client using WriteProperty."""
+        if _debug:
+            LocalScheduleInterpreter._debug(
+                "schedule_changed(%s) %s %s", self.sched_obj.objectName,
+                old_value, new_value,
+            )
+
+        # if this hasn't been added to an application, there's nothing to do
+        if not self.sched_obj._app:
+            if _debug: LocalScheduleInterpreter._debug("    - no application")
+            return
+
+        # real work done by process_task
+        self.process_task()
 
     def process_task(self):
         if _debug: LocalScheduleInterpreter._debug("process_task(%s)", self.sched_obj.objectName)

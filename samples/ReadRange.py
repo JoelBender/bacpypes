@@ -67,8 +67,7 @@ class ReadRangeConsoleCmd(ConsoleCmd):
 
             # build a request
             request = ReadRangeRequest(
-                destination=addr,
-                objectIdentifier=obj_id, propertyIdentifier=prop_id
+                destination=addr, objectIdentifier=obj_id, propertyIdentifier=prop_id
             )
 
             # index is optional
@@ -96,10 +95,15 @@ class ReadRangeConsoleCmd(ConsoleCmd):
                     request.range = Range(bySequenceNumber=rbs)
                 elif range_type == "t":
                     rbt = RangeByTime(
-                        referenceTime=DateTime(date=Date(args[0]), time=Time(args[1])),
+                        referenceTime=DateTime(
+                            date=Date(args[0]).value, time=Time(args[1]).value
+                        ),
                         count=int(args[2]),
                     )
                     request.range = Range(byTime=rbt)
+                elif range_type == "x":
+                    # should be missing required parameter
+                    request.range = Range()
                 else:
                     raise ValueError("unknown range type: %r" % (range_type,))
 
@@ -138,7 +142,9 @@ class ReadRangeConsoleCmd(ConsoleCmd):
                 if not datatype:
                     raise TypeError("unknown datatype")
 
-                sys.stdout.write("firstSequenceNumber: %s\n" % (apdu.firstSequenceNumber,))
+                sys.stdout.write(
+                    "firstSequenceNumber: %s\n" % (apdu.firstSequenceNumber,)
+                )
                 sys.stdout.write("resultFlags: %s\n" % (apdu.resultFlags,))
 
                 # cast out the data into a list

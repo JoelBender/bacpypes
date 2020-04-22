@@ -11,8 +11,8 @@ from .pdu import PCI, PDUData
 from .primitivedata import Boolean, CharacterString, Enumerated, Integer, \
     ObjectIdentifier, ObjectType, OctetString, Real, TagList, Unsigned, \
     expand_enumerations
-from .constructeddata import Any, Choice, Element, Sequence, SequenceOf, \
-    SequenceOfAny
+from .constructeddata import Any, Choice, Element, \
+    Sequence, SequenceOf, SequenceOfAny
 from .basetypes import ChannelValue, DateTime, DeviceAddress, ErrorType, \
     EventState, EventTransitionBits, EventType, LifeSafetyOperation, \
     NotificationParameters, NotifyType, ObjectPropertyReference, \

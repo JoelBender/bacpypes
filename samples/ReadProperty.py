@@ -32,17 +32,13 @@ _log = ModuleLogger(globals())
 this_application = None
 
 
-#
-#   ReadPropertyConsoleCmd
-#
-
 @bacpypes_debugging
 class ReadPropertyConsoleCmd(ConsoleCmd):
-
     def do_read(self, args):
         """read <addr> <objid> <prop> [ <indx> ]"""
         args = args.split()
-        if _debug: ReadPropertyConsoleCmd._debug("do_read %r", args)
+        if _debug:
+            ReadPropertyConsoleCmd._debug("do_read %r", args)
 
         try:
             addr, obj_id, prop_id = args[:3]
@@ -54,18 +50,19 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=obj_id,
-                propertyIdentifier=prop_id,
-                )
+                objectIdentifier=obj_id, propertyIdentifier=prop_id
+            )
             request.pduDestination = Address(addr)
 
             if len(args) == 4:
                 request.propertyArrayIndex = int(args[3])
-            if _debug: ReadPropertyConsoleCmd._debug("    - request: %r", request)
+            if _debug:
+                ReadPropertyConsoleCmd._debug("    - request: %r", request)
 
             # make an IOCB
             iocb = IOCB(request)
-            if _debug: ReadPropertyConsoleCmd._debug("    - iocb: %r", iocb)
+            if _debug:
+                ReadPropertyConsoleCmd._debug("    - iocb: %r", iocb)
 
             # give it to the application
             deferred(this_application.request_io, iocb)
@@ -75,7 +72,7 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 
             # do something for error/reject/abort
             if iocb.ioError:
-                sys.stdout.write(str(iocb.ioError) + '\n')
+                sys.stdout.write(str(iocb.ioError) + "\n")
 
             # do something for success
             elif iocb.ioResponse:
@@ -83,33 +80,48 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
 
                 # should be an ack
                 if not isinstance(apdu, ReadPropertyACK):
-                    if _debug: ReadPropertyConsoleCmd._debug("    - not an ack")
+                    if _debug:
+                        ReadPropertyConsoleCmd._debug("    - not an ack")
                     return
 
                 # find the datatype
-                datatype = get_datatype(apdu.objectIdentifier[0], apdu.propertyIdentifier)
-                if _debug: ReadPropertyConsoleCmd._debug("    - datatype: %r", datatype)
+                datatype = get_datatype(
+                    apdu.objectIdentifier[0], apdu.propertyIdentifier
+                )
+                if _debug:
+                    ReadPropertyConsoleCmd._debug("    - datatype: %r", datatype)
                 if not datatype:
                     raise TypeError("unknown datatype")
 
                 # special case for array parts, others are managed by cast_out
-                if issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
+                if issubclass(datatype, Array) and (
+                    apdu.propertyArrayIndex is not None
+                ):
                     if apdu.propertyArrayIndex == 0:
                         value = apdu.propertyValue.cast_out(Unsigned)
                     else:
                         value = apdu.propertyValue.cast_out(datatype.subtype)
                 else:
                     value = apdu.propertyValue.cast_out(datatype)
-                if _debug: ReadPropertyConsoleCmd._debug("    - value: %r", value)
+                if _debug:
+                    ReadPropertyConsoleCmd._debug("    - value: %r", value)
 
-                sys.stdout.write(str(value) + '\n')
-                if hasattr(value, 'debug_contents'):
+                sys.stdout.write(str(value) + "\n")
+                if hasattr(value, "debug_contents"):
                     value.debug_contents(file=sys.stdout)
+                elif isinstance(value, list) and len(value) > 0:
+                    for i, element in enumerate(value):
+                        sys.stdout.write("    [{}] {}\n".format(i, element))
+                        if hasattr(element, "debug_contents"):
+                            element.debug_contents(file=sys.stdout, indent=2)
                 sys.stdout.flush()
 
             # do something with nothing?
             else:
-                if _debug: ReadPropertyConsoleCmd._debug("    - ioError or ioResponse expected")
+                if _debug:
+                    ReadPropertyConsoleCmd._debug(
+                        "    - ioError or ioResponse expected"
+                    )
 
         except Exception as error:
             ReadPropertyConsoleCmd._exception("exception: %r", error)
@@ -117,19 +129,18 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
     def do_rtn(self, args):
         """rtn <addr> <net> ... """
         args = args.split()
-        if _debug: ReadPropertyConsoleCmd._debug("do_rtn %r", args)
+        if _debug:
+            ReadPropertyConsoleCmd._debug("do_rtn %r", args)
 
         # provide the address and a list of network numbers
         router_address = Address(args[0])
         network_list = [int(arg) for arg in args[1:]]
 
         # pass along to the service access point
-        this_application.nsap.update_router_references(None, router_address, network_list)
+        this_application.nsap.update_router_references(
+            None, router_address, network_list
+        )
 
-
-#
-#   __main__
-#
 
 def main():
     global this_application
@@ -141,19 +152,23 @@ def main():
     # parse the command line arguments
     args = ConfigArgumentParser(description=__doc__).parse_args()
 
-    if _debug: _log.debug("initialization")
-    if _debug: _log.debug("    - args: %r", args)
+    if _debug:
+        _log.debug("initialization")
+    if _debug:
+        _log.debug("    - args: %r", args)
 
     # make a device object
     this_device = LocalDeviceObject(ini=args.ini)
-    if _debug: _log.debug("    - this_device: %r", this_device)
+    if _debug:
+        _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = BIPSimpleApplication(this_device, args.ini.address)
 
     # make a console
     this_console = ReadPropertyConsoleCmd()
-    if _debug: _log.debug("    - this_console: %r", this_console)
+    if _debug:
+        _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()
@@ -163,6 +178,7 @@ def main():
     run()
 
     _log.debug("fini")
+
 
 if __name__ == "__main__":
     main()

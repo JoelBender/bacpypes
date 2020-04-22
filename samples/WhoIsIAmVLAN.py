@@ -98,18 +98,17 @@ class VLANApplication(
 
         if _debug: VLANApplication._debug("    - nsap.local_address: %r", self.nsap.local_address)
 
-    def request(self, apdu):
-        if _debug: VLANApplication._debug("request %r", apdu)
-        if _debug: VLANApplication._debug("    - nsap.local_address: %r", self.nsap.local_address)
+    def process_io(self, iocb):
+        if _debug: VLANApplication._debug("[%s]process_io %r", self.vlan_node.address, iocb)
 
         # save a copy of the request
-        self._request = apdu
+        self._request = iocb.args[0]
 
         # forward it along
-        super(VLANApplication, self).request(apdu)
+        VLANApplication.process_io(self, iocb)
 
     def indication(self, apdu):
-        if _debug: VLANApplication._debug("indication %r", apdu)
+        if _debug: VLANApplication._debug("[%s]indication %r", self.vlan_node.address, apdu)
 
         if (isinstance(self._request, WhoIsRequest)) and (isinstance(apdu, IAmRequest)):
             device_type, device_instance = apdu.iAmDeviceIdentifier

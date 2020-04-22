@@ -62,7 +62,7 @@ class ReadWritePropertyServices(Capability):
                 raise PropertyError(apdu.propertyIdentifier)
 
             # change atomic values into something encodeable
-            if issubclass(datatype, Atomic):
+            if issubclass(datatype, Atomic) or (issubclass(datatype, (Array, List)) and isinstance(value, list)):
                 value = datatype(value)
             elif issubclass(datatype, Array) and (apdu.propertyArrayIndex is not None):
                 if apdu.propertyArrayIndex == 0:
@@ -164,7 +164,7 @@ def read_property_to_any(obj, propertyIdentifier, propertyArrayIndex=None):
         raise ExecutionError(errorClass='property', errorCode='unknownProperty')
 
     # change atomic values into something encodeable
-    if issubclass(datatype, Atomic):
+    if issubclass(datatype, Atomic) or (issubclass(datatype, (Array, List)) and isinstance(value, list)):
         value = datatype(value)
     elif issubclass(datatype, Array) and (propertyArrayIndex is not None):
         if propertyArrayIndex == 0:

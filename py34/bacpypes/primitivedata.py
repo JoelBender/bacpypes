@@ -1155,8 +1155,7 @@ class Enumerated(Atomic):
 
     def keylist(self):
         """Return a list of names in order by value."""
-        items = self.enumerations.items()
-        items.sort(lambda a, b: self.cmp(a[1], b[1]))
+        items = sorted(self.enumerations.items(), key=lambda a: a[1])
 
         # last item has highest value
         rslt = [None] * (items[-1][1] + 1)
