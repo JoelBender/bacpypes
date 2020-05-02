@@ -101,7 +101,7 @@ from scratch.
    is a character string.  There is nothing on a BACnet network that
    enforces this uniqueness, but it is a real headache for integrators
    when it isn't followed.  You will need to pick a name for your
-   workstation.  My collegues and I use star names, so in the sample
+   workstation.  My colleagues and I use star names, so in the sample
    configuration files you will see the name "Betelgeuse".  An actual customer's
    site will use a more formal (but less fun) naming convention.
 
@@ -190,14 +190,14 @@ subnet mask, in this case **255.255.0.0**.  Unicast messages will
 be sent to the IP address, and broadcast messages will be sent to
 the broadcast address **192.168.255.255** which is the network
 portion of the address with all 1's in the host portion. In this example,
-the default port 47808 (0xBAC0) is used but you could provide and different
+the default port 47808 (0xBAC0) is used but you could provide a different
 one, **192.168.0.11:47809/16**.
 
 To receive both unicast and broadcast addresses, BACpypes
 opens two sockets, one for unicast traffic and one that only listens
 for broadcast messages.  The operating system will typically not allow two
 applications to open the same socket at the same time
-so to run two BACnet applciations at
+so to run two BACnet applications at
 the same time they need to be configured with different ports.
 
 .. note::
@@ -249,7 +249,7 @@ Now start the simplest tutorial application::
 .. note::
 
     The samples folder contains a Tutorial folder holding all the samples
-    that you will need too follow along this tutorial.
+    that you will need to follow along with this tutorial.
     Later, the folder `HandsOnLabs` will be used as it contains the samples
     that are fully explained in this document (see table of content)
 
