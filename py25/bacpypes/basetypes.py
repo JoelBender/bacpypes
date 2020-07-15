@@ -2198,9 +2198,9 @@ class EventParameterUnsignedRange(Sequence):
         ]
 
 class EventParameterAccessEventAccessEvent(Sequence):
-    sequenceevents = \
+    sequenceElements = \
         [ Element('listOfAccessEvents', SequenceOf(AccessEvent), 0)
-        , Element('accessEventTimeReference', DeviceObjectPropertyReference, 0)
+        , Element('accessEventTimeReference', DeviceObjectPropertyReference, 1)
         ]
 
 class EventParameterAccessEvent(Sequence):
