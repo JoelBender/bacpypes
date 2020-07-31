@@ -8,4 +8,4 @@ from . import object
 from . import device
 from . import file
 from . import schedule
-
+from . import decorator
