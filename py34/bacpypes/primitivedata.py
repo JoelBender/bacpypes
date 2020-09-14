@@ -503,6 +503,34 @@ class Atomic(object):
         """Return True if arg is valid value for the class."""
         raise NotImplementedError("call on a derived class of Atomic")
 
+class CommonMath:
+    def __add__(self, other):
+        return self.value + other.value if isinstance(other, Atomic) else (self.value + other)
+
+    def __sub__(self, other):
+        return self.value - other.value if isinstance(other, Atomic) else (self.value - other)
+
+    def __mul__(self, other):
+        return self.value * other.value if isinstance(other, Atomic) else (self.value * other)
+
+    def __lt__(self, other):
+        return self.value < other.value if isinstance(other, Atomic) else (self.value < other)
+    
+    def __gt__(self, other):
+        return self.value > other.value if isinstance(other, Atomic) else (self.value > other)
+    
+    def __le__(self, other):
+        return self.value <= other.value if isinstance(other, Atomic) else (self.value <= other)
+    
+    def __ge__(self, other):
+        return self.value >= other.value if isinstance(other, Atomic) else (self.value >= other)
+
+    def __ne__(self, other):
+        return self.value != other.value if isinstance(other, Atomic) else (self.value != other)
+
+    def __eq__(self, other):
+        return self.value == other.value if isinstance(other, Atomic) else (self.value == other)
+
 #
 #   Null
 #
@@ -595,7 +623,7 @@ class Boolean(Atomic):
 #   Unsigned
 #
 
-class Unsigned(Atomic):
+class Unsigned(Atomic, CommonMath):
 
     _app_tag = Tag.unsignedAppTag
     _low_limit = 0
@@ -683,7 +711,7 @@ class Unsigned16(Unsigned):
 #   Integer
 #
 
-class Integer(Atomic):
+class Integer(Atomic, CommonMath):
 
     _app_tag = Tag.integerAppTag
 
@@ -756,7 +784,7 @@ class Integer(Atomic):
 #   Real
 #
 
-class Real(Atomic):
+class Real(Atomic, CommonMath):
 
     _app_tag = Tag.realAppTag
 
@@ -801,7 +829,7 @@ class Real(Atomic):
 #   Double
 #
 
-class Double(Atomic):
+class Double(Atomic, CommonMath):
 
     _app_tag = Tag.doubleAppTag
 
