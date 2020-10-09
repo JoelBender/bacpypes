@@ -17,7 +17,13 @@ from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.task import RecurringTask
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.object import AnalogValueObject, BinaryValueObject
+from bacpypes.primitivedata import Real
+from bacpypes.object import (
+    WritableProperty,
+    AnalogValueObject,
+    BinaryValueObject,
+    register_object_type,
+)
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.cov import ChangeOfValueServices
 
@@ -30,25 +36,34 @@ test_av = None
 test_bv = None
 test_application = None
 
+
+@register_object_type
+class WritableAnalogValueObject(AnalogValueObject):
+    properties = [WritableProperty("presentValue", Real)]
+
+
 #
 #   SubscribeCOVApplication
 #
+
 
 @bacpypes_debugging
 class SubscribeCOVApplication(BIPSimpleApplication, ChangeOfValueServices):
     pass
 
+
 #
 #   COVConsoleCmd
 #
 
+
 @bacpypes_debugging
 class COVConsoleCmd(ConsoleCmd):
-
     def do_status(self, args):
         """status"""
         args = args.split()
-        if _debug: COVConsoleCmd._debug("do_status %r", args)
+        if _debug:
+            COVConsoleCmd._debug("do_status %r", args)
         global test_application
 
         # dump from the COV detections dict
@@ -56,17 +71,20 @@ class COVConsoleCmd(ConsoleCmd):
             print("{} {}".format(obj_ref.objectIdentifier, obj_ref))
 
             for cov_subscription in cov_detection.cov_subscriptions:
-                print("    {} proc_id={} confirmed={} lifetime={}".format(
-                    cov_subscription.client_addr,
-                    cov_subscription.proc_id,
-                    cov_subscription.confirmed,
-                    cov_subscription.lifetime,
-                    ))
+                print(
+                    "    {} proc_id={} confirmed={} lifetime={}".format(
+                        cov_subscription.client_addr,
+                        cov_subscription.proc_id,
+                        cov_subscription.confirmed,
+                        cov_subscription.lifetime,
+                    )
+                )
 
     def do_trigger(self, args):
         """trigger object_name"""
         args = args.split()
-        if _debug: COVConsoleCmd._debug("do_trigger %r", args)
+        if _debug:
+            COVConsoleCmd._debug("do_trigger %r", args)
         global test_application
 
         if not args:
@@ -90,43 +108,51 @@ class COVConsoleCmd(ConsoleCmd):
     def do_set(self, args):
         """set object_name [ . ] property_name [ = ] value"""
         args = args.split()
-        if _debug: COVConsoleCmd._debug("do_set %r", args)
+        if _debug:
+            COVConsoleCmd._debug("do_set %r", args)
         global test_application
 
         try:
             object_name = args.pop(0)
-            if '.' in object_name:
-                object_name, property_name = object_name.split('.')
+            if "." in object_name:
+                object_name, property_name = object_name.split(".")
             else:
                 property_name = args.pop(0)
-            if _debug: COVConsoleCmd._debug("    - object_name: %r", object_name)
-            if _debug: COVConsoleCmd._debug("    - property_name: %r", property_name)
+            if _debug:
+                COVConsoleCmd._debug("    - object_name: %r", object_name)
+            if _debug:
+                COVConsoleCmd._debug("    - property_name: %r", property_name)
 
             obj = test_application.get_object_name(object_name)
-            if _debug: COVConsoleCmd._debug("    - obj: %r", obj)
+            if _debug:
+                COVConsoleCmd._debug("    - obj: %r", obj)
             if not obj:
                 raise RuntimeError("object not found: %r" % (object_name,))
 
             datatype = obj.get_datatype(property_name)
-            if _debug: COVConsoleCmd._debug("    - datatype: %r", datatype)
+            if _debug:
+                COVConsoleCmd._debug("    - datatype: %r", datatype)
             if not datatype:
                 raise RuntimeError("not a property: %r" % (property_name,))
 
             # toss the equals
-            if args[0] == '=':
+            if args[0] == "=":
                 args.pop(0)
 
             # evaluate the value
             value = eval(args.pop(0))
-            if _debug: COVConsoleCmd._debug("    - raw value: %r", value)
+            if _debug:
+                COVConsoleCmd._debug("    - raw value: %r", value)
 
             # see if it can be built
             obj_value = datatype(value)
-            if _debug: COVConsoleCmd._debug("    - obj_value: %r", obj_value)
+            if _debug:
+                COVConsoleCmd._debug("    - obj_value: %r", obj_value)
 
             # normalize
             value = obj_value.value
-            if _debug: COVConsoleCmd._debug("    - normalized value: %r", value)
+            if _debug:
+                COVConsoleCmd._debug("    - normalized value: %r", value)
 
             # change the value
             setattr(obj, property_name, value)
@@ -139,43 +165,51 @@ class COVConsoleCmd(ConsoleCmd):
     def do_write(self, args):
         """write object_name [ . ] property [ = ] value"""
         args = args.split()
-        if _debug: COVConsoleCmd._debug("do_set %r", args)
+        if _debug:
+            COVConsoleCmd._debug("do_set %r", args)
         global test_application
 
         try:
             object_name = args.pop(0)
-            if '.' in object_name:
-                object_name, property_name = object_name.split('.')
+            if "." in object_name:
+                object_name, property_name = object_name.split(".")
             else:
                 property_name = args.pop(0)
-            if _debug: COVConsoleCmd._debug("    - object_name: %r", object_name)
-            if _debug: COVConsoleCmd._debug("    - property_name: %r", property_name)
+            if _debug:
+                COVConsoleCmd._debug("    - object_name: %r", object_name)
+            if _debug:
+                COVConsoleCmd._debug("    - property_name: %r", property_name)
 
             obj = test_application.get_object_name(object_name)
-            if _debug: COVConsoleCmd._debug("    - obj: %r", obj)
+            if _debug:
+                COVConsoleCmd._debug("    - obj: %r", obj)
             if not obj:
                 raise RuntimeError("object not found: %r" % (object_name,))
 
             datatype = obj.get_datatype(property_name)
-            if _debug: COVConsoleCmd._debug("    - datatype: %r", datatype)
+            if _debug:
+                COVConsoleCmd._debug("    - datatype: %r", datatype)
             if not datatype:
                 raise RuntimeError("not a property: %r" % (property_name,))
 
             # toss the equals
-            if args[0] == '=':
+            if args[0] == "=":
                 args.pop(0)
 
             # evaluate the value
             value = eval(args.pop(0))
-            if _debug: COVConsoleCmd._debug("    - raw value: %r", value)
+            if _debug:
+                COVConsoleCmd._debug("    - raw value: %r", value)
 
             # see if it can be built
             obj_value = datatype(value)
-            if _debug: COVConsoleCmd._debug("    - obj_value: %r", obj_value)
+            if _debug:
+                COVConsoleCmd._debug("    - obj_value: %r", obj_value)
 
             # normalize
             value = obj_value.value
-            if _debug: COVConsoleCmd._debug("    - normalized value: %r", value)
+            if _debug:
+                COVConsoleCmd._debug("    - normalized value: %r", value)
 
             # pass it along
             obj.WriteProperty(property_name, value)
@@ -196,20 +230,23 @@ class TestAnalogValueTask(RecurringTask):
     """
 
     def __init__(self, interval):
-        if _debug: TestAnalogValueTask._debug("__init__ %r", interval)
+        if _debug:
+            TestAnalogValueTask._debug("__init__ %r", interval)
         RecurringTask.__init__(self, interval * 1000)
 
         # make a list of test values
         self.test_values = list(float(i * 10) for i in range(10))
 
     def process_task(self):
-        if _debug: TestAnalogValueTask._debug("process_task")
+        if _debug:
+            TestAnalogValueTask._debug("process_task")
         global test_av
 
         # pop the next value
         next_value = self.test_values.pop(0)
         self.test_values.append(next_value)
-        if _debug: TestAnalogValueTask._debug("    - next_value: %r", next_value)
+        if _debug:
+            TestAnalogValueTask._debug("    - next_value: %r", next_value)
 
         # change the point
         test_av.presentValue = next_value
@@ -225,7 +262,8 @@ class TestAnalogValueThread(Thread):
     """
 
     def __init__(self, interval):
-        if _debug: TestAnalogValueThread._debug("__init__ %r", interval)
+        if _debug:
+            TestAnalogValueThread._debug("__init__ %r", interval)
         Thread.__init__(self)
 
         # runs as a daemon
@@ -238,14 +276,16 @@ class TestAnalogValueThread(Thread):
         self.test_values = list(100.0 + float(i * 10) for i in range(10))
 
     def run(self):
-        if _debug: TestAnalogValueThread._debug("run")
+        if _debug:
+            TestAnalogValueThread._debug("run")
         global test_av
 
         while True:
             # pop the next value
             next_value = self.test_values.pop(0)
             self.test_values.append(next_value)
-            if _debug: TestAnalogValueThread._debug("    - next_value: %r", next_value)
+            if _debug:
+                TestAnalogValueThread._debug("    - next_value: %r", next_value)
 
             # change the point
             test_av.presentValue = next_value
@@ -264,7 +304,8 @@ class TestBinaryValueTask(RecurringTask):
     """
 
     def __init__(self, interval):
-        if _debug: TestBinaryValueTask._debug("__init__ %r", interval)
+        if _debug:
+            TestBinaryValueTask._debug("__init__ %r", interval)
         RecurringTask.__init__(self, interval * 1000)
 
         # save the interval
@@ -274,13 +315,15 @@ class TestBinaryValueTask(RecurringTask):
         self.test_values = [True, False]
 
     def process_task(self):
-        if _debug: TestBinaryValueTask._debug("process_task")
+        if _debug:
+            TestBinaryValueTask._debug("process_task")
         global test_bv
 
         # pop the next value
         next_value = self.test_values.pop(0)
         self.test_values.append(next_value)
-        if _debug: TestBinaryValueTask._debug("    - next_value: %r", next_value)
+        if _debug:
+            TestBinaryValueTask._debug("    - next_value: %r", next_value)
 
         # change the point
         test_bv.presentValue = next_value
@@ -296,7 +339,8 @@ class TestBinaryValueThread(RecurringTask, Thread):
     """
 
     def __init__(self, interval):
-        if _debug: TestBinaryValueThread._debug("__init__ %r", interval)
+        if _debug:
+            TestBinaryValueThread._debug("__init__ %r", interval)
         Thread.__init__(self)
 
         # runs as a daemon
@@ -309,14 +353,16 @@ class TestBinaryValueThread(RecurringTask, Thread):
         self.test_values = [True, False]
 
     def run(self):
-        if _debug: TestBinaryValueThread._debug("run")
+        if _debug:
+            TestBinaryValueThread._debug("run")
         global test_bv
 
         while True:
             # pop the next value
             next_value = self.test_values.pop(0)
             self.test_values.append(next_value)
-            if _debug: TestBinaryValueThread._debug("    - next_value: %r", next_value)
+            if _debug:
+                TestBinaryValueThread._debug("    - next_value: %r", next_value)
 
             # change the point
             test_bv.presentValue = next_value
@@ -330,55 +376,55 @@ def main():
 
     # make a parser
     parser = ConfigArgumentParser(description=__doc__)
-    parser.add_argument("--console",
-        action="store_true",
-        default=False,
-        help="create a console",
-        )
+    parser.add_argument(
+        "--console", action="store_true", default=False, help="create a console",
+    )
 
     # analog value task and thread
-    parser.add_argument("--avtask", type=float,
-        help="analog value recurring task",
-        )
-    parser.add_argument("--avthread", type=float,
-        help="analog value thread",
-        )
+    parser.add_argument(
+        "--avtask", type=float, help="analog value recurring task",
+    )
+    parser.add_argument(
+        "--avthread", type=float, help="analog value thread",
+    )
 
     # analog value task and thread
-    parser.add_argument("--bvtask", type=float,
-        help="binary value recurring task",
-        )
-    parser.add_argument("--bvthread", type=float,
-        help="binary value thread",
-        )
+    parser.add_argument(
+        "--bvtask", type=float, help="binary value recurring task",
+    )
+    parser.add_argument(
+        "--bvthread", type=float, help="binary value thread",
+    )
 
     # provide a different spin value
-    parser.add_argument("--spin", type=float,
-        help="spin time",
-        default=1.0,
-        )
+    parser.add_argument(
+        "--spin", type=float, help="spin time", default=1.0,
+    )
 
     # parse the command line arguments
     args = parser.parse_args()
 
-    if _debug: _log.debug("initialization")
-    if _debug: _log.debug("    - args: %r", args)
+    if _debug:
+        _log.debug("initialization")
+    if _debug:
+        _log.debug("    - args: %r", args)
 
     # make a device object
     this_device = LocalDeviceObject(ini=args.ini)
-    if _debug: _log.debug("    - this_device: %r", this_device)
+    if _debug:
+        _log.debug("    - this_device: %r", this_device)
 
     # make a sample application
     test_application = SubscribeCOVApplication(this_device, args.ini.address)
 
     # make an analog value object
-    test_av = AnalogValueObject(
-        objectIdentifier=('analogValue', 1),
-        objectName='av',
+    test_av = WritableAnalogValueObject(
+        objectIdentifier=("analogValue", 1),
+        objectName="av",
         presentValue=0.0,
         statusFlags=[0, 0, 0, 0],
         covIncrement=1.0,
-        )
+    )
     _log.debug("    - test_av: %r", test_av)
 
     # add it to the device
@@ -387,11 +433,11 @@ def main():
 
     # make a binary value object
     test_bv = BinaryValueObject(
-        objectIdentifier=('binaryValue', 1),
-        objectName='bv',
-        presentValue='inactive',
+        objectIdentifier=("binaryValue", 1),
+        objectName="bv",
+        presentValue="inactive",
         statusFlags=[0, 0, 0, 0],
-        )
+    )
     _log.debug("    - test_bv: %r", test_bv)
 
     # add it to the device
