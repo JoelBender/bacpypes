@@ -17,13 +17,7 @@ from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.task import RecurringTask
 
 from bacpypes.app import BIPSimpleApplication
-from bacpypes.primitivedata import Real
-from bacpypes.object import (
-    WritableProperty,
-    AnalogValueObject,
-    BinaryValueObject,
-    register_object_type,
-)
+from bacpypes.object import AnalogInputObject
 from bacpypes.local.device import LocalDeviceObject
 from bacpypes.service.cov import ChangeOfValueServices
 
@@ -32,15 +26,8 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 # test globals
-test_av = None
-test_bv = None
+test_ai = None
 test_application = None
-
-
-@register_object_type
-class WritableAnalogValueObject(AnalogValueObject):
-    properties = [WritableProperty("presentValue", Real)]
-
 
 #
 #   SubscribeCOVApplication
@@ -221,17 +208,17 @@ class COVConsoleCmd(ConsoleCmd):
 
 
 @bacpypes_debugging
-class TestAnalogValueTask(RecurringTask):
+class TestAnalogInputTask(RecurringTask):
 
     """
-    An instance of this class is created when '--avtask <interval>' is
+    An instance of this class is created when '--aitask <interval>' is
     specified as a command line argument.  Every <interval> seconds it
-    changes the value of the test_av present value.
+    changes the value of the test_ai present value.
     """
 
     def __init__(self, interval):
         if _debug:
-            TestAnalogValueTask._debug("__init__ %r", interval)
+            TestAnalogInputTask._debug("__init__ %r", interval)
         RecurringTask.__init__(self, interval * 1000)
 
         # make a list of test values
@@ -239,31 +226,31 @@ class TestAnalogValueTask(RecurringTask):
 
     def process_task(self):
         if _debug:
-            TestAnalogValueTask._debug("process_task")
-        global test_av
+            TestAnalogInputTask._debug("process_task")
+        global test_ai
 
         # pop the next value
         next_value = self.test_values.pop(0)
         self.test_values.append(next_value)
         if _debug:
-            TestAnalogValueTask._debug("    - next_value: %r", next_value)
+            TestAnalogInputTask._debug("    - next_value: %r", next_value)
 
         # change the point
-        test_av.presentValue = next_value
+        test_ai.presentValue = next_value
 
 
 @bacpypes_debugging
-class TestAnalogValueThread(Thread):
+class TestAnalogInputThread(Thread):
 
     """
-    An instance of this class is created when '--avthread <interval>' is
+    An instance of this class is created when '--aithread <interval>' is
     specified as a command line argument.  Every <interval> seconds it
-    changes the value of the test_av present value.
+    changes the value of the test_ai present value.
     """
 
     def __init__(self, interval):
         if _debug:
-            TestAnalogValueThread._debug("__init__ %r", interval)
+            TestAnalogInputThread._debug("__init__ %r", interval)
         Thread.__init__(self)
 
         # runs as a daemon
@@ -277,102 +264,25 @@ class TestAnalogValueThread(Thread):
 
     def run(self):
         if _debug:
-            TestAnalogValueThread._debug("run")
-        global test_av
+            TestAnalogInputThread._debug("run")
+        global test_ai
 
         while True:
             # pop the next value
             next_value = self.test_values.pop(0)
             self.test_values.append(next_value)
             if _debug:
-                TestAnalogValueThread._debug("    - next_value: %r", next_value)
+                TestAnalogInputThread._debug("    - next_value: %r", next_value)
 
             # change the point
-            test_av.presentValue = next_value
-
-            # sleep
-            time.sleep(self.interval)
-
-
-@bacpypes_debugging
-class TestBinaryValueTask(RecurringTask):
-
-    """
-    An instance of this class is created when '--bvtask <interval>' is
-    specified as a command line argument.  Every <interval> seconds it
-    changes the value of the test_bv present value.
-    """
-
-    def __init__(self, interval):
-        if _debug:
-            TestBinaryValueTask._debug("__init__ %r", interval)
-        RecurringTask.__init__(self, interval * 1000)
-
-        # save the interval
-        self.interval = interval
-
-        # make a list of test values
-        self.test_values = [True, False]
-
-    def process_task(self):
-        if _debug:
-            TestBinaryValueTask._debug("process_task")
-        global test_bv
-
-        # pop the next value
-        next_value = self.test_values.pop(0)
-        self.test_values.append(next_value)
-        if _debug:
-            TestBinaryValueTask._debug("    - next_value: %r", next_value)
-
-        # change the point
-        test_bv.presentValue = next_value
-
-
-@bacpypes_debugging
-class TestBinaryValueThread(RecurringTask, Thread):
-
-    """
-    An instance of this class is created when '--bvthread <interval>' is
-    specified as a command line argument.  Every <interval> seconds it
-    changes the value of the test_bv present value.
-    """
-
-    def __init__(self, interval):
-        if _debug:
-            TestBinaryValueThread._debug("__init__ %r", interval)
-        Thread.__init__(self)
-
-        # runs as a daemon
-        self.daemon = True
-
-        # save the interval
-        self.interval = interval
-
-        # make a list of test values
-        self.test_values = [True, False]
-
-    def run(self):
-        if _debug:
-            TestBinaryValueThread._debug("run")
-        global test_bv
-
-        while True:
-            # pop the next value
-            next_value = self.test_values.pop(0)
-            self.test_values.append(next_value)
-            if _debug:
-                TestBinaryValueThread._debug("    - next_value: %r", next_value)
-
-            # change the point
-            test_bv.presentValue = next_value
+            test_ai.presentValue = next_value
 
             # sleep
             time.sleep(self.interval)
 
 
 def main():
-    global test_av, test_bv, test_application
+    global test_ai, test_application
 
     # make a parser
     parser = ConfigArgumentParser(description=__doc__)
@@ -382,10 +292,10 @@ def main():
 
     # analog value task and thread
     parser.add_argument(
-        "--avtask", type=float, help="analog value recurring task",
+        "--aitask", type=float, help="analog input recurring task",
     )
     parser.add_argument(
-        "--avthread", type=float, help="analog value thread",
+        "--aithread", type=float, help="analog input thread",
     )
 
     # analog value task and thread
@@ -418,30 +328,26 @@ def main():
     test_application = SubscribeCOVApplication(this_device, args.ini.address)
 
     # make an analog value object
-    test_av = WritableAnalogValueObject(
-        objectIdentifier=("analogValue", 1),
-        objectName="av",
+    test_ai = AnalogInputObject(
+        objectIdentifier=("analogInput", 1),
+        objectName="ai",
         presentValue=0.0,
+        covIncrement=0.5,
+        eventDetectionEnable=True,
+        eventEnable=[1, 1, 1],
+        ackedTransitions=[1, 1, 1],
+        notifyType=1,
+        reliability=1,
+        outOfService=False,
+        eventState=0,
         statusFlags=[0, 0, 0, 0],
-        covIncrement=1.0,
+        units=19,
     )
-    _log.debug("    - test_av: %r", test_av)
+    _log.debug("    - test_ai: %r", test_ai)
 
     # add it to the device
-    test_application.add_object(test_av)
+    test_application.add_object(test_ai)
     _log.debug("    - object list: %r", this_device.objectList)
-
-    # make a binary value object
-    test_bv = BinaryValueObject(
-        objectIdentifier=("binaryValue", 1),
-        objectName="bv",
-        presentValue="inactive",
-        statusFlags=[0, 0, 0, 0],
-    )
-    _log.debug("    - test_bv: %r", test_bv)
-
-    # add it to the device
-    test_application.add_object(test_bv)
 
     # make a console
     if args.console:
@@ -451,25 +357,15 @@ def main():
         # enable sleeping will help with threads
         enable_sleeping()
 
-    # analog value task
-    if args.avtask:
-        test_av_task = TestAnalogValueTask(args.avtask)
-        test_av_task.install_task()
+    # analog input task
+    if args.aitask:
+        test_ai_task = TestAnalogInputTask(args.aitask)
+        test_ai_task.install_task()
 
-    # analog value thread
-    if args.avthread:
-        test_av_thread = TestAnalogValueThread(args.avthread)
-        deferred(test_av_thread.start)
-
-    # binary value task
-    if args.bvtask:
-        test_bv_task = TestBinaryValueTask(args.bvtask)
-        test_bv_task.install_task()
-
-    # binary value thread
-    if args.bvthread:
-        test_bv_thread = TestBinaryValueThread(args.bvthread)
-        deferred(test_bv_thread.start)
+    # analog input thread
+    if args.aithread:
+        test_ai_thread = TestAnalogInputThread(args.aithread)
+        deferred(test_ai_thread.start)
 
     _log.debug("running")
 
