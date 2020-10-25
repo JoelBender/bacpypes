@@ -90,7 +90,7 @@ class Subscription(OneShotTask, DebugContents):
         'lifetime',
         )
 
-    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime):
+    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime=0):
         if _debug: Subscription._debug("__init__ %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime)
         OneShotTask.__init__(self)
 
