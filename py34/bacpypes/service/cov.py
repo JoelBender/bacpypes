@@ -102,11 +102,10 @@ class Subscription(OneShotTask, DebugContents):
         self.proc_id = proc_id
         self.obj_id = obj_id
         self.confirmed = confirmed
-        self.lifetime = lifetime
 
-        # if lifetime is non-zero, schedule the subscription to expire
-        if lifetime != 0:
-            self.install_task(delta=self.lifetime)
+        # if lifetime is none, consider permanent subscription (0)        
+        self.lifetime = 0 if lifetime is None else lifetime
+        self.install_task(delta=self.lifetime)
 
     def cancel_subscription(self):
         if _debug: Subscription._debug("cancel_subscription")
