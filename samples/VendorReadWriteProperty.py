@@ -51,9 +51,9 @@ class ReadWritePropertyConsoleCmd(ConsoleCmd):
         try:
             addr, obj_id, prop_id = args[:3]
             obj_id = ObjectIdentifier(obj_id).value
-
             if prop_id.isdigit():
                 prop_id = int(prop_id)
+
             if _debug: ReadWritePropertyConsoleCmd._debug("    - prop_id: %r", prop_id)
 
             datatype = get_datatype(obj_id[0], prop_id, VendorAVObject.vendor_id)

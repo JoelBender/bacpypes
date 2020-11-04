@@ -548,6 +548,8 @@ class DiscoverConsoleCmd(ConsoleCmd):
 
             devid = int(devid)
             obj_id = ObjectIdentifier(obj_id).value
+            if prop_id.isdigit():
+                prop_id = int(prop_id)
 
             datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:

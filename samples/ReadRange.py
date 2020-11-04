@@ -60,6 +60,8 @@ class ReadRangeConsoleCmd(ConsoleCmd):
             addr = Address(args.pop(0))
             obj_id = ObjectIdentifier(args.pop(0)).value
             prop_id = args.pop(0)
+            if prop_id.isdigit():
+                prop_id = int(prop_id)
 
             datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:

@@ -47,7 +47,8 @@ class WriteSomethingConsoleCmd(ConsoleCmd):
         try:
             addr, obj_id, prop_id = args[:3]
             obj_id = ObjectIdentifier(obj_id).value
-            prop_id = int(prop_id)
+            if prop_id.isdigit():
+                prop_id = int(prop_id)
 
             # build a request
             request = WritePropertyRequest(

@@ -131,6 +131,8 @@ class ThreadedHTTPRequestHandler(SimpleHTTPRequestHandler):
             # implement a default property, the bain of committee meetings
             if len(args) == 3:
                 prop_id = args[2]
+                if prop_id.isdigit():
+                    prop_id = int(prop_id)
             else:
                 prop_id = "presentValue"
 
