@@ -709,7 +709,7 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         """Called when detecting that foreign device registration has
         definitely expired.
         """
-        self.registrationStatus = -2  # Unregistered
+        self.registrationStatus = -1  # Unregistered
         self._stop_track_registration()
 
 bacpypes_debugging(BIPForeign)
