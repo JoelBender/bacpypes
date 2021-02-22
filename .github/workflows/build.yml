@@ -39,7 +39,7 @@ jobs:
         pytest -v
 
   legacy-build:
-    name: Legacy versions - Install only
+    name: Legacy versions - Install and test
     runs-on: ubuntu-18.04
     strategy:
       matrix:
@@ -53,6 +53,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install pytest
+        pip install setuptools --upgrade
         python setup.py install
 #    - name: Lint with flake8
 #      run: |
