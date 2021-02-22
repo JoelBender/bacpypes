@@ -23,7 +23,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install flake8 pytest netifaces
+        pip install flake8 pytest netifaces wheel
         python -m setup.py install
 #    - name: Lint with flake8
 #      run: |
