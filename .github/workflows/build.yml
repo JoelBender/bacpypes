@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: Linux versions - Install and test
+    name: Linux - Install and test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,7 +39,7 @@ jobs:
         pytest -v
 
   legacy-build:
-    name: Legacy versions - Install and test
+    name: Legacy versions - Install only
     runs-on: ubuntu-18.04
     strategy:
       matrix:
@@ -52,7 +52,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pytest netifaces wheel
+#        pip install pytest netifaces wheel
+        pip install pytest
         python setup.py install
 #    - name: Lint with flake8
 #      run: |
