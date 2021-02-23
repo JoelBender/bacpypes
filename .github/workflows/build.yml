@@ -73,9 +73,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pytest
-        pip install setuptools --upgrade
-        python setup.py install
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install .
     - name: Test with pytest
       run: |
         pytest -v
@@ -94,9 +95,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pytest
-        pip install setuptools --upgrade
-        python setup.py install
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install .
     - name: Test with pytest
       run: |
         pytest -v
