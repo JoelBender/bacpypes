@@ -5,9 +5,9 @@ name: Build & test on different versions
 
 on:
   push:
-    branches: [ install_and_actions ]
-#  pull_request:
-#    branches: [ install_and_actions ]
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
 
 jobs:
   build:
