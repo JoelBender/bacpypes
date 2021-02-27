@@ -126,10 +126,17 @@ class MiddleMan(Client, Server):
 
         # check the address
         if addr == "*":
+            if not local_broadcast_tuple:
+                sys.stderr.write("err: no local broadcast\n")
+                return
+
             dest = local_broadcast_tuple
         elif ':' in addr:
             addr, port = addr.split(':')
             if addr == "*":
+                if not local_broadcast_tuple:
+                    sys.stderr.write("err: no local broadcast\n")
+                    return
                 dest = (local_broadcast_tuple[0], int(port))
             else:
                 dest = (addr, int(port))
@@ -233,6 +240,9 @@ def main():
 
     if args.noBroadcast:
         _log.debug("    - skipping broadcast")
+
+    elif not local_broadcast_tuple:
+        _log.debug("    - no local broadcast")
 
     elif local_unicast_tuple == local_broadcast_tuple:
         _log.debug("    - identical unicast and broadcast tuples")
