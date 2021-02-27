@@ -87,7 +87,7 @@ class CurrentPropertyListMixIn(Object):
 # character reference patterns
 HEX = u"[0-9A-Fa-f]"
 PERCENT = u"%" + HEX + HEX
-UCHAR = u"[\\\]u" + HEX * 4 + "|" + u"[\\\]U" + HEX * 8
+UCHAR = u"[\\]u" + HEX * 4 + "|" + u"[\\]U" + HEX * 8
 
 # character sets
 PN_CHARS_BASE = (
@@ -101,7 +101,7 @@ PN_CHARS_U = PN_CHARS_BASE + u"_"
 PN_CHARS = u"-" + PN_CHARS_U + u"0-9\u00B7\u0300-\u036F\u203F-\u2040"
 
 # patterns
-IRIREF = u'[<]([^\u0000-\u0020<>"{}|^`\\\]|' + UCHAR + u")*[>]"
+IRIREF = u'[<]([^\u0000-\u0020<>"{}|^`\\]|' + UCHAR + u")*[>]"
 PN_PREFIX = u"[" + PN_CHARS_BASE + u"](([." + PN_CHARS + u"])*[" + PN_CHARS + u"])?"
 
 PN_LOCAL_ESC = u"[-\\_~.!$&'()*+,;=/?#@%]"
