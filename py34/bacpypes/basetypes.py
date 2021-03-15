@@ -8,8 +8,8 @@ from .debugging import bacpypes_debugging, ModuleLogger
 from .errors import MissingRequiredParameter
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, Double, \
-    Enumerated, Integer, Null, ObjectIdentifier, OctetString, Real, Time, \
-    Unsigned, Unsigned16, Tag
+    Enumerated, Integer, Null, ObjectType, ObjectIdentifier, OctetString, Real, Time, \
+    Unsigned, Unsigned8, Unsigned16, Tag
 from .constructeddata import Any, AnyAtomic, ArrayOf, Choice, Element, \
     Sequence, SequenceOf
 
@@ -20,6 +20,28 @@ _log = ModuleLogger(globals())
 #
 #   Bit Strings
 #
+
+class AuditOperationFlags(BitString):
+    vendor_range = (32, 63)
+    bitNames = \
+        { 'read':0
+        , 'write':1
+        , 'create':2
+        , 'delete':3
+        , 'lifeSafety':4
+        , 'acknowledgeAlarm':5
+        , 'deviceDisableComm':6
+        , 'deviceEnableComm':7
+        , 'deviceReset':8
+        , 'deviceBackup':9
+        , 'deviceRestore':10
+        , 'subscription':11
+        , 'notification':12
+        , 'auditingFailure':13
+        , 'networkChanges':14
+        , 'general':15
+        }
+    bitLen = 16
 
 class DaysOfWeek(BitString):
     bitNames = \
@@ -115,6 +137,27 @@ class ObjectTypesSupported(BitString):
         , 'lightingOutput':54
         }
     bitLen = 55
+
+class PriorityFilter(BitString):
+    bitNames = \
+        { 'manualLifeSafety':0
+        , 'automaticLifeSafety':1
+        , 'priority3':2
+        , 'priority4':3
+        , 'criticalEquipmentControls':4
+        , 'minimumOnOff':5
+        , 'priority7':6
+        , 'manualOperator':7
+        , 'priority9':8
+        , 'priority10':9
+        , 'priority11':10
+        , 'priority12':11
+        , 'priority13':12
+        , 'priority14':13
+        , 'priority15':14
+        , 'priority16':15
+        }
+    bitLen = 16
 
 class ResultFlags(BitString):
     bitNames = \
@@ -329,6 +372,36 @@ class Action(Enumerated):
         , 'reverse':1
         }
 
+class AuditLevel(Enumerated):
+    vendor_range = (128, 255)
+    enumerations = \
+        { 'none':0
+        , 'auditAll':1
+        , 'auditConfig':2
+        , 'default':3
+        }
+
+class AuditOperation(Enumerated):
+    vendor_range = (32, 63)
+    enumerations = \
+        { 'read':0
+        , 'write':1
+        , 'create':2
+        , 'delete':3
+        , 'lifeSafety':4
+        , 'acknowledgeAlarm':5
+        , 'deviceDisableComm':6
+        , 'deviceEnableComm':7
+        , 'deviceReset':8
+        , 'deviceBackup':9
+        , 'deviceRestore':10
+        , 'subscription':11
+        , 'notification':12
+        , 'auditingFailure':13
+        , 'networkChanges':14
+        , 'general':15
+        }
+
 class AuthenticationFactorType(Enumerated):
     enumerations = \
         { 'undefined':0
@@ -401,6 +474,17 @@ class BackupState(Enumerated):
         , 'performingARestore':4
         , 'backupFailure':5
         , 'restoreFailure':6
+        }
+
+class BinaryLightingPV(Enumerated):
+    vendor_range = (64, 255)
+    enumerations = \
+        { 'off':0
+        , 'on':1
+        , 'warn':2
+        , 'warn-off':3
+        , 'warn-relinquish':4
+        , 'stop':5
         }
 
 class BinaryPV(Enumerated):
@@ -872,6 +956,28 @@ class ErrorCode(Enumerated):
         , 'writeBdtFailed':116
         }
 
+class EscalatorMode(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'stop':1
+        , 'up':2
+        , 'down':3
+        , 'inspection':4
+        , 'outOfService':5
+        }
+
+class EscalatorOperationDirection(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'stopped':1
+        , 'upRatedSpeed':2
+        , 'upReducedSpeed':3
+        , 'downRatedSpeed':4
+        , 'downReducedSpeed':5
+        }
+
 class EventState(Enumerated):
     vendor_range = (64, 65535)
     enumerations = \
@@ -921,6 +1027,91 @@ class FileAccessMethod(Enumerated):
     enumerations = \
         { 'recordAccess':0
         , 'streamAccess':1
+        }
+
+class LiftCarDirection(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'none':1
+        , 'stopped':2
+        , 'up':3
+        , 'down':4
+        , 'upAndDown':5
+        }
+
+class LiftCarDoorCommand(Enumerated):
+    enumerations = \
+        { 'none':0
+        , 'open':1
+        , 'close':2
+        }
+
+class LiftCarDriveStatus(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'stationary':1
+        , 'braking':2
+        , 'accelerate':3
+        , 'decelerate':4
+        , 'ratedSpeed':5
+        , 'singleFloorJump':6
+        , 'twoFloorJump':7
+        , 'threeFloorJump':8
+        , 'multiFloorJump':9
+        }
+
+class LiftCarMode(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'normal':1
+        , 'vip':2
+        , 'homing':3
+        , 'parking':4
+        , 'attendantControl':5
+        , 'firefighterControl':6
+        , 'emergencyPower':7
+        , 'inspection':8
+        , 'cabinetRecall':9
+        , 'earthquakeOperation':10
+        , 'fireOperation':11
+        , 'outOfService':12
+        , 'occupantEvacuation':13
+        }
+
+class LiftFault(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'controllerFault':0
+        , 'driveAndMotorFault':1
+        , 'governorAndSafetyGearFault':2
+        , 'liftShaftDeviceFault':3
+        , 'powerSupplyFault':4
+        , 'safetyInterlockFault':5
+        , 'doorClosingFault':6
+        , 'doorOpeningFault':7
+        , 'carStoppedOutsideLandingZone':8
+        , 'callButtonStuck':9
+        , 'startFailure':10
+        , 'controllerSupplyFault':11
+        , 'selfTestFailure':12
+        , 'runtimeLimitExceeded':13
+        , 'positionLost':14
+        , 'driveTemperatureExceeded':15
+        , 'loadMeasurementFault':16
+        }
+
+class LiftGroupMode(Enumerated):
+    enumerations = \
+        { 'unknown':0
+        , 'normal':1
+        , 'downPeak':2
+        , 'twoWay':3
+        , 'fourWay':4
+        , 'emergencyPower':5
+        , 'upPeak':6
         }
 
 class LifeSafetyMode(Enumerated):
@@ -1103,50 +1294,9 @@ class ProgramState(Enumerated):
         }
 
 class PropertyIdentifier(Enumerated):
-    # TODO: Sort Alphabetically
     vendor_range = (512, 4194303)
     enumerations = \
         { 'absenteeLimit':244
-        , 'tags':486
-        , 'profileLocation':91
-        , 'eventDetectionEnabled':353
-        , 'apduLength':388
-        , 'linkSpeed':420
-        , 'linkSpeeds':421
-        , 'linkSpeedAutonegotiate':422
-        , 'networkInterfaceName':424
-        , 'bacnetIPMode':408
-        , 'ipAddress':400
-        , 'bacnetIPUDPPort':412
-        , 'ipSubnetMask':411
-        , 'ipDefaultGateway':401
-        , 'bacnetIPMulticastAddress':409
-        , 'ipDNSServer':406
-        , 'ipDHCPEnable':402
-        , 'ipDHCPLeaseTime':403
-        , 'ipDHCPLeaseTimeRemaining':404
-        , 'ipDHCPServer':405
-        , 'bacnetIPNATTraversal':410
-        , 'bacnetIPGlobalAddress':407
-        , 'bbmdBroadcastDistributionTable':414
-        , 'bbmdAcceptFDRegistrations':413
-        , 'bbmdForeignDeviceTable':415
-        , 'fdBBMDAddress':418
-        , 'fdSubscriptionLifetime':419
-        , 'bacnetIPv6Mode':435
-        , 'ipv6Address':436
-        , 'ipv6PrefixLength':437
-        , 'bacnetIPv6UDPPort':438
-        , 'ipv6DefaultGateway':439
-        , 'bacnetIPv6MulticastAddress':440
-        , 'ipv6DNSServer':441
-        , 'ipv6AutoAddressingEnabled':442
-        , 'ipv6DHCPLeaseTime':443
-        , 'ipv6DHCPLeaseTimeRemaining':444
-        , 'ipv6DHCPServer':445
-        , 'ipv6ZoneIndex':446
-        , 'virtualMACAddressTable':429
-        , 'routingTable':428
         , 'acceptedModes':175
         , 'accessAlarmEvents':245
         , 'accessDoors':246
@@ -1158,12 +1308,13 @@ class PropertyIdentifier(Enumerated):
         , 'accessTransactionEvents':251
         , 'accompaniment':252
         , 'accompanimentTime':253
-        , 'ackRequired':1
         , 'ackedTransitions':0
+        , 'ackRequired':1
         , 'action':2
         , 'actionText':3
         , 'activationTime':254
         , 'activeAuthenticationPolicy':255
+        , 'activeCovMultipleSubscriptions':481
         , 'activeCovSubscriptions':152
         , 'activeText':4
         , 'activeVtSessions':5
@@ -1173,14 +1324,21 @@ class PropertyIdentifier(Enumerated):
         , 'alarmValues':7
         , 'alignIntervals':193
         , 'all':8
-        , 'allWritesSuccessful':9
         , 'allowGroupDelayInhibit':365
+        , 'allWritesSuccessful':9
+        , 'apduLength':388
         , 'apduSegmentTimeout':10
         , 'apduTimeout':11
         , 'applicationSoftwareVersion':12
         , 'archive':13
         , 'assignedAccessRights':256
+        , 'assignedLandingCalls':447
         , 'attemptedSamples':124
+        , 'auditableOperations':501
+        , 'auditablePriorityFilter':500
+        , 'auditLevel':498
+        , 'auditNotificationRecipient':499
+        , 'auditSourceReporter':497
         , 'authenticationFactors':257
         , 'authenticationPolicyList':258
         , 'authenticationPolicyNames':259
@@ -1192,19 +1350,42 @@ class PropertyIdentifier(Enumerated):
         , 'backupAndRestoreState':338
         , 'backupFailureTimeout':153
         , 'backupPreparationTime':339
+        , 'bacnetIPGlobalAddress':407
+        , 'bacnetIPMode':408
+        , 'bacnetIPMulticastAddress':409
+        , 'bacnetIPNATTraversal':410
+        , 'bacnetIPUDPPort':412
+        , 'bacnetIPv6Mode':435
+        , 'bacnetIPv6MulticastAddress':440
+        , 'bacnetIPv6UDPPort':438
         , 'baseDeviceSecurityPolicy':327
+        , 'bbmdAcceptFDRegistrations':413
+        , 'bbmdBroadcastDistributionTable':414
+        , 'bbmdForeignDeviceTable':415
         , 'belongsTo':262
         , 'bias':14
         , 'bitMask':342
         , 'bitText':343
         , 'blinkWarnEnable':373
         , 'bufferSize':126
+        , 'carAssignedDirection':448
+        , 'carDoorCommand':449
+        , 'carDoorStatus':450
+        , 'carDoorText':451
+        , 'carDoorZone':452
+        , 'carDriveStatus':453
+        , 'carLoad':454
+        , 'carLoadUnits':455
+        , 'carMode':456
+        , 'carMovingDirection':457
+        , 'carPosition':458
         , 'changeOfStateCount':15
         , 'changeOfStateTime':16
         , 'changesPending':416
         , 'channelNumber':366
         , 'clientCovIncrement':127
         , 'command':417
+        , 'commandTimeArray':430
         , 'configurationFiles':154
         , 'controlGroups':367
         , 'controlledVariableReference':19
@@ -1219,23 +1400,30 @@ class PropertyIdentifier(Enumerated):
         , 'covuPeriod':349
         , 'covuRecipients':350
         , 'credentialDisable':263
-        , 'credentialStatus':264
         , 'credentials':265
         , 'credentialsInZone':266
+        , 'credentialStatus':264
+        , 'currentCommandPriority':431
         , 'databaseRevision':155
         , 'dateList':23
         , 'daylightSavingsStatus':24
         , 'daysRemaining':267
         , 'deadband':25
         , 'defaultFadeTime':374
+        , 'defaultPresentValue':492
         , 'defaultRampRate':375
         , 'defaultStepIncrement':376
+        , 'defaultSubordinateRelationship':490
+        , 'defaultTimeout':393
+        , 'deleteOnForward':502
+        , 'deployedProfileLocation':484
         , 'derivativeConstant':26
         , 'derivativeConstantUnits':27
         , 'description':28
         , 'descriptionOfHalt':29
         , 'deviceAddressBinding':30
         , 'deviceType':31
+        , 'deviceUUID':507
         , 'directReading':156
         , 'distributionKeyRevision':328
         , 'doNotHide':329
@@ -1251,54 +1439,93 @@ class PropertyIdentifier(Enumerated):
         , 'egressActive':386
         , 'egressTime':377
         , 'elapsedActiveTime':33
-        , 'entryPoints':268
+        , 'elevatorGroup':459
         , 'enable':133
+        , 'energyMeter':460
+        , 'energyMeterRef':461
+        , 'entryPoints':268
         , 'errorLimit':34
+        , 'escalatorMode':462
         , 'eventAlgorithmInhibit':354
         , 'eventAlgorithmInhibitRef':355
         , 'eventDetectionEnable':353
         , 'eventEnable':35
         , 'eventMessageTexts':351
         , 'eventMessageTextsConfig':352
+        , 'eventParameters':83
         , 'eventState':36
         , 'eventTimeStamps':130
         , 'eventType':37
-        , 'eventParameters':83
         , 'exceptionSchedule':38
         , 'executionDelay':368
         , 'exitPoints':269
         , 'expectedShedLevel':214
-        , 'expiryTime':270
+        , 'expirationTime':270
         , 'extendedTimeEnable':271
         , 'failedAttemptEvents':272
         , 'failedAttempts':273
         , 'failedAttemptsTime':274
+        , 'faultHighLimit':388
+        , 'faultLowLimit':389
         , 'faultParameters':358
+        , 'faultSignals':463
         , 'faultType':359
         , 'faultValues':39
+        , 'fdBBMDAddress':418
+        , 'fdSubscriptionLifetime':419
         , 'feedbackValue':40
         , 'fileAccessMethod':41
         , 'fileSize':42
         , 'fileType':43
         , 'firmwareRevision':44
+        , 'floorNumber':506
+        , 'floorText':464
         , 'fullDutyBaseline':215
         , 'globalIdentifier':323
-        , 'groupMembers':345
+        , 'groupID':465
         , 'groupMemberNames':346
+        , 'groupMembers':345
+        , 'groupMode':467
+        , 'higherDeck':468
         , 'highLimit':45
         , 'inactiveText':46
+        , 'initialTimeout':394
         , 'inProcess':47
         , 'inProgress':378
         , 'inputReference':181
+        , 'installationID':469
         , 'instanceOf':48
         , 'instantaneousPower':379
         , 'integralConstant':49
         , 'integralConstantUnits':50
+        , 'interfaceValue':387
         , 'intervalOffset':195
+        , 'ipAddress':400
+        , 'ipDefaultGateway':401
+        , 'ipDHCPEnable':402
+        , 'ipDHCPLeaseTime':403
+        , 'ipDHCPLeaseTimeRemaining':404
+        , 'ipDHCPServer':405
+        , 'ipDNSServer':406
+        , 'ipSubnetMask':411
+        , 'ipv6Address':436
+        , 'ipv6AutoAddressingEnabled':442
+        , 'ipv6DefaultGateway':439
+        , 'ipv6DHCPLeaseTime':443
+        , 'ipv6DHCPLeaseTimeRemaining':444
+        , 'ipv6DHCPServer':445
+        , 'ipv6DNSServer':441
+        , 'ipv6PrefixLength':437
+        , 'ipv6ZoneIndex':446
+        , 'issueConfirmedNotifications':51
         , 'isUtc':344
         , 'keySets':330
+        , 'landingCallControl':471
+        , 'landingCalls': 470
+        , 'landingDoorStatus':472
         , 'lastAccessEvent':275
         , 'lastAccessPoint':276
+        , 'lastCommandTime':432
         , 'lastCredentialAdded':277
         , 'lastCredentialAddedTime':278
         , 'lastCredentialRemoved':279
@@ -1308,12 +1535,16 @@ class PropertyIdentifier(Enumerated):
         , 'lastPriority':369
         , 'lastRestartReason':196
         , 'lastRestoreTime':157
+        , 'lastStateChange':395
         , 'lastUseTime':281
         , 'lifeSafetyAlarmValues':166
         , 'lightingCommand':380
         , 'lightingCommandDefaultPriority':381
         , 'limitEnable':52
         , 'limitMonitoringInterval':182
+        , 'linkSpeed':420
+        , 'linkSpeedAutonegotiate':422
+        , 'linkSpeeds':421
         , 'listOfGroupMembers':53
         , 'listOfObjectPropertyReferences':54
         , 'listOfSessionKeys':55
@@ -1321,51 +1552,59 @@ class PropertyIdentifier(Enumerated):
         , 'localForwardingOnly':360
         , 'localTime':57
         , 'location':58
-        , 'lockStatus':233
         , 'lockout':282
         , 'lockoutRelinquishTime':283
+        , 'lockStatus':233
         , 'logBuffer':131
         , 'logDeviceObjectProperty':132
-        , 'logInterval':134
         , 'loggingObject':183
         , 'loggingRecord':184
         , 'loggingType':197
+        , 'logInterval':134
+        , 'lowDiffLimit':390
+        , 'lowerDeck':473
         , 'lowLimit':59
         , 'macAddress':423
+        , 'machineRoomID':474
         , 'maintenanceRequired':158
+        , 'makingCarCall':475
         , 'manipulatedVariableReference':60
         , 'manualSlaveAddressBinding':170
         , 'maskedAlarmValues':234
         , 'masterExemption':284
-        , 'maximumOutput':61
-        , 'maximumValue':135
-        , 'maximumValueTimestamp':149
         , 'maxActualValue':382
         , 'maxApduLengthAccepted':62
         , 'maxFailedAttempts':285
+        , 'maximumOutput':61
+        , 'maximumSendDelay':503
+        , 'maximumValue':135
+        , 'maximumValueTimestamp':149
         , 'maxInfoFrames':63
         , 'maxMaster':64
         , 'maxPresValue':65
         , 'maxSegmentsAccepted':167
         , 'memberOf':159
-        , 'memberStatusFlags':347
         , 'members':286
+        , 'memberStatusFlags':347
+        , 'minActualValue':383
         , 'minimumOffTime':66
         , 'minimumOnTime':67
         , 'minimumOutput':68
         , 'minimumValue':136
         , 'minimumValueTimestamp':150
-        , 'minActualValue':383
         , 'minPresValue':69
         , 'mode':160
         , 'modelName':70
         , 'modificationDate':71
+        , 'monitoredObjects':504
         , 'musterPoint':287
         , 'negativeAccessRules':288
         , 'networkAccessSecurityPolicies':332
+        , 'networkInterfaceName':424
         , 'networkNumber':425
         , 'networkNumberQuality':427
         , 'networkType': 427
+        , 'nextStoppingFloor':476
         , 'nodeSubtype':207
         , 'nodeType':208
         , 'notificationClass':17
@@ -1388,6 +1627,7 @@ class PropertyIdentifier(Enumerated):
         , 'occupancyState':296
         , 'occupancyUpperLimit':297
         , 'occupancyUpperLimitEnforced':298
+        , 'operationDirection':477
         , 'operationExpected':161
         , 'optional':80
         , 'outOfService':81
@@ -1396,17 +1636,21 @@ class PropertyIdentifier(Enumerated):
         , 'passbackExemption':299
         , 'passbackMode':300
         , 'passbackTimeout':301
+        , 'passengerAlarm':478
         , 'polarity':84
         , 'portFilter':363
         , 'positiveAccessRules':302
         , 'power':384
+        , 'powerMode':479
         , 'prescale':185
+        , 'presentStage':493
         , 'presentValue':85
         , 'priority':86
         , 'priorityArray':87
         , 'priorityForWriting':88
         , 'processIdentifier':89
         , 'processIdentifierFilter':361
+        , 'profileLocation':91
         , 'profileName':168
         , 'programChange':90
         , 'programLocation':91
@@ -1424,12 +1668,14 @@ class PropertyIdentifier(Enumerated):
         , 'reasonForDisable':303
         , 'reasonForHalt':100
         , 'recipientList':102
-        , 'recordsSinceNotification':140
         , 'recordCount':141
+        , 'recordsSinceNotification':140
         , 'referencePort':483
+        , 'registeredCarCall':480
         , 'reliability':103
         , 'reliabilityEvaluationInhibit':357
         , 'relinquishDefault':104
+        , 'represents':491
         , 'requestedShedLevel':218
         , 'requestedUpdateInterval':348
         , 'required':105
@@ -1437,6 +1683,7 @@ class PropertyIdentifier(Enumerated):
         , 'restartNotificationRecipients':202
         , 'restoreCompletionTime':340
         , 'restorePreparationTime':341
+        , 'routingTable':428
         , 'scale':187
         , 'scaleFactor':188
         , 'scheduleDefault':174
@@ -1444,6 +1691,7 @@ class PropertyIdentifier(Enumerated):
         , 'securityPDUTimeout':334
         , 'securityTimeWindow':335
         , 'segmentationSupported':107
+        , 'sendNow':505
         , 'serialNumber':372
         , 'setpoint':108
         , 'setpointReference':109
@@ -1454,20 +1702,29 @@ class PropertyIdentifier(Enumerated):
         , 'silenced':163
         , 'slaveAddressBinding':171
         , 'slaveProxyEnable':172
+        , 'stageNames':495
+        , 'stages':494
         , 'startTime':142
+        , 'stateChangeValues':396
         , 'stateDescription':222
         , 'stateText':110
         , 'statusFlags':111
         , 'stopTime':143
         , 'stopWhenFull':144
+        , 'strikeCount':391
         , 'structuredObjectList':209
         , 'subordinateAnnotations':210
         , 'subordinateList':211
+        , 'subordinateNodeTypes':487
+        , 'subordinateRelationships':489
+        , 'subordinateTags':488
         , 'subscribedRecipients':362
-        , 'supportedFormats':304
         , 'supportedFormatClasses':305
+        , 'supportedFormats':304
         , 'supportedSecurityAlgorithms':336
         , 'systemStatus':112
+        , 'tags':486
+        , 'targetReferences':496
         , 'threatAuthority':306
         , 'threatLevel':307
         , 'timeDelay':113
@@ -1475,6 +1732,9 @@ class PropertyIdentifier(Enumerated):
         , 'timeOfActiveTimeReset':114
         , 'timeOfDeviceRestart':203
         , 'timeOfStateCountReset':115
+        , 'timeOfStrikeCountReset':392
+        , 'timerRunning':397
+        , 'timerState':398
         , 'timeSynchronizationInterval':204
         , 'timeSynchronizationRecipients':116
         , 'totalRecordCount':145
@@ -1496,12 +1756,15 @@ class PropertyIdentifier(Enumerated):
         , 'utcTimeSynchronizationRecipients':206
         , 'validSamples':146
         , 'valueBeforeChange':190
-        , 'valueSet':191
         , 'valueChangeTime':192
+        , 'valueSet':191
+        , 'valueSource':433
+        , 'valueSourceArray':434
         , 'varianceValue':151
         , 'vendorIdentifier':120
         , 'vendorName':121
         , 'verificationTime':326
+        , 'virtualMACAddressTable':429
         , 'vtClassesSupported':122
         , 'weeklySchedule':123
         , 'windowInterval':147
@@ -1510,6 +1773,41 @@ class PropertyIdentifier(Enumerated):
         , 'zoneFrom':320
         , 'zoneMembers':165
         , 'zoneTo':321
+        }
+
+class Relationship(Enumerated):
+    vendor_range = (1024, 65535)
+    enumerations = \
+        { 'unknown':0
+        , 'default':1
+        , 'contains':2
+        , 'containedBy':3
+        , 'uses':4
+        , 'usedBy':5
+        , 'commands':6
+        , 'commandedBy':7
+        , 'adjusts':8
+        , 'adjustedBy':9
+        , 'ingress':10
+        , 'egress':11
+        , 'suppliesAir':12
+        , 'receivesAir':13
+        , 'suppliesHotAir':14
+        , 'receivesHotAir':15
+        , 'suppliesCoolAir':16
+        , 'receivesCoolAir':17
+        , 'suppliesPower':18
+        , 'receivesPower':19
+        , 'suppliesGas':20
+        , 'receivesGas':21
+        , 'suppliesWater':22
+        , 'receivesWater':23
+        , 'suppliesHotWater':24
+        , 'receivesHotWater':25
+        , 'suppliesCoolWater':26
+        , 'receivesCoolWater':27
+        , 'suppliesSteam':28
+        , 'receivesSteam':29
         }
 
 class Reliability(Enumerated):
@@ -1595,6 +1893,25 @@ class SilencedState(Enumerated):
         , 'audibleSilenced':1
         , 'visibleSilenced':2
         , 'allSilenced':3
+        }
+
+class TimerState(Enumerated):
+    enumerations = \
+        { 'idle':0
+        , 'running':1
+        , 'expired':2
+        }
+
+class TimerTransition(Enumerated):
+    enumerations = \
+        { 'none':0
+        , 'idleToRunning':1
+        , 'runningToIdle':2
+        , 'runningToRunning':3
+        , 'runningToExpired':4
+        , 'forcedToExpired':5
+        , 'expiredToIdle':6
+        , 'expiredToRunning':7
         }
 
 class VTClass(Enumerated):
@@ -1710,6 +2027,12 @@ class VMACEntry(Sequence):
         , Element('nativeMACAddress', OctetString)
         ]
 
+class PropertyReference(Sequence):
+    sequenceElements = \
+        [ Element('propertyIdentifier', PropertyIdentifier, 0)
+        , Element('propertyArrayIndex', Unsigned, 1, True)
+        ]
+
 class RouterEntry(Sequence):
     sequenceElements = \
         [ Element('networkNumber', Unsigned16)
@@ -1799,6 +2122,11 @@ class NameValue(Sequence):
                 taglist.Pop()
                 self.value = tag.app_to_object()
 
+class NameValueCollection(Sequence):
+    sequenceElements = \
+        [ Element('members', SequenceOf(NameValue), 0)
+        ]
+
 class DeviceAddress(Sequence):
     sequenceElements = \
         [ Element('networkNumber', Unsigned)
@@ -1837,6 +2165,36 @@ class ErrorType(Sequence):
         , Element('errorCode', ErrorCode)
         ]
 
+
+class LandingCallStatusCommand(Choice):
+    choiceElements = \
+        [ Element('direction', LiftCarDirection, 1)
+        , Element('destination', Unsigned8, 2)
+        ]
+
+class LandingCallStatus(Sequence):
+    sequenceElements = \
+        [ Element('floorNumber', Unsigned8, 0)
+        , Element('command', LandingCallStatusCommand)
+        , Element('floorText', CharacterString, 3, True)
+        ]
+
+class LandingDoorStatusLandingDoor(Sequence):
+    sequenceElements = \
+        [ Element('floorNumber', Unsigned8, 0)
+        , Element('doorStatus', DoorStatus, 1)
+        ]
+
+class LandingDoorStatus(Sequence):
+    sequenceElements = \
+        [ Element('landingDoors', SequenceOf(LandingDoorStatusLandingDoor), 0)
+        ]
+
+class LiftCarCallList(Sequence):
+    sequenceElements = \
+        [ Element('floorNumbers', SequenceOf(Unsigned8), 0)
+        ]
+
 class LightingCommand(Sequence):
     sequenceElements = \
         [ Element('operation', LightingOperation, 0)
@@ -1852,6 +2210,36 @@ class ObjectPropertyReference(Sequence):
         [ Element('objectIdentifier', ObjectIdentifier, 0)
         , Element('propertyIdentifier', PropertyIdentifier, 1)
         , Element('propertyArrayIndex', Unsigned, 2, True)
+        ]
+
+class OptionalBinaryPV(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('binaryPV', BinaryPV)
+        ]
+
+class OptionalCharacterString(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('characterstring', CharacterString)
+        ]
+
+class OptionalPriorityFilter(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('filter', PriorityFilter)
+        ]
+
+class OptionalReal(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('real', Real)
+        ]
+
+class OptionalUnsigned(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('unsigned', Unsigned)
         ]
 
 class ProcessIdSelection(Choice):
@@ -1924,6 +2312,27 @@ class RecipientProcess(Sequence):
         , Element('processIdentifier', Unsigned, 1)
         ]
 
+class TimerStateChangeValue(Choice):
+    choiceElements = \
+        [ Element('null', Null)
+        , Element('boolean', Boolean)
+        , Element('unsigned', Unsigned)
+        , Element('integer', Integer)
+        , Element('real', Real)
+        , Element('double', Double)
+        , Element('octetstring', OctetString)
+        , Element('characterstring', CharacterString)
+        , Element('bitstring', BitString)
+        , Element('enumerated', Enumerated)
+        , Element('date', Date)
+        , Element('time', Time)
+        , Element('objectidentifier', ObjectIdentifier)
+        , Element('noValue', Null, 0)
+        , Element('constructedValue', Any, 1)
+        , Element('datetime', DateTime, 2)
+        , Element('lightingCommand', LightingCommand, 3)
+        ]
+
 class TimeStamp(Choice):
     choiceElements = \
         [ Element('time', Time, 0)
@@ -1988,6 +2397,12 @@ class ActionList(Sequence):
         [ Element('action', SequenceOf(ActionCommand), 0)
         ]
 
+class Address(Sequence):
+    sequenceElements = \
+        [ Element('networkNumber', Unsigned16)
+        , Element('macAddress', OctetString)
+        ]
+
 class AddressBinding(Sequence):
     sequenceElements = \
         [ Element('deviceObjectIdentifier', ObjectIdentifier)
@@ -1999,6 +2414,84 @@ class AssignedAccessRights(Sequence):
     sequenceElements = \
         [ Element('assignedAccessRights', DeviceObjectReference, 0)
         , Element('enable', Boolean, 1)
+        ]
+
+class AssignedLandingCallsLandingCalls(Sequence):
+    sequenceElements = \
+        [ Element('floorNumber', Unsigned8, 0)
+        , Element('direction', LiftCarDirection, 1)
+        ]
+
+class AssignedLandingCalls(Sequence):
+    sequenceElements = \
+        [ Element('landingCalls', SequenceOf(AssignedLandingCallsLandingCalls), 0)
+        ]
+
+class AuditNotification(Sequence):
+    sequenceElements = \
+        [ Element('sourceTimestamp', TimeStamp, 0, True)
+        , Element('targetTimestamp', TimeStamp, 1, True)
+        , Element('sourceDevice', Recipient, 2)
+        , Element('sourceObject', ObjectIdentifier, 3, True)
+        , Element('operation', AuditOperation, 4)
+        , Element('sourceComment', CharacterString, 5, True)
+        , Element('targetComment', CharacterString, 6, True)
+        , Element('invokeID', Unsigned8, 7, True)
+        , Element('sourceUserID', Unsigned16, 8, True)
+        , Element('sourceUserRole', Unsigned8, 9, True)
+        , Element('targetDevice', Recipient, 10)
+        , Element('targetObject', ObjectIdentifier, 11, True)
+        , Element('targetProperty', PropertyReference, 12, True)
+        , Element('targetPriority', Unsigned, 13, True)  # 1..16
+        , Element('targetValue', Any, 14, True)
+        , Element('currentValue', Any, 15, True)
+        , Element('result', ErrorType, 16, True)
+        ]
+
+class AuditLogRecordLogDatum(Choice):
+    choiceElements = \
+        [ Element('logStatus', LogStatus, 0)
+        , Element('auditNotification', AuditNotification, 1)
+        , Element('timeChange', Real)
+        ]
+
+class AuditLogRecord(Sequence):
+    sequenceElements = \
+        [ Element('timestamp', DateTime, 0)
+        , Element('logDatum', AuditLogRecordLogDatum, 1)
+        ]
+
+class AuditLogRecordResult(Sequence):
+    sequenceElements = \
+        [ Element('sequenceNumber', Unsigned, 0) # Unsigned64
+        , Element('logRecord', AuditLogRecord, 1)
+        ]
+
+class AuditLogQueryParametersByTarget(Sequence):
+    sequenceElements = \
+        [ Element('targetDeviceIdentifier', ObjectIdentifier, 0)
+        , Element('targetDeviceAddress', Address, 1, True)
+        , Element('targetObjectIdentifier', ObjectIdentifier, 2, True)
+        , Element('targetPropertyIdentifier', PropertyIdentifier, 3, True)
+        , Element('targetArrayIndex', Unsigned, 4, True)
+        , Element('targetPriority', Unsigned, 5, True)
+        , Element('operations', AuditOperationFlags, 6, True)
+        , Element('successfulActionsOnly', Boolean, 7)
+        ]
+
+class AuditLogQueryParametersBySource(Sequence):
+    sequenceElements = \
+        [ Element('sourceDeviceIdentifier', ObjectIdentifier, 0)
+        , Element('sourceDeviceAddress', Address, 1, True)
+        , Element('sourceObjectIdentifier', ObjectIdentifier, 2, True)
+        , Element('operations', AuditOperationFlags, 3, True)
+        , Element('successfulActionsOnly', Boolean, 4)
+        ]
+
+class AuditLogQueryParameters(Choice):
+    choiceElements = \
+        [ Element('byTarget', AuditLogQueryParametersByTarget, 0)
+        , Element('bySource', AuditLogQueryParametersBySource, 1)
         ]
 
 class AuthenticationFactor(Sequence):
@@ -2057,6 +2550,28 @@ class ClientCOV(Choice):
     choiceElements = \
         [ Element('realIncrement', Real)
         , Element('defaultIncrement', Null)
+        ]
+
+class COVMultipleSubscriptionListOfCOVReference(Sequence):
+    sequenceElements = \
+        [ Element('monitoredProperty', PropertyReference, 0)
+        , Element('covIncrement', Real, 1, True)
+        , Element('timestamped', Boolean, 2)
+        ]
+
+class COVMultipleSubscriptionList(Sequence):
+    sequenceElements = \
+        [ Element('monitoredObjectIdentifier', ObjectIdentifier, 0)
+        , Element('listOfCOVReferences', SequenceOf(COVMultipleSubscriptionListOfCOVReference), 1)
+        ]
+
+class COVMultipleSubscription(Sequence):
+    sequenceElements = \
+        [ Element('recipient', RecipientProcess, 0)
+        , Element('issueConfirmedNotifications', Boolean, 1)
+        , Element('timeRemaining', Unsigned, 2)
+        , Element('maxNotificationDelay', Unsigned, 3)
+        , Element('listOfCOVSubscriptionSpecifications', SequenceOf(COVMultipleSubscriptionList), 4)
         ]
 
 class COVSubscription(Sequence):
@@ -2558,6 +3073,13 @@ class ObjectPropertyValue(Sequence):
         , Element('priority', Unsigned, 4, True)
         ]
 
+class ObjectSelector(Choice):
+    choiceElements = \
+        [ Element('none', Null)
+        , Element('object', ObjectIdentifier)
+        , Element('objectType', ObjectType)
+        ]
+
 class OptionalCharacterString(Choice):
     choiceElements = \
         [ Element('null', Null)
@@ -2615,12 +3137,6 @@ class PropertyAccessResult(Sequence):
         , Element('accessResult', PropertyAccessResultAccessResult)
         ]
 
-class PropertyReference(Sequence):
-    sequenceElements = \
-        [ Element('propertyIdentifier', PropertyIdentifier, 0)
-        , Element('propertyArrayIndex', Unsigned, 1, True)
-        ]
-
 class Scale(Choice):
     choiceElements = \
         [ Element('floatScale', Real, 0)
@@ -2659,6 +3175,21 @@ class SpecialEvent(Sequence):
         , Element('listOfTimeValues', SequenceOf(TimeValue), 2)
         , Element('eventPriority', Unsigned, 3)
         ]
+
+class StageLimitValue(Sequence):
+    sequenceElements = \
+        [ Element('limit', Real)
+        , Element('values', BitString)
+        , Element('deadband', Real)
+        ]
+
+class ValueSource(Choice):
+    choiceElements = \
+        [ Element('none', Null, 0)
+        , Element('object', DeviceObjectReference, 1)
+        , Element('Address', Address)
+        ]
+
 
 class VTSession(Sequence):
     sequenceElements = \
