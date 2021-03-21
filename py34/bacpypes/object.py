@@ -156,7 +156,7 @@ def get_datatype(object_type, propid, vendor_id=0):
 #
 
 @bacpypes_debugging
-class Property:
+class Property(object):
 
     def __init__(self, identifier, datatype, default=None, optional=True, mutable=True):
         if _debug:
