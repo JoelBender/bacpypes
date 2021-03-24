@@ -515,13 +515,13 @@ class CommonMath:
 
     def __lt__(self, other):
         return self.value < other.value if isinstance(other, Atomic) else (self.value < other)
-    
+
     def __gt__(self, other):
         return self.value > other.value if isinstance(other, Atomic) else (self.value > other)
-    
+
     def __le__(self, other):
         return self.value <= other.value if isinstance(other, Atomic) else (self.value <= other)
-    
+
     def __ge__(self, other):
         return self.value >= other.value if isinstance(other, Atomic) else (self.value >= other)
 
@@ -530,6 +530,7 @@ class CommonMath:
 
     def __eq__(self, other):
         return self.value == other.value if isinstance(other, Atomic) else (self.value == other)
+
 
 #
 #   Null
