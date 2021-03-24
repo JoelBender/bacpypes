@@ -22,9 +22,9 @@ _log = ModuleLogger(globals())
 time_machine = None
 
 # some patterns
-_date_regex = re.compile("^(\d{4})[-](0?[1-9]|1[0-4])[-]([0-3]?\d)$")
-_time_regex = re.compile("^(\d+)[:](\d+)(?:[:](\d+)(?:[.](\d+))?)?$")
-_deltatime_regex = re.compile("^(\d+(?:[.]\d+))?$")
+_date_regex = re.compile(r"^(\d{4})[-](0?[1-9]|1[0-4])[-]([0-3]?\d)$")
+_time_regex = re.compile(r"^(\d+)[:](\d+)(?:[:](\d+)(?:[.](\d+))?)?$")
+_deltatime_regex = re.compile(r"^(\d+(?:[.]\d+))?$")
 
 
 # @bacpypes_debugging - implicit via metaclass

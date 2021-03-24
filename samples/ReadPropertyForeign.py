@@ -57,6 +57,8 @@ class ReadPropertyConsoleCmd(ConsoleCmd):
         try:
             addr, obj_id, prop_id = args[:3]
             obj_id = ObjectIdentifier(obj_id).value
+            if prop_id.isdigit():
+                prop_id = int(prop_id)
 
             datatype = get_datatype(obj_id[0], prop_id)
             if not datatype:

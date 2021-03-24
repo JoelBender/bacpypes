@@ -34,9 +34,9 @@ this_console = None
 @bacpypes_debugging
 class WhoIsRouterApplication(BIPNetworkApplication):
 
-    def __init__(self, *args):
-        if _debug: WhoIsRouterApplication._debug("__init__ %r", args)
-        BIPNetworkApplication.__init__(self, *args)
+    def __init__(self, *args, **kwargs):
+        if _debug: WhoIsRouterApplication._debug("__init__ %r %r", args, kwargs)
+        BIPNetworkApplication.__init__(self, *args, **kwargs)
 
     def request(self, adapter, npdu):
         if _debug: WhoIsRouterApplication._debug("request %r %r", adapter, npdu)
@@ -120,8 +120,8 @@ def main():
     # make a simple application
     this_application = WhoIsRouterApplication(
         args.ini.address,
-        Address(args.ini.foreignbbmd),
-        int(args.ini.foreignttl),
+        bbmdAddress=Address(args.ini.foreignbbmd),
+        bbmdTTL=int(args.ini.foreignttl),
         )
     if _debug: _log.debug("    - this_application: %r", this_application)
 

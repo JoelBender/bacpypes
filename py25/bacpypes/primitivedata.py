@@ -1612,7 +1612,8 @@ class Time(Atomic):
 class ObjectType(Enumerated):
     vendor_range = (128, 1023)
     enumerations = \
-        { 'accessDoor':30
+        { 'accessCredential':32
+        , 'accessDoor':30
         , 'accessPoint':33
         , 'accessRights':34
         , 'accessUser':35
@@ -1622,8 +1623,11 @@ class ObjectType(Enumerated):
         , 'analogInput':0
         , 'analogOutput':1
         , 'analogValue':2
+        , 'auditLog':61
+        , 'auditReporter':62
         , 'averaging':18
         , 'binaryInput':3
+        , 'binaryLightingOutput':55
         , 'binaryOutput':4
         , 'binaryValue':5
         , 'bitstringValue':39
@@ -1637,6 +1641,8 @@ class ObjectType(Enumerated):
         , 'datetimePatternValue':43
         , 'datetimeValue':44
         , 'device':8
+        , 'elevatorGroup':57
+        , 'escalator':58
         , 'eventEnrollment':9
         , 'eventLog':25
         , 'file':10
@@ -1646,6 +1652,7 @@ class ObjectType(Enumerated):
         , 'largeAnalogValue':46
         , 'lifeSafetyPoint':21
         , 'lifeSafetyZone':22
+        , 'lift':59
         , 'lightingOutput':54
         , 'loadControl':28
         , 'loop':12
@@ -1653,6 +1660,7 @@ class ObjectType(Enumerated):
         , 'multiStateOutput':14
         , 'multiStateValue':19
         , 'networkSecurity':38
+        , 'networkPort':56
         , 'notificationClass':15
         , 'notificationForwarder':51
         , 'octetstringValue':47
@@ -1663,9 +1671,9 @@ class ObjectType(Enumerated):
         , 'structuredView':29
         , 'timePatternValue':49
         , 'timeValue':50
+        , 'timer':31
         , 'trendLog':20
         , 'trendLogMultiple':27
-        , 'networkPort':56
         }
 
 expand_enumerations(ObjectType)

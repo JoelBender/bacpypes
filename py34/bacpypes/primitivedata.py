@@ -503,6 +503,35 @@ class Atomic(object):
         """Return True if arg is valid value for the class."""
         raise NotImplementedError("call on a derived class of Atomic")
 
+class CommonMath:
+    def __add__(self, other):
+        return self.value + other.value if isinstance(other, Atomic) else (self.value + other)
+
+    def __sub__(self, other):
+        return self.value - other.value if isinstance(other, Atomic) else (self.value - other)
+
+    def __mul__(self, other):
+        return self.value * other.value if isinstance(other, Atomic) else (self.value * other)
+
+    def __lt__(self, other):
+        return self.value < other.value if isinstance(other, Atomic) else (self.value < other)
+
+    def __gt__(self, other):
+        return self.value > other.value if isinstance(other, Atomic) else (self.value > other)
+
+    def __le__(self, other):
+        return self.value <= other.value if isinstance(other, Atomic) else (self.value <= other)
+
+    def __ge__(self, other):
+        return self.value >= other.value if isinstance(other, Atomic) else (self.value >= other)
+
+    def __ne__(self, other):
+        return self.value != other.value if isinstance(other, Atomic) else (self.value != other)
+
+    def __eq__(self, other):
+        return self.value == other.value if isinstance(other, Atomic) else (self.value == other)
+
+
 #
 #   Null
 #
@@ -595,7 +624,7 @@ class Boolean(Atomic):
 #   Unsigned
 #
 
-class Unsigned(Atomic):
+class Unsigned(Atomic, CommonMath):
 
     _app_tag = Tag.unsignedAppTag
     _low_limit = 0
@@ -683,7 +712,7 @@ class Unsigned16(Unsigned):
 #   Integer
 #
 
-class Integer(Atomic):
+class Integer(Atomic, CommonMath):
 
     _app_tag = Tag.integerAppTag
 
@@ -756,7 +785,7 @@ class Integer(Atomic):
 #   Real
 #
 
-class Real(Atomic):
+class Real(Atomic, CommonMath):
 
     _app_tag = Tag.realAppTag
 
@@ -801,7 +830,7 @@ class Real(Atomic):
 #   Double
 #
 
-class Double(Atomic):
+class Double(Atomic, CommonMath):
 
     _app_tag = Tag.doubleAppTag
 
@@ -1611,7 +1640,8 @@ class Time(Atomic):
 class ObjectType(Enumerated):
     vendor_range = (128, 1023)
     enumerations = \
-        { 'accessDoor':30
+        { 'accessCredential':32
+        , 'accessDoor':30
         , 'accessPoint':33
         , 'accessRights':34
         , 'accessUser':35
@@ -1621,8 +1651,11 @@ class ObjectType(Enumerated):
         , 'analogInput':0
         , 'analogOutput':1
         , 'analogValue':2
+        , 'auditLog':61
+        , 'auditReporter':62
         , 'averaging':18
         , 'binaryInput':3
+        , 'binaryLightingOutput':55
         , 'binaryOutput':4
         , 'binaryValue':5
         , 'bitstringValue':39
@@ -1636,6 +1669,8 @@ class ObjectType(Enumerated):
         , 'datetimePatternValue':43
         , 'datetimeValue':44
         , 'device':8
+        , 'elevatorGroup':57
+        , 'escalator':58
         , 'eventEnrollment':9
         , 'eventLog':25
         , 'file':10
@@ -1645,6 +1680,7 @@ class ObjectType(Enumerated):
         , 'largeAnalogValue':46
         , 'lifeSafetyPoint':21
         , 'lifeSafetyZone':22
+        , 'lift':59
         , 'lightingOutput':54
         , 'loadControl':28
         , 'loop':12
@@ -1652,6 +1688,7 @@ class ObjectType(Enumerated):
         , 'multiStateOutput':14
         , 'multiStateValue':19
         , 'networkSecurity':38
+        , 'networkPort':56
         , 'notificationClass':15
         , 'notificationForwarder':51
         , 'octetstringValue':47
@@ -1662,9 +1699,9 @@ class ObjectType(Enumerated):
         , 'structuredView':29
         , 'timePatternValue':49
         , 'timeValue':50
+        , 'timer':31
         , 'trendLog':20
         , 'trendLogMultiple':27
-        , 'networkPort':56
         }
 
 expand_enumerations(ObjectType)

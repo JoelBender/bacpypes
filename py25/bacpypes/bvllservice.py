@@ -11,7 +11,7 @@ from time import time as _time
 from .debugging import ModuleLogger, DebugContents, bacpypes_debugging
 
 from .udp import UDPDirector
-from .task import OneShotTask, RecurringTask
+from .task import OneShotFunction, OneShotTask, RecurringTask
 from .comm import Client, Server, bind, \
     ServiceAccessPoint, ApplicationServiceElement
 
@@ -483,6 +483,9 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         self.bbmdAddress = None
         self.bbmdTimeToLive = None
 
+        # used in tracking active registration timeouts
+        self._registration_timeout_task = OneShotFunction(self._registration_expired)
+
         # registration provided
         if addr:
             # a little error checking
@@ -539,10 +542,9 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             # save the result code as the status
             self.registrationStatus = pdu.bvlciResultCode
 
-            # check for success
-            if pdu.bvlciResultCode == 0:
-                # schedule for a refresh
-                self.install_task(delta=self.bbmdTimeToLive)
+            # If successful, track registration timeout
+            if self.registrationStatus == 0:
+                self._start_track_registration()
 
             return
 
@@ -633,7 +635,11 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             BIPForeign._warning("invalid pdu type: %s", type(pdu))
 
     def register(self, addr, ttl):
-        """Initiate the process of registering with a BBMD."""
+        """Start the foreign device registration process with the given BBMD.
+
+        Registration will be renewed periodically according to the ttl value
+        until explicitly stopped by a call to `unregister`.
+        """
         # a little error checking
         if ttl <= 0:
             raise ValueError("time-to-live must be greater than zero")
@@ -645,11 +651,18 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
             self.bbmdAddress = Address(addr)
         self.bbmdTimeToLive = ttl
 
-        # install this task to run when it gets a chance
+        # install this task to do registration renewal according to the TTL
+        # and stop tracking any active registration timeouts
         self.install_task(when=0)
+        self._stop_track_registration()
 
     def unregister(self):
-        """Drop the registration with a BBMD."""
+        """Stop the foreign device registration process.
+
+        Immediately drops active foreign device registration and stops further
+        registration renewals.
+        """
+
         pdu = RegisterForeignDevice(0)
         pdu.pduDestination = self.bbmdAddress
 
@@ -663,6 +676,11 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
         self.bbmdAddress = None
         self.bbmdTimeToLive = None
 
+        # unschedule registration renewal & timeout tracking if previously
+        # scheduled
+        self.suspend_task()
+        self._stop_track_registration()
+
     def process_task(self):
         """Called when the registration request should be sent to the BBMD."""
         pdu = RegisterForeignDevice(self.bbmdTimeToLive)
@@ -670,6 +688,29 @@ class BIPForeign(BIPSAP, Client, Server, OneShotTask, DebugContents):
 
         # send it downstream
         self.request(pdu)
+
+        # schedule the next registration renewal
+        self.install_task(delta=self.bbmdTimeToLive)
+
+    def _start_track_registration(self):
+        # From J.5.2.3 Foreign Device Table Operation (paraphrasing): if a
+        # foreign device does not renew its registration 30 seconds after its
+        # TTL expired then it will be removed from the BBMD's FDT.
+        #
+        # Thus, if we're registered and don't get a response to a subsequent
+        # renewal request 30 seconds after our TTL expired then we're
+        # definitely not registered anymore.
+        self._registration_timeout_task.install_task(delta=self.bbmdTimeToLive + 30)
+
+    def _stop_track_registration(self):
+        self._registration_timeout_task.suspend_task()
+
+    def _registration_expired(self):
+        """Called when detecting that foreign device registration has
+        definitely expired.
+        """
+        self.registrationStatus = -1  # Unregistered
+        self._stop_track_registration()
 
 bacpypes_debugging(BIPForeign)
 
