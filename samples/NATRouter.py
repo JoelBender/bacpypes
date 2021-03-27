@@ -7,11 +7,11 @@ that sits behind a NAT and a "global" network of other NAT router peers.
 $ python NATRouter.py addr1 port1 net1 addr2 port2 net2
 
     addr1       - local address like 192.168.1.10/24
-    port1       - local port
-    net1        - local network number
-    addr2       - global address like 201.1.1.1:47809
-    port2       - local mapped port
-    net2        - global network number
+    port1       - local port like 47808
+    net1        - local network number like 1
+    addr2       - global address like 201.1.1.1
+    port2       - local mapped port like 47809
+    net2        - global network number like 2
 
 The sample addresses are like running BR1 from Figure J-8, Clause J.7.5.
 """
@@ -67,7 +67,7 @@ class NATRouter:
 
         # global address
         global_addr = Address(addr2)
-        nat_addr = Address("{}:{}".format(addr1, port2))
+        nat_addr = Address("{}:{}".format(addr2, port2))
 
         # create a NAT stack
         self.s2_bip = BIPNAT(global_addr)
