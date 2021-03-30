@@ -228,7 +228,7 @@ class IOCB(DebugContents):
 
     def __repr__(self):
         xid = id(self)
-        if (xid < 0): xid += (1L << 32)
+        if (xid < 0): xid += (1 << 32)
 
         sname = self.__module__ + '.' + self.__class__.__name__
         desc = "(%d)" % (self.ioID,)
@@ -317,7 +317,7 @@ class IOChainMixIn(DebugContents):
         # make sure we're being notified of an abort request from
         # the iocb we are chained from
         if iocb is not self.ioChain:
-            raise RuntimeError, "broken chain"
+            raise RuntimeError("broken chain")
 
         # call my own abort(), which may forward it to a controller or
         # be overridden by IOGroup
@@ -355,7 +355,7 @@ class IOChainMixIn(DebugContents):
             iocb.ioError = self.ioError
 
         else:
-            raise RuntimeError, "invalid state: %d" % (self.ioState,)
+            raise RuntimeError("invalid state: %d" % (self.ioState,))
 
 #
 #   IOChain
@@ -463,7 +463,7 @@ class IOQueue:
 
         # requests should be pending before being queued
         if iocb.ioState != PENDING:
-            raise RuntimeError, "invalid state transition"
+            raise RuntimeError("invalid state transition")
 
         # save that it might have been empty
         wasempty = not self.notempty.isSet()
@@ -566,7 +566,7 @@ class IOController:
         # register the name
         if name is not None:
             if name in _local_controllers:
-                raise RuntimeError, "already a local controller called '%s': %r" % (name, _local_controllers[name])
+                raise RuntimeError("already a local controller called '%s': %r" % (name, _local_controllers[name]))
             _local_controllers[name] = self
 
     def abort(self, err):
@@ -600,7 +600,7 @@ class IOController:
     def process_io(self, iocb):
         """Figure out how to respond to this request.  This must be
         provided by the derived class."""
-        raise NotImplementedError, "IOController must implement process_io()"
+        raise NotImplementedError("IOController must implement process_io()")
 
     def active_io(self, iocb):
         """Called by a handler to notify the controller that a request is
@@ -609,7 +609,7 @@ class IOController:
 
         # requests should be idle or pending before coming active
         if (iocb.ioState != IDLE) and (iocb.ioState != PENDING):
-            raise RuntimeError, "invalid state transition (currently %d)" % (iocb.ioState,)
+            raise RuntimeError("invalid state transition (currently %d)" % (iocb.ioState,))
 
         # change the state
         iocb.ioState = ACTIVE
@@ -737,7 +737,7 @@ class IOQController(IOController):
     def process_io(self, iocb):
         """Figure out how to respond to this request.  This must be
         provided by the derived class."""
-        raise NotImplementedError, "IOController must implement process_io()"
+        raise NotImplementedError("IOController must implement process_io()")
 
     def active_io(self, iocb):
         """Called by a handler to notify the controller that a request is
@@ -759,7 +759,7 @@ class IOQController(IOController):
 
         # check to see if it is completing the active one
         if iocb is not self.active_iocb:
-            raise RuntimeError, "not the current iocb"
+            raise RuntimeError("not the current iocb")
 
         # normal completion
         IOController.complete_io(self, iocb, msg)
@@ -845,7 +845,7 @@ class IOQController(IOController):
 
         # make sure we are waiting
         if (self.state != CTRL_WAITING):
-            raise RuntimeError, "not waiting"
+            raise RuntimeError("not waiting")
 
         # change our state
         self.state = CTRL_IDLE
@@ -1017,7 +1017,7 @@ class IOServer(IOController, Client):
         elif iocb.ioState == ABORTED:
             response = (2, clientID, iocb.ioError)
         else:
-            raise RuntimeError, "IOCB invalid state"
+            raise RuntimeError("IOCB invalid state")
 
         if _debug: _commlog.debug("<<< %s: S %s %r" % (_strftime(), clientAddr, response))
 
@@ -1224,7 +1224,7 @@ class IOProxyServer(IOController, Client):
             self.request(PDU(request, destination=(iocb.ioServerRef, PORT)))
 
         else:
-            raise RuntimeError, "no reference to aborting iocb: %r" % (iocb.ioID,)
+            raise RuntimeError("no reference to aborting iocb: %r" % (iocb.ioID,))
 
         # change the state
         iocb.ioState = ABORTED
@@ -1264,7 +1264,7 @@ class IOProxyServer(IOController, Client):
         if _debug: IOProxyServer._debug("abort_iocb %r %r %r", addr, iocbid, err)
 
         if not self.localIOCB.has_key(iocbid):
-            raise RuntimeError, "no reference to aborting iocb: %r" % (iocbid,)
+            raise RuntimeError("no reference to aborting iocb: %r" % (iocbid,))
 
         # get the iocb
         iocb = self.localIOCB[iocbid]
