@@ -692,7 +692,6 @@ class ChangeOfValueServices(Capability):
         prop_id = apdu.monitoredPropertyIdentifier
         cov_inc = apdu.covIncrement
 
-        print("Dap: prop_id: {}, cov_inc: {}".format(prop_id,cov_inc))
         # request is to cancel the subscription
         cancel_subscription = (confirmed is None) and (lifetime is None)
 
