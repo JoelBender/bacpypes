@@ -81,6 +81,36 @@ class CurrentPropertyListMixIn(Object):
         ]
 
 #
+#   WriteableObjectName
+#
+
+@bacpypes_debugging
+class WriteableObjectName(WritableProperty):
+
+    def __init__(self):
+        if _debug: WriteableObjectName._debug("__init__")
+        WritableProperty.__init__(self, 'objectName', CharacterString, default=None, optional=False)
+
+    def WriteProperty(self, obj, value, arrayIndex=None, priority=None, direct=False):
+        if _debug:
+            WritableProperty._debug(
+                "WriteProperty %r %r arrayIndex=%r priority=%r direct=%r",
+                obj, value, arrayIndex, priority, direct,
+            )
+        raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
+
+#
+#   WriteableObjectNameMixIn
+#
+
+@bacpypes_debugging
+class WriteableObjectNameMixIn(Object):
+
+    properties = [
+        WriteableObjectName(),
+        ]
+
+#
 #   Turtle Reference Patterns
 #
 
