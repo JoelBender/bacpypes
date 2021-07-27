@@ -90,8 +90,8 @@ class Subscription(OneShotTask, DebugContents):
         'lifetime',
         )
 
-    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime=0):
-        if _debug: Subscription._debug("__init__ %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime)
+    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime, cov_inc):
+        if _debug: Subscription._debug("__init__ %r %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime, cov_inc)
         OneShotTask.__init__(self)
 
         # save the reference to the related object
@@ -102,10 +102,12 @@ class Subscription(OneShotTask, DebugContents):
         self.proc_id = proc_id
         self.obj_id = obj_id
         self.confirmed = confirmed
+        self.lifetime = lifetime
+        self.covIncrement = cov_inc
 
-        # if lifetime is none, consider permanent subscription (0)        
-        self.lifetime = 0 if lifetime is None else lifetime
-        self.install_task(delta=self.lifetime)
+        # if lifetime is zero this is a permanent subscription
+        if lifetime > 0:
+            self.install_task(delta=self.lifetime)
 
     def cancel_subscription(self):
         if _debug: Subscription._debug("cancel_subscription")
@@ -678,8 +680,8 @@ class ChangeOfValueServices(Capability):
 
         ### delete the rest of the pending requests for this client
 
-    def do_SubscribeCOVRequest(self, apdu):
-        if _debug: ChangeOfValueServices._debug("do_SubscribeCOVRequest %r", apdu)
+    def do_SubscribeCOVPropertyRequest(self, apdu):
+        if _debug: ChangeOfValueServices._debug("do_SubscribeCOVPropertyRequest %r", apdu)
 
         # extract the pieces
         client_addr = apdu.pduSource
@@ -687,6 +689,8 @@ class ChangeOfValueServices(Capability):
         obj_id = apdu.monitoredObjectIdentifier
         confirmed = apdu.issueConfirmedNotifications
         lifetime = apdu.lifetime
+        prop_id = apdu.monitoredPropertyIdentifier
+        cov_inc = apdu.covIncrement
 
         # request is to cancel the subscription
         cancel_subscription = (confirmed is None) and (lifetime is None)
@@ -737,7 +741,8 @@ class ChangeOfValueServices(Capability):
                 if _debug: ChangeOfValueServices._debug("    - create a subscription")
 
                 # make a subscription
-                cov = Subscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
+                cov = Subscription(obj, client_addr, proc_id, obj_id,
+                                   confirmed, lifetime, cov_inc)
                 if _debug: ChangeOfValueServices._debug("    - cov: %r", cov)
 
                 # add it to our subscriptions lists
@@ -754,4 +759,3 @@ class ChangeOfValueServices(Capability):
         if not cancel_subscription:
             if _debug: ChangeOfValueServices._debug("    - send a notification")
             deferred(cov_detection.send_cov_notifications, cov)
-
