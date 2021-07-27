@@ -1241,7 +1241,7 @@ class GetEnrollmentSummaryRequestEventStateFilterType(Enumerated):
         , 'active':4
         }
 
-class GetEnrollmentSummaryRequestPriorityFilterType:
+class GetEnrollmentSummaryRequestPriorityFilterType(Sequence):
     sequenceElements = \
         [ Element('minPriority', Unsigned, 0)
         , Element('maxPriority', Unsigned, 1)

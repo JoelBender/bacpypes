@@ -1109,7 +1109,7 @@ class AnalogValueObject(Object):
 
 @register_object_type
 class AuditLogObject(Object):
-    objectType = 'analogLog'
+    objectType = 'auditLog'
 
     properties = \
         [ ReadableProperty('statusFlags', StatusFlags)
@@ -1217,7 +1217,7 @@ class BinaryInputObject(Object):
 
 @register_object_type
 class BinaryLightingOutputObject(Object):
-    objectType = 'binaryLightingOutputObject'
+    objectType = 'binaryLightingOutput'
 
     properties = \
         [ WritableProperty('presentValue', BinaryLightingPV)
