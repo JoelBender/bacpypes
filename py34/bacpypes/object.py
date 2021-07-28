@@ -216,6 +216,7 @@ class Property(object):
 
             # see if it can be changed
             if not self.mutable:
+                if _debug: Property._debug("    - property is immutable")
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
             # if changing the length of the array, the value is unsigned
