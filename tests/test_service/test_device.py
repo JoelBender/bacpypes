@@ -63,7 +63,7 @@ class TestWhoIsIAm(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
 
-        # all start states are successful
+        # send a WhoIs, get back an IAm
         anet.td.start_state.doc("1-1-0") \
             .send(WhoIsRequest(destination=anet.vlan.broadcast_address)).doc("1-1-1") \
             .receive(IAmRequest, pduSource=anet.iut.address).doc("1-1-2") \
@@ -85,7 +85,7 @@ class TestWhoIsIAm(unittest.TestCase):
         # add the service capability to the iut
         anet.iut.add_capability(WhoIsIAmServices)
 
-        # all start states are successful
+        # send a Who-Is, no response
         anet.td.start_state.doc("2-1-0") \
             .send(WhoIsRequest(
                 destination=anet.vlan.broadcast_address,
@@ -110,7 +110,7 @@ class TestWhoIsIAm(unittest.TestCase):
         # add the service capability to the iut
         anet.iut.add_capability(WhoIsIAmServices)
 
-        # all start states are successful
+        # send a Who-Is, no response
         anet.td.start_state.doc("3-1-0") \
             .send(WhoIsRequest(
                 destination=anet.vlan.broadcast_address,
@@ -135,7 +135,7 @@ class TestWhoIsIAm(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(WhoIsIAmServices)
 
-        # all start states are successful
+        # send a Who-Is, get back an I-Am
         anet.td.start_state.doc("4-1-0") \
             .send(WhoIsRequest(
                 destination=anet.vlan.broadcast_address,
@@ -156,7 +156,7 @@ class TestWhoIsIAm(unittest.TestCase):
 class TestWhoHasIHave(unittest.TestCase):
 
     def test_who_has_object_by_name(self):
-        """Test an unconstrained WhoIs, all devices respond."""
+        """Test a Who-Has for an object by name."""
         if _debug: TestWhoIsIAm._debug("test_who_has_object_by_name")
 
         # create a network
@@ -165,7 +165,7 @@ class TestWhoHasIHave(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(WhoHasIHaveServices)
 
-        # all start states are successful
+        # send the Who-Has, get back a response
         anet.td.start_state.doc("5-1-0") \
             .send(WhoHasRequest(
                 destination=anet.vlan.broadcast_address,
@@ -181,7 +181,7 @@ class TestWhoHasIHave(unittest.TestCase):
         anet.run()
 
     def test_who_has_object_by_id(self):
-        """Test an unconstrained WhoIs, all devices respond."""
+        """Test a Who-Has for an object by identifier."""
         if _debug: TestWhoIsIAm._debug("test_who_has_object_by_id")
 
         # create a network
@@ -190,7 +190,7 @@ class TestWhoHasIHave(unittest.TestCase):
         # add the service capability to the IUT
         anet.iut.add_capability(WhoHasIHaveServices)
 
-        # all start states are successful
+        # send the Who-Has, get back a response
         anet.td.start_state.doc("6-1-0") \
             .send(WhoHasRequest(
                 destination=anet.vlan.broadcast_address,
