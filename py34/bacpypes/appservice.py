@@ -1530,7 +1530,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
                 xpdu.decode(apdu)
             except Exception as err:
                 ApplicationServiceAccessPoint._exception("complex ack decoding error: %r", err)
-                return
+                xpdu = Error(errorClass=7, errorCode=57)  # communication, invalidTag
 
         elif isinstance(apdu, ErrorPDU):
             atype = error_types.get(apdu.apduService)
