@@ -222,7 +222,7 @@ def main():
         )
 
     # add an argument for interval
-    parser.add_argument('net2', type=int,
+    parser.add_argument('net2', type=int, nargs='+',
         help='network number of second network',
         )
 
@@ -252,24 +252,9 @@ def main():
 
     local_address = Address(args.addr1)
     local_network = args.net1
-    vlan_network = args.net2
 
     # create the VLAN router, bind it to the local network
     router = VLANRouter(local_address, local_network)
-
-    # create a VLAN
-    vlan = Network(broadcast_address=LocalBroadcast())
-
-    # create a node for the router, address 1 on the VLAN
-    router_addr = Address(1)
-    router_node = Node(router_addr)
-    vlan.add_node(router_node)
-
-    # bind the router stack to the vlan network through this node
-    router.nsap.bind(router_node, vlan_network, router_addr)
-
-    # send network topology
-    deferred(router.nse.i_am_router_to_network)
 
     # add the dynamic property list
     if args.plist:
@@ -278,40 +263,55 @@ def main():
     # register it now that all its properties are defined
     register_object_type(RandomAnalogValueObject, vendor_id=999)
 
-    # make some devices
-    for device_number in range(2, 2 + args.count):
-        # device identifier is assigned from the address
-        device_instance = vlan_network * 100 + device_number
-        _log.debug("    - device_instance: %r", device_instance)
+    for vlan_network in args.net2:
+        # create a VLAN
+        vlan = Network(broadcast_address=LocalBroadcast())
 
-        # make a vlan device object
-        vlan_device = \
-            LocalDeviceObject(
-                objectName="VLAN Node %d" % (device_instance,),
-                objectIdentifier=('device', device_instance),
-                maxApduLengthAccepted=1024,
-                segmentationSupported='noSegmentation',
-                vendorIdentifier=15,
+        # create a node for the router, address 1 on the VLAN
+        router_addr = Address(1)
+        router_node = Node(router_addr)
+        vlan.add_node(router_node)
+
+        # bind the router stack to the vlan network through this node
+        router.nsap.bind(router_node, vlan_network, router_addr)
+
+        # send network topology
+        deferred(router.nse.i_am_router_to_network)
+
+        # make some devices
+        for device_number in range(2, 2 + args.count):
+            # device identifier is assigned from the address
+            device_instance = vlan_network * 100 + device_number
+            _log.debug("    - device_instance: %r", device_instance)
+
+            # make a vlan device object
+            vlan_device = \
+                LocalDeviceObject(
+                    objectName="VLAN Node %d" % (device_instance,),
+                    objectIdentifier=('device', device_instance),
+                    maxApduLengthAccepted=1024,
+                    segmentationSupported='noSegmentation',
+                    vendorIdentifier=15,
+                    )
+            _log.debug("    - vlan_device: %r", vlan_device)
+
+            vlan_address = Address(device_number)
+            _log.debug("    - vlan_address: %r", vlan_address)
+
+            # make the application, add it to the network
+            vlan_app = VLANApplication(vlan_device, vlan_address)
+            vlan.add_node(vlan_app.vlan_node)
+            _log.debug("    - vlan_app: %r", vlan_app)
+
+            # make a random value object
+            ravo = RandomAnalogValueObject(
+                objectIdentifier=('analogValue', 1),
+                objectName='Random-1-%d' % (device_instance,),
                 )
-        _log.debug("    - vlan_device: %r", vlan_device)
+            _log.debug("    - ravo: %r", ravo)
 
-        vlan_address = Address(device_number)
-        _log.debug("    - vlan_address: %r", vlan_address)
-
-        # make the application, add it to the network
-        vlan_app = VLANApplication(vlan_device, vlan_address)
-        vlan.add_node(vlan_app.vlan_node)
-        _log.debug("    - vlan_app: %r", vlan_app)
-
-        # make a random value object
-        ravo = RandomAnalogValueObject(
-            objectIdentifier=('analogValue', 1),
-            objectName='Random-1-%d' % (device_instance,),
-            )
-        _log.debug("    - ravo: %r", ravo)
-
-        # add it to the device
-        vlan_app.add_object(ravo)
+            # add it to the device
+            vlan_app.add_object(ravo)
 
     _log.debug("running")
 
