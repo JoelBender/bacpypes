@@ -20,7 +20,7 @@ from bacpypes.pdu import Address
 from bacpypes.object import get_datatype
 
 from bacpypes.apdu import ReadPropertyRequest
-from bacpypes.primitivedata import Unsigned
+from bacpypes.primitivedata import Unsigned, ObjectIdentifier
 from bacpypes.constructeddata import Array
 
 from bacpypes.app import BIPSimpleApplication
@@ -64,7 +64,7 @@ class ReadPointListThread(Thread):
         for addr, obj_id, prop_id in self.point_queue:
             # build a request
             request = ReadPropertyRequest(
-                objectIdentifier=ObjectIdentifer(obj_id).value,
+                objectIdentifier=ObjectIdentifier(obj_id).value,
                 propertyIdentifier=prop_id,
                 )
             request.pduDestination = Address(addr)
