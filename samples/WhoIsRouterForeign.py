@@ -120,8 +120,8 @@ def main():
     # make a simple application
     this_application = WhoIsRouterApplication(
         args.ini.address,
-        bbmdAddress=Address(args.ini.foreignbbmd),
-        bbmdTTL=int(args.ini.foreignttl),
+        bbmdAddress=Address(args.ini.foreignbbmd), 
+        bbmdTTL=int(args.ini.foreignttl)
         )
     if _debug: _log.debug("    - this_application: %r", this_application)
 

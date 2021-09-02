@@ -15,11 +15,12 @@ from bacpypes.core import run, deferred, enable_sleeping
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address
-from bacpypes.apdu import SubscribeCOVRequest, SimpleAckPDU, RejectPDU, AbortPDU
+from bacpypes.apdu import SubscribeCOVRequest, SimpleAckPDU, RejectPDU, AbortPDU, SubscribeCOVPropertyRequest
 from bacpypes.primitivedata import ObjectIdentifier
 
 from bacpypes.app import BIPSimpleApplication
 from bacpypes.local.device import LocalDeviceObject
+from bacpypes.basetypes import PropertyReference
 
 # some debugging
 _debug = 0
@@ -145,8 +146,14 @@ class SubscribeCOVConsoleCmd(ConsoleCmd):
                 lifetime = None
 
             # build a request
-            request = SubscribeCOVRequest(
-                subscriberProcessIdentifier=proc_id, monitoredObjectIdentifier=obj_id
+            # request = SubscribeCOVRequest(
+            #     subscriberProcessIdentifier=proc_id, monitoredObjectIdentifier=obj_id
+            # )
+            request = SubscribeCOVPropertyRequest(
+                subscriberProcessIdentifier=proc_id,
+                monitoredObjectIdentifier=obj_id,
+                monitoredPropertyIdentifier=PropertyReference(propertyIdentifier=85),
+                covIncrement=2
             )
             request.pduDestination = Address(addr)
 
