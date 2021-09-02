@@ -2095,7 +2095,7 @@ class OctetStringValueObject(Object):
     _object_supports_cov = True
 
     properties = \
-        [ ReadableProperty('presentValue', CharacterString)
+        [ ReadableProperty('presentValue', OctetString)
         , ReadableProperty('statusFlags', StatusFlags)
         , OptionalProperty('eventState', EventState)
         , OptionalProperty('reliability', Reliability)
