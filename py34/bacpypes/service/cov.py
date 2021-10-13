@@ -457,7 +457,7 @@ class PulseConverterCriteria(COVIncrementCriteria):
 
         # check for a new period
         if new_value != 0:
-            self.cov_period_task = RecurringFunctionTask(new_value * 1000, self.cov_period_x)
+            self.cov_period_task = RecurringFunctionTask(new_value * 1000, self.send_cov_notifications)
             self.cov_period_task.install_task()
             if _debug: PulseConverterCriteria._debug("    - new task created and installed")
 
