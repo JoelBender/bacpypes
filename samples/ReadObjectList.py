@@ -197,12 +197,12 @@ def main():
     # parse the command line arguments
     parser = ConfigArgumentParser(description=__doc__)
 
-    # add an argument for interval
+    # add an argument for the device identifier
     parser.add_argument('device_id', type=int,
           help='device identifier',
           )
 
-    # add an argument for interval
+    # add an argument for the address of the device
     parser.add_argument('device_addr', type=str,
           help='device address',
           )

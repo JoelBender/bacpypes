@@ -81,7 +81,7 @@ class TestConsoleCmd(ConsoleCmd):
         start_time = Time(start_string).value
         stop_time = Time(stop_string).value
 
-        exception_schedule = [
+        exception_schedule = ArrayOf(SpecialEvent)([
             SpecialEvent(
                 period=SpecialEventPeriod(
                     calendarEntry=CalendarEntry(date=except_date)
@@ -92,7 +92,7 @@ class TestConsoleCmd(ConsoleCmd):
                 ],
                 eventPriority=1,
             )
-        ]
+        ])
         if _debug:
             TestConsoleCmd._debug("    - exception_schedule: %r", exception_schedule)
 
@@ -152,7 +152,7 @@ def main():
         objectName="Test Schedule",
         presentValue=Real(8.0),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2)),
-        weeklySchedule=[
+        weeklySchedule=ArrayOf(DailySchedule, 7)([
             DailySchedule(
                 daySchedule=[
                     TimeValue(time=(8, 0, 0, 0), value=Real(8.0)),
@@ -161,7 +161,7 @@ def main():
                 ]
             )
         ]
-        * 7,
+        * 7),
         listOfObjectPropertyReferences=ListOf(DeviceObjectPropertyReference)(
             [
                 DeviceObjectPropertyReference(

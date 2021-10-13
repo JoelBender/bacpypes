@@ -216,6 +216,7 @@ class Property(object):
 
             # see if it can be changed
             if not self.mutable:
+                if _debug: Property._debug("    - property is immutable")
                 raise ExecutionError(errorClass='property', errorCode='writeAccessDenied')
 
             # if changing the length of the array, the value is unsigned
@@ -1109,7 +1110,7 @@ class AnalogValueObject(Object):
 
 @register_object_type
 class AuditLogObject(Object):
-    objectType = 'analogLog'
+    objectType = 'auditLog'
 
     properties = \
         [ ReadableProperty('statusFlags', StatusFlags)
@@ -1217,7 +1218,7 @@ class BinaryInputObject(Object):
 
 @register_object_type
 class BinaryLightingOutputObject(Object):
-    objectType = 'binaryLightingOutputObject'
+    objectType = 'binaryLightingOutput'
 
     properties = \
         [ WritableProperty('presentValue', BinaryLightingPV)
@@ -2458,7 +2459,7 @@ class OctetStringValueObject(Object):
     _object_supports_cov = True
 
     properties = \
-        [ ReadableProperty('presentValue', CharacterString)
+        [ ReadableProperty('presentValue', OctetString)
         , ReadableProperty('statusFlags', StatusFlags)
         , OptionalProperty('eventState', EventState)
         , OptionalProperty('reliability', Reliability)

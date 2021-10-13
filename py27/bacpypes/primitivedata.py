@@ -1714,6 +1714,7 @@ class ObjectType(Enumerated):
         , 'program':16
         , 'pulseConverter':24
         , 'schedule':17
+        , 'staging':60
         , 'structuredView':29
         , 'timePatternValue':49
         , 'timeValue':50

@@ -90,8 +90,8 @@ class Subscription(OneShotTask, DebugContents):
         'lifetime',
         )
 
-    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime=0):
-        if _debug: Subscription._debug("__init__ %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime)
+    def __init__(self, obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime, cov_inc):
+        if _debug: Subscription._debug("__init__ %r %r %r %r %r %r %r", obj_ref, client_addr, proc_id, obj_id, confirmed, lifetime, cov_inc)
         OneShotTask.__init__(self)
 
         # save the reference to the related object
@@ -102,10 +102,12 @@ class Subscription(OneShotTask, DebugContents):
         self.proc_id = proc_id
         self.obj_id = obj_id
         self.confirmed = confirmed
+        self.lifetime = lifetime
+        self.covIncrement = cov_inc
 
-        # if lifetime is none, consider permanent subscription (0)        
-        self.lifetime = 0 if lifetime is None else lifetime
-        self.install_task(delta=self.lifetime)
+        # if lifetime is zero this is a permanent subscription
+        if lifetime > 0:
+            self.install_task(delta=self.lifetime)
 
     def cancel_subscription(self):
         if _debug: Subscription._debug("cancel_subscription")
@@ -455,7 +457,7 @@ class PulseConverterCriteria(COVIncrementCriteria):
 
         # check for a new period
         if new_value != 0:
-            self.cov_period_task = RecurringFunctionTask(new_value * 1000, self.cov_period_x)
+            self.cov_period_task = RecurringFunctionTask(new_value * 1000, self.send_cov_notifications)
             self.cov_period_task.install_task()
             if _debug: PulseConverterCriteria._debug("    - new task created and installed")
 
@@ -737,7 +739,7 @@ class ChangeOfValueServices(Capability):
                 if _debug: ChangeOfValueServices._debug("    - create a subscription")
 
                 # make a subscription
-                cov = Subscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime)
+                cov = Subscription(obj, client_addr, proc_id, obj_id, confirmed, lifetime, None)
                 if _debug: ChangeOfValueServices._debug("    - cov: %r", cov)
 
                 # add it to our subscriptions lists
@@ -755,3 +757,82 @@ class ChangeOfValueServices(Capability):
             if _debug: ChangeOfValueServices._debug("    - send a notification")
             deferred(cov_detection.send_cov_notifications, cov)
 
+    def do_SubscribeCOVPropertyRequest(self, apdu):
+        if _debug: ChangeOfValueServices._debug("do_SubscribeCOVPropertyRequest %r", apdu)
+
+        # extract the pieces
+        client_addr = apdu.pduSource
+        proc_id = apdu.subscriberProcessIdentifier
+        obj_id = apdu.monitoredObjectIdentifier
+        confirmed = apdu.issueConfirmedNotifications
+        lifetime = apdu.lifetime
+        prop_id = apdu.monitoredPropertyIdentifier
+        cov_inc = apdu.covIncrement
+
+        # request is to cancel the subscription
+        cancel_subscription = (confirmed is None) and (lifetime is None)
+
+        # find the object
+        obj = self.get_object_id(obj_id)
+        if _debug: ChangeOfValueServices._debug("    - object: %r", obj)
+        if not obj:
+            raise ExecutionError(errorClass='object', errorCode='unknownObject')
+
+        # check to see if the object supports COV
+        if not obj._object_supports_cov:
+            raise ExecutionError(errorClass='services', errorCode='covSubscriptionFailed')
+
+        # look for an algorithm already associated with this object
+        cov_detection = self.cov_detections.get(obj, None)
+
+        # if there isn't one, make one and associate it with the object
+        if not cov_detection:
+            # look for an associated class and if it's not there it's not supported
+            criteria_class = criteria_type_map.get(obj_id[0], None)
+            if not criteria_class:
+                raise ExecutionError(errorClass='services', errorCode='covSubscriptionFailed')
+
+            # make one of these and bind it to the object
+            cov_detection = criteria_class(obj)
+
+            # keep track of it for other subscriptions
+            self.cov_detections[obj] = cov_detection
+        if _debug: ChangeOfValueServices._debug("    - cov_detection: %r", cov_detection)
+
+        # can a match be found?
+        cov = cov_detection.cov_subscriptions.find(client_addr, proc_id, obj_id)
+        if _debug: ChangeOfValueServices._debug("    - cov: %r", cov)
+
+        # if a match was found, update the subscription
+        if cov:
+            if cancel_subscription:
+                if _debug: ChangeOfValueServices._debug("    - cancel the subscription")
+                self.cancel_subscription(cov)
+            else:
+                if _debug: ChangeOfValueServices._debug("    - renew the subscription")
+                cov.renew_subscription(lifetime)
+        else:
+            if cancel_subscription:
+                if _debug: ChangeOfValueServices._debug("    - cancel a subscription that doesn't exist")
+            else:
+                if _debug: ChangeOfValueServices._debug("    - create a subscription")
+
+                # make a subscription
+                cov = Subscription(obj, client_addr, proc_id, obj_id,
+                                   confirmed, lifetime, cov_inc)
+                if _debug: ChangeOfValueServices._debug("    - cov: %r", cov)
+
+                # add it to our subscriptions lists
+                self.add_subscription(cov)
+
+        # success
+        response = SimpleAckPDU(context=apdu)
+
+        # return the result
+        self.response(response)
+
+        # if the subscription is not being canceled, it is new or renewed,
+        # so send it a notification when you get a chance.
+        if not cancel_subscription:
+            if _debug: ChangeOfValueServices._debug("    - send a notification")
+            deferred(cov_detection.send_cov_notifications, cov)

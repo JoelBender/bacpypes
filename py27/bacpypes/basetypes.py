@@ -482,8 +482,8 @@ class BinaryLightingPV(Enumerated):
         { 'off':0
         , 'on':1
         , 'warn':2
-        , 'warn-off':3
-        , 'warn-relinquish':4
+        , 'warnOff':3
+        , 'warnRelinquish':4
         , 'stop':5
         }
 
@@ -1016,11 +1016,11 @@ class EventType(Enumerated):
 class FaultType(Enumerated):
     enumerations = \
         { 'none':0
-        , 'fault-characterstring':1
-        , 'fault-extended':2
-        , 'fault-life-safety':3
-        , 'fault-state':4
-        , 'fault-status-flags':5
+        , 'faultCharacterstring':1
+        , 'faultExtended':2
+        , 'faultLifeSafety':3
+        , 'faultState':4
+        , 'faultStatusFlags':5
         }
 
 class FileAccessMethod(Enumerated):
@@ -1831,7 +1831,7 @@ class Reliability(Enumerated):
         , 'lampFailure': 16
         , 'activationFailure': 17
         , 'renewDHCPFailure': 18
-        , 'renewFDRegistration-failure': 19
+        , 'renewFDRegistrationFailure': 19
         , 'restartAutoNegotiationFailure': 20
         , 'restartFailure': 21
         , 'proprietaryCommandFailure': 22
@@ -1918,12 +1918,12 @@ class VTClass(Enumerated):
     vendor_range = (64, 65535)
     enumerations = \
         { 'defaultTerminal':0
-        , 'ansiX3-64':1
+        , 'ansiX364':1
         , 'decVt52':2
         , 'decVt100':3
         , 'decVt220':4
-        , 'hp-700-94':5
-        , 'ibm-3130':6
+        , 'hp70094':5
+        , 'ibm3130':6
         }
 
 class WriteStatus(Enumerated):
@@ -3187,7 +3187,7 @@ class ValueSource(Choice):
     choiceElements = \
         [ Element('none', Null, 0)
         , Element('object', DeviceObjectReference, 1)
-        , Element('Address', Address)
+        , Element('address', Address, 2)
         ]
 
 

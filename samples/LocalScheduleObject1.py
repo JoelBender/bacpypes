@@ -66,6 +66,16 @@ class TestConsoleCmd(ConsoleCmd):
         y = _localtime()
         print("y: {}".format(y))
 
+    def do_dc(self, args):
+        """dc"""
+        args = args.split()
+        if _debug:
+            TestConsoleCmd._debug("do_dc %r", args)
+
+        for so in schedule_objects:
+            print(so.objectName)
+            so.debug_contents()
+
 
 #
 #   __main__
@@ -103,7 +113,7 @@ def main():
         objectName="Schedule 1",
         presentValue=Integer(8),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        weeklySchedule=[
+        weeklySchedule=ArrayOf(DailySchedule, 7)([
             DailySchedule(
                 daySchedule=[
                     TimeValue(time=(8, 0, 0, 0), value=Integer(8)),
@@ -113,7 +123,7 @@ def main():
                 ]
             ),
         ]
-        * 7,
+        * 7),
         scheduleDefault=Integer(0),
     )
     _log.debug("    - so: %r", so)
@@ -129,7 +139,7 @@ def main():
         objectName="Schedule 2",
         presentValue=CharacterString(""),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        exceptionSchedule=[
+        exceptionSchedule=ArrayOf(SpecialEvent)([
             SpecialEvent(
                 period=SpecialEventPeriod(
                     calendarEntry=CalendarEntry(date=Date("2000-01-01").value,),
@@ -140,7 +150,7 @@ def main():
                 ],
                 eventPriority=1,
             ),
-        ],
+        ]),
         scheduleDefault=CharacterString("Don't panic."),
     )
     _log.debug("    - so: %r", so)
@@ -155,7 +165,7 @@ def main():
         objectName="Schedule 3",
         presentValue=CharacterString(""),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        exceptionSchedule=[
+        exceptionSchedule=ArrayOf(SpecialEvent)([
             SpecialEvent(
                 period=SpecialEventPeriod(
                     calendarEntry=CalendarEntry(weekNDay=xtob("FF.FF.05"),),
@@ -165,7 +175,7 @@ def main():
                 ],
                 eventPriority=1,
             ),
-        ],
+        ]),
         scheduleDefault=CharacterString("Keep working."),
     )
     _log.debug("    - so: %r", so)
@@ -181,7 +191,7 @@ def main():
         objectName="Schedule 4",
         presentValue=Real(73.5),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        weeklySchedule=[
+        weeklySchedule=ArrayOf(DailySchedule, 7)([
             DailySchedule(
                 daySchedule=[
                     TimeValue(time=(9, 0, 0, 0), value=Real(78.0)),
@@ -189,7 +199,7 @@ def main():
                 ]
             ),
         ]
-        * 7,
+        * 7),
         scheduleDefault=Real(72.0),
         listOfObjectPropertyReferences=SequenceOf(DeviceObjectPropertyReference)(
             [
@@ -212,7 +222,7 @@ def main():
         objectName="Schedule 5",
         presentValue=Integer(0),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        exceptionSchedule=[
+        exceptionSchedule=ArrayOf(SpecialEvent)([
             SpecialEvent(
                 period=SpecialEventPeriod(
                     calendarEntry=CalendarEntry(weekNDay=xtob("FF.FF.FF"),),
@@ -260,7 +270,7 @@ def main():
                 listOfTimeValues=[TimeValue(time=(1, 0, 0, 0), value=Integer(1)),],
                 eventPriority=5,
             ),
-        ],
+        ]),
         scheduleDefault=Integer(0),
     )
     _log.debug("    - so: %r", so)
@@ -278,7 +288,7 @@ def main():
         objectName="Schedule 6",
         presentValue=Integer(0),
         effectivePeriod=DateRange(startDate=(0, 1, 1, 1), endDate=(254, 12, 31, 2),),
-        exceptionSchedule=[
+        exceptionSchedule=ArrayOf(SpecialEvent)([
             SpecialEvent(
                 period=SpecialEventPeriod(
                     calendarEntry=CalendarEntry(weekNDay=xtob("FF.FF.FF"),),
@@ -286,7 +296,7 @@ def main():
                 listOfTimeValues=ltv,
                 eventPriority=1,
             ),
-        ],
+        ]),
         scheduleDefault=Integer(0),
     )
     _log.debug("    - so: %r", so)
