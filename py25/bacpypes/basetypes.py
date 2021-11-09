@@ -1295,7 +1295,7 @@ class PropertyIdentifier(Enumerated):
         , 'integralConstant':49
         , 'integralConstantUnits':50
         , 'intervalOffset':195
-        , 'isUtc':344
+        , 'isUTC':344
         , 'keySets':330
         , 'lastAccessEvent':275
         , 'lastAccessPoint':276

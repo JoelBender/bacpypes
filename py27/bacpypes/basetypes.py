@@ -1518,7 +1518,7 @@ class PropertyIdentifier(Enumerated):
         , 'ipv6PrefixLength':437
         , 'ipv6ZoneIndex':446
         , 'issueConfirmedNotifications':51
-        , 'isUtc':344
+        , 'isUTC':344
         , 'keySets':330
         , 'landingCallControl':471
         , 'landingCalls': 470
