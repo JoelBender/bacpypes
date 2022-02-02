@@ -188,7 +188,10 @@ class Address:
                     Address._warning("route provided but not route aware: %r", addr)
 
                 if route_addr:
-                    self.addrRoute = Address(int(route_addr))
+                    if route_addr.startswith("0x"):
+                        self.addrRoute = Address(xtob(route_addr[2:]))
+                    else:
+                        self.addrRoute = Address(int(route_addr))
                     if _debug: Address._debug("    - addrRoute: %r", self.addrRoute)
                 elif route_ip_addr:
                     if not route_ip_port:

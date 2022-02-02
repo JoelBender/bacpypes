@@ -1383,7 +1383,7 @@ class DateTimePatternValueObject(Object):
         , OptionalProperty('outOfService', Boolean)
         , OptionalProperty('priorityArray', PriorityArray)
         , OptionalProperty('relinquishDefault', DateTime)
-        , OptionalProperty('isUtc', Boolean)
+        , OptionalProperty('isUTC', Boolean)
         ]
 
 register_object_type(DateTimePatternValueObject)
@@ -1400,7 +1400,7 @@ class DateTimeValueObject(Object):
         , OptionalProperty('outOfService', Boolean)
         , OptionalProperty('priorityArray', PriorityArray)
         , OptionalProperty('relinquishDefault', DateTime)
-        , OptionalProperty('isUtc', Boolean)
+        , OptionalProperty('isUTC', Boolean)
         ]
 
 register_object_type(DateTimeValueObject)

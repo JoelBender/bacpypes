@@ -1573,7 +1573,7 @@ class DateTimePatternValueObject(Object):
         , OptionalProperty('eventState', EventState)
         , OptionalProperty('reliability', Reliability)
         , OptionalProperty('outOfService', Boolean)
-        , OptionalProperty('isUtc', Boolean)
+        , OptionalProperty('isUTC', Boolean)
 
         , OptionalProperty('priorityArray', PriorityArray)
         , OptionalProperty('relinquishDefault', DateTime)
@@ -1608,7 +1608,7 @@ class DateTimeValueObject(Object):
         , OptionalProperty('outOfService', Boolean)
         , OptionalProperty('priorityArray', PriorityArray)
         , OptionalProperty('relinquishDefault', DateTime)
-        , OptionalProperty('isUtc', Boolean)
+        , OptionalProperty('isUTC', Boolean)
         , OptionalProperty('reliabilityEvaluationInhibit', Boolean)
         , OptionalProperty('eventDetectionEnable', Boolean)
         , OptionalProperty('notificationClass', Unsigned)
