@@ -43,25 +43,23 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # keep track of requests to line up responses
         self._request = None
 
-    def process_io(self, iocb):
-        if _debug: WhoIsIAmApplication._debug("process_io %r", iocb)
+    def request(self, apdu):
+        if _debug: WhoIsIAmApplication._debug("request %r", apdu)
 
         # save a copy of the request
-        self._request = iocb.args[0]
+        if isinstance(apdu, WhoIsRequest):
+            self._request = apdu
 
         # forward it along
-        BIPSimpleApplication.process_io(self, iocb)
-
-    def confirmation(self, apdu):
-        if _debug: WhoIsIAmApplication._debug("confirmation %r", apdu)
-
-        # forward it along
-        BIPSimpleApplication.confirmation(self, apdu)
+        BIPSimpleApplication.request(self, apdu)
 
     def indication(self, apdu):
         if _debug: WhoIsIAmApplication._debug("indication %r", apdu)
 
-        if (isinstance(self._request, WhoIsRequest)) and (isinstance(apdu, IAmRequest)):
+        if not self._request:
+            if _debug: WhoIsIAmApplication._debug("    - no pending request")
+
+        elif isinstance(apdu, IAmRequest):
             device_type, device_instance = apdu.iAmDeviceIdentifier
             if device_type != 'device':
                 raise DecodingError("invalid object type")
@@ -84,6 +82,11 @@ class WhoIsIAmApplication(BIPSimpleApplication):
         # forward it along
         BIPSimpleApplication.indication(self, apdu)
 
+    def confirmation(self, apdu):
+        if _debug: WhoIsIAmApplication._debug("confirmation %r", apdu)
+
+        # forward it along
+        BIPSimpleApplication.confirmation(self, apdu)
 
 #
 #   WhoIsIAmConsoleCmd
@@ -116,6 +119,16 @@ class WhoIsIAmConsoleCmd(ConsoleCmd):
 
         except Exception as error:
             WhoIsIAmConsoleCmd._exception("exception: %r", error)
+
+    def do_any(self, args):
+        """any
+
+        Print all of the I-Am's received as if an unconstrained Who-Is was
+        sent out, without actually sending an unconstrained Who-Is.
+        """
+        this_application._request = WhoIsRequest()
+        this_application._request.deviceInstanceRangeLowLimit = 0
+        this_application._request.deviceInstanceRangeHighLimit = 4194303
 
     def do_iam(self, args):
         """iam"""
