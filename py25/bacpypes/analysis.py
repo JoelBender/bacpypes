@@ -16,7 +16,7 @@ import sys
 import time
 import socket
 import struct
-
+import copy
 pcap = None
 try:
     import pcap
@@ -164,6 +164,7 @@ def decode_packet(data):
 
         d = decode_ip(data)
         pduSource, pduDestination = d['source_address'], d['destination_address']
+        ip_source = copy.deepcopy(d['source_address'])
         data = d['data']
 
         if (d['protocol'] == 'udp'):
@@ -198,6 +199,7 @@ def decode_packet(data):
             xpdu = BVLPDU()
             xpdu.decode(pdu)
             pdu = xpdu
+            bvll = copy.deepcopy(pdu)
         except Exception as err:
             if _debug: decode_packet._debug("    - BVLPDU decoding error: %r", err)
             return pdu
@@ -216,12 +218,14 @@ def decode_packet(data):
             if _debug: decode_packet._debug("    - bpdu: %r", bpdu)
 
             pdu = bpdu
+            bvll = copy.deepcopy(bpdu)
 
             # lift the address for forwarded NPDU's
             if atype is ForwardedNPDU:
                 pdu.pduSource = bpdu.bvlciAddress
             # no deeper decoding for some
             elif atype not in (DistributeBroadcastToNetwork, OriginalUnicastNPDU, OriginalBroadcastNPDU):
+                pdu.ipSource = ip_source
                 return pdu
 
         except Exception, err:
@@ -328,6 +332,8 @@ def decode_packet(data):
             return xpdu
 
         # success
+        apdu.ipSource = ip_source
+        apdu.bvll = bvll
         return apdu
 
     else:
@@ -348,6 +354,8 @@ def decode_packet(data):
             return xpdu
 
         # success
+        npdu.ipSource = ip_source
+        npdu.bvll = bvll
         return npdu
 
 bacpypes_debugging(decode_packet)

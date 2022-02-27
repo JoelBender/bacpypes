@@ -1528,6 +1528,7 @@ class ApplicationServiceAccessPoint(ApplicationServiceElement, ServiceAccessPoin
             try:
                 xpdu = atype()
                 xpdu.decode(apdu)
+                xpdu.realPduSource = apdu.realPduSource
             except Exception as err:
                 ApplicationServiceAccessPoint._exception("complex ack decoding error: %r", err)
                 return

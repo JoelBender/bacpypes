@@ -547,6 +547,7 @@ class NetworkServiceAccessPoint(ServiceAccessPoint, Server, DebugContents):
                     NetworkServiceAccessPoint._debug("    - apdu.pduSource: %r", apdu.pduSource)
                     NetworkServiceAccessPoint._debug("    - apdu.pduDestination: %r", apdu.pduDestination)
 
+                apdu.realPduSource = npdu.pduSource
                 # pass upstream to the application layer
                 self.response(apdu)
 
