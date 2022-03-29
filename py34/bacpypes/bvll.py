@@ -487,7 +487,7 @@ register_bvlpdu_type(ReadForeignDeviceTable)
 
 class ReadForeignDeviceTableAck(BVLPDU):
 
-    _debug_contents = ('bvlciFDT',)
+    _debug_contents = ('bvlciFDT++',)
 
     messageType = BVLCI.readForeignDeviceTableAck
 
