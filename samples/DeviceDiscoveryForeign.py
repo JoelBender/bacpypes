@@ -12,7 +12,7 @@ from bacpypes.debugging import bacpypes_debugging, ModuleLogger
 from bacpypes.consolelogging import ConfigArgumentParser
 from bacpypes.consolecmd import ConsoleCmd
 
-from bacpypes.core import run, enable_sleeping
+from bacpypes.core import run, enable_sleeping, deferred
 from bacpypes.iocb import IOCB
 
 from bacpypes.pdu import Address, GlobalBroadcast
@@ -187,26 +187,27 @@ def main():
     global this_device
     global this_application
 
-    # parse the command line arguments
-    args = ConfigArgumentParser(description=__doc__).parse_args()
-
-    if _debug: _log.debug("initialization")
-    if _debug: _log.debug("    - args: %r", args)
-
     # make a device object
-    this_device = LocalDeviceObject(ini=args.ini)
+    this_device = LocalDeviceObject(
+        objectName="BACSYS"
+        , objectIdentifier=123
+        , maxApduLengthAccepted=1024
+        , segmentationSupported="segmentedBoth"
+        , vendorIdentifier=264
+    )
     if _debug: _log.debug("    - this_device: %r", this_device)
 
     # make a simple application
     this_application = DiscoveryApplication(
-        this_device, args.ini.address,
-        Address(args.ini.foreignbbmd),
-        int(args.ini.foreignttl),
+        this_device, Address("192.168.85.128:47810"),
+        Address("192.168.85.128:47808"),
+        30,
         )
+    #this_application.who_is()
 
     # make a console
-    this_console = DiscoveryConsoleCmd()
-    if _debug: _log.debug("    - this_console: %r", this_console)
+    #this_console = DiscoveryConsoleCmd()
+    #if _debug: _log.debug("    - this_console: %r", this_console)
 
     # enable sleeping will help with threads
     enable_sleeping()
@@ -214,6 +215,8 @@ def main():
     _log.debug("running")
 
     run()
+
+    deferred(this_application.who_is, low_limit=None, high_limit=None, address=GlobalBroadcast())
 
     _log.debug("fini")
 
