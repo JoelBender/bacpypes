@@ -181,3 +181,10 @@ class TestDate(unittest.TestCase):
                 for each in self.notEnoughPreciseOrWrong:
                     Date(each[0])
 
+    def test_date_args(self):
+        t = Tag()
+        date = Date(year=2023, month=2, day=10)
+        date1 = Date(year=123, month=2, day=10)
+        assert date == date1
+        date.encode(t)
+
