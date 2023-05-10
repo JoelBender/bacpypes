@@ -9,7 +9,7 @@ from .errors import MissingRequiredParameter
 
 from .primitivedata import Atomic, BitString, Boolean, CharacterString, Date, Double, \
     Enumerated, Integer, Null, ObjectIdentifier, OctetString, Real, Time, \
-    Unsigned, Unsigned16, Tag
+    Unsigned, Unsigned8, Unsigned16, Tag
 from .constructeddata import Any, AnyAtomic, ArrayOf, Choice, Element, \
     Sequence, SequenceOf
 
@@ -95,8 +95,7 @@ class ObjectTypesSupported(BitString):
         , 'accessUser':35
         , 'accessZone':36
         , 'credentialDataInput':37
-        , 'networkPort':56
-        , 'networkSecurity':38
+        , 'networkSecurity':38 # removed revision 22
         , 'bitstringValue':39
         , 'characterstringValue':40
         , 'datePatternValue':41
@@ -113,8 +112,16 @@ class ObjectTypesSupported(BitString):
         , 'alertEnrollment':52
         , 'channel':53
         , 'lightingOutput':54
+        , 'binaryLightingOutput':55
+        , 'networkPort':56
+        , 'elevatorGroup':57
+        , 'escalator':58
+        , 'lift':59
+        , 'staging':60
+        , 'auditLog':61
+        , 'auditReporter':62
         }
-    bitLen = 55
+    bitLen = 63
 
 class ResultFlags(BitString):
     bitNames = \
@@ -167,8 +174,16 @@ class ServicesSupported(BitString):
         , 'subscribeCOVProperty':38
         , 'getEventInformation':39
         , 'writeGroup':40
+        , 'subscribeCOVPropertyMultiple':41
+        , 'confirmedCOVNotificationMultiple':42
+        , 'unconfirmedCOVNotificationMultiple':43
+        , 'confirmedAuditNotification':44
+        , 'auditLogQuery':45
+        , 'unconfirmedAuditNotification':46
+        , 'whoAmI':47
+        , 'youAre':48
         }
-    bitLen = 41
+    bitLen = 49
 
 class StatusFlags(BitString):
     bitNames = \
@@ -758,20 +773,27 @@ class ErrorCode(Enumerated):
         , 'badDestinationDeviceId':87
         , 'badSignature':88
         , 'badSourceAddress':89
-        , 'badTimestamp':90
+        , 'badTimestamp':90 #Removed revision 22
         , 'busy':82
-        , 'cannotUseKey':91
-        , 'cannotVerifyMessageId':92
+        , 'bvlcFunctionUnknown':143
+        , 'bvlcProprietaryFunctionUnknown':144
+        , 'cannotUseKey':91 #Removed revision 22
+        , 'cannotVerifyMessageId':92 #Removed revision 22
         , 'characterSetNotSupported':41
         , 'communicationDisabled':83
         , 'configurationInProgress':2
-        , 'correctKeyRevision':93
+        , 'correctKeyRevision':93 #Removed revision 22
         , 'covSubscriptionFailed':43
         , 'datatypeNotSupported':47
         , 'deleteFdtEntryFailed':120
         , 'deviceBusy':3
-        , 'destinationDeviceIdRequired':94
+        , 'destinationDeviceIdRequired':94 #Removed revision 22
         , 'distributeBroadcastFailed':121
+        , 'dnsError':192
+        , 'dnsNameResolutionFailed':190
+        , 'dnsResolverFailure':191
+        , 'dnsUnavailable':189
+        , 'duplicateEntry': 137
         , 'duplicateMessage':95
         , 'duplicateName':48
         , 'duplicateObjectId':49
@@ -780,28 +802,51 @@ class ErrorCode(Enumerated):
         , 'encryptionRequired':97
         , 'fileAccessDenied':5
         , 'fileFull':128
+        , 'headerEncodingError':145
+        , 'headerNotUnderstood':146
+        , 'httpError':165
+        , 'httpNoUpgrade':153
+        , 'httpNotAServer':164
+        , 'httpResourceNotLocal':154
+        , 'httpProxyAuthenticationFailed':155
+        , 'httpResponseTimeout':156
+        , 'httpResponseSyntaxError':157
+        , 'httpResponseValueError':158
+        , 'httpResponseMissingHeader':159
+        , 'httpTemporaryUnavailable':163
+        , 'httpUnexpectedResponseCode':152
+        , 'httpUpgradeRequired':161
+        , 'httpUpgradeError':162
+        , 'httpWebsocketHeaderError':160
         , 'inconsistentConfiguration':129
         , 'inconsistentObjectType':130
         , 'inconsistentParameters':7
         , 'inconsistentSelectionCriterion':8
-        , 'incorrectKey':98
+        , 'incorrectKey':98 #Removed revision 22
         , 'internalError':131
         , 'invalidArrayIndex':42
         , 'invalidConfigurationData':46
+        , 'invalidDataEncoding':142
         , 'invalidDataType':9
         , 'invalidEventState':73
         , 'invalidFileAccessMethod':10
         , 'invalidFileStartPosition':11
-        , 'invalidKeyData':99
+        , 'invalidKeyData':99 #Removed revision 22
         , 'invalidParameterDataType':13
         , 'invalidTag':57
         , 'invalidTimeStamp':14
-        , 'keyUpdateInProgress':100
+        , 'invalidValueInThisState':138
+        , 'ipAddressNotReachable':198
+        , 'ipError':199
+        , 'keyUpdateInProgress':100 #Removed revision 22
         , 'listElementNotFound':81
+        , 'listItemNotNumbered':140
+        , 'listItemNotTimestamped': 141
         , 'logBufferFull':75
         , 'loggedValuePurged':76
         , 'malformedMessage':101
         , 'messageTooLong':113
+        , 'messageIncomplete':147
         , 'missingRequiredParameter':16
         , 'networkDown':58
         , 'noAlarmConfigured':74
@@ -811,10 +856,12 @@ class ErrorCode(Enumerated):
         , 'noSpaceToAddListElement':19
         , 'noSpaceToWriteProperty':20
         , 'noVtSessionsAvailable':21
+        , 'nodeDuplicateVmac':151
+        , 'notABacnetScHub':148
         , 'notConfigured':132
         , 'notConfiguredForTriggeredLogging':78
         , 'notCovProperty':44
-        , 'notKeyServer':102
+        , 'notKeyServer':102 #Removed revision 22
         , 'notRouterToDnet':110
         , 'objectDeletionNotPermitted':23
         , 'objectIdentifierAlreadyExists':24
@@ -824,6 +871,7 @@ class ErrorCode(Enumerated):
         , 'outOfMemory':133
         , 'parameterOutOfRange':80
         , 'passwordFailure':26
+        , 'payloadExpected':149
         , 'propertyIsNotAList':22
         , 'propertyIsNotAnArray':50
         , 'readAccessDenied':27
@@ -847,19 +895,34 @@ class ErrorCode(Enumerated):
         , 'serviceRequestDenied':29
         , 'sourceSecurityRequired':104
         , 'success':84
+        , 'tcpClosedByLocal':195
+        , 'tcpClosedOther':196
+        , 'tcpConnectTimeout':193
+        , 'tcpConnectionRefused':194
+        , 'tcpError':197
         , 'timeout':30
-        , 'tooManyKeys':105
+        , 'tlsClientAuthenticationFailed':182
+        , 'tlsClientCertificateError':180
+        , 'tlsClientCertificateExpired':184
+        , 'tlsClientCertificateRevoked':186
+        , 'tleError':188
+        , 'tlsServerAuthenticationFailed':183
+        , 'tlsServerCertificateError':181
+        , 'tlsServerCertificateExpired':185
+        , 'tlsServerCertificateRevoked':187
+        , 'tooManyKeys':105 #Removed revision 22
+        , 'unexpectedData':150
         , 'unknownAuthenticationType':106
         , 'unknownDevice':70
         , 'unknownFileSize':122
-        , 'unknownKey':107
-        , 'unknownKeyRevision':108
+        , 'unknownKey':107 #Removed revision 22
+        , 'unknownKeyRevision':108 #Removed revision 22
         , 'unknownNetworkMessage':112
         , 'unknownObject':31
         , 'unknownProperty':32
         , 'unknownSubscription':79
         , 'umknownRoute':71
-        , 'unknownSourceMessage':109
+        , 'unknownSourceMessage':109 #Removed revision 22
         , 'unknownVtClass':34
         , 'unknownVtSession':35
         , 'unsupportedObjectType':36
@@ -868,6 +931,20 @@ class ErrorCode(Enumerated):
         , 'valueTooLong':134
         , 'vtSessionAlreadyClosed':38
         , 'vtSessionTerminationFailure':39
+        , 'websocket-close-error':168
+        , 'websocket-closed-abnormally':173
+        , 'websocket-closed-by-peer':169
+        , 'websocket-data-against-policy':175
+        , 'websocket-data-inconsistent':174
+        , 'websocket-data-not-accepted':172
+        , 'websocket-endpoint-leaves':170
+        , 'websocket-error':179
+        , 'websocket-extension-missing':177
+        , 'websocket-frame-too-long':176
+        , 'websocket-protocol-error':171
+        , 'websocket-request-unavailable':178
+        , 'websocket-scheme-not-supported':166
+        , 'websocket-unknown-control-message':167
         , 'writeAccessDenied':40
         , 'writeBdtFailed':116
         }
@@ -1108,9 +1185,9 @@ class PropertyIdentifier(Enumerated):
     enumerations = \
         { 'absenteeLimit':244
         , 'tags':486
-        , 'profileLocation':91
+        , 'profileLocation':485
         , 'eventDetectionEnabled':353
-        , 'apduLength':388
+        , 'apduLength':399
         , 'linkSpeed':420
         , 'linkSpeeds':421
         , 'linkSpeedAutonegotiate':422
@@ -1140,7 +1217,7 @@ class PropertyIdentifier(Enumerated):
         , 'ipv6DefaultGateway':439
         , 'bacnetIPv6MulticastAddress':440
         , 'ipv6DNSServer':441
-        , 'ipv6AutoAddressingEnabled':442
+        , 'ipv6AutoAddressingEnable':442
         , 'ipv6DHCPLeaseTime':443
         , 'ipv6DHCPLeaseTimeRemaining':444
         , 'ipv6DHCPServer':445
@@ -1364,7 +1441,7 @@ class PropertyIdentifier(Enumerated):
         , 'negativeAccessRules':288
         , 'networkAccessSecurityPolicies':332
         , 'networkNumber':425
-        , 'networkNumberQuality':427
+        , 'networkNumberQuality':426
         , 'networkType': 427
         , 'nodeSubtype':207
         , 'nodeType':208
@@ -1539,6 +1616,7 @@ class Reliability(Enumerated):
         , 'proprietaryCommandFailure': 22
         , 'faultsListed': 23
         , 'referencedObjectFault': 24
+        , 'multiStateOutOfRange':25
         }
 
 class RestartReason(Enumerated):
@@ -1552,6 +1630,7 @@ class RestartReason(Enumerated):
         , 'hardwareWatchdog':5
         , 'softwareWatchdog':6
         , 'suspended':7
+        , 'activateChanges': 8
         }
 
 class SecurityLevel(Enumerated):
@@ -1680,41 +1759,42 @@ class RouterEntryStatus(Enumerated):
 
 class HostAddress(Choice):
     choiceElements = \
-        [ Element('none', Null)
-        , Element('ipAddress', OctetString)  # 4 octets for B/IP or 16 octets for B/IPv6
-        , Element('name', CharacterString)  # Internet host name (see RFC 1123)
+        [ Element('none', Null, 0)
+        , Element('ipAddress', OctetString, 1)  # 4 octets for B/IP or 16 octets for B/IPv6
+        , Element('name', CharacterString, 2)  # Internet host name (see RFC 1123)
         ]
 
 class HostNPort(Sequence):
     sequenceElements = \
-        [ Element('host', HostAddress)
-        , Element('port', Unsigned16)
+        [ Element('host', HostAddress, 0)
+        , Element('port', Unsigned16, 1)
         ]
 
 class BDTEntry(Sequence):
     sequenceElements = \
-        [ Element('bbmdAddress', HostNPort)
-        , Element('broadcastMask', OctetString)  # shall be present if BACnet/IP, and absent for BACnet/IPv6
+        [ Element('bbmdAddress', HostNPort, 0)
+        , Element('broadcastMask', OctetString, 1)  # shall be present if BACnet/IP, and absent for BACnet/IPv6
         ]
 
 class FDTEntry(Sequence):
     sequenceElements = \
-        [ Element('bacnetIPAddress', OctetString)  # the 6-octet B/IP or 18-octet B/IPv6 address of the registrant
-        , Element('timeToLive', Unsigned16)  # time to live in seconds at the time of registration
-        , Element('remainingTimeToLive', Unsigned16)  # remaining time to live in seconds, incl. grace period
+        [ Element('bacnetIPAddress', OctetString, 0)  # the 6-octet B/IP or 18-octet B/IPv6 address of the registrant
+        , Element('timeToLive', Unsigned16, 1)  # time to live in seconds at the time of registration
+        , Element('remainingTimeToLive', Unsigned16, 2)  # remaining time to live in seconds, incl. grace period
         ]
 
 class VMACEntry(Sequence):
     sequenceElements = \
-        [ Element('virtualMACAddress', OctetString)  # maximum size 6 octets
-        , Element('nativeMACAddress', OctetString)
+        [ Element('virtualMACAddress', OctetString, 0)  # maximum size 6 octets
+        , Element('nativeMACAddress', OctetString, 1)
         ]
 
 class RouterEntry(Sequence):
     sequenceElements = \
-        [ Element('networkNumber', Unsigned16)
-        , Element('macAddress', OctetString)
-        , Element('status', RouterEntryStatus)  # Defined Above
+        [ Element('networkNumber', Unsigned16, 0)
+        , Element('macAddress', OctetString, 1)
+        , Element('status', RouterEntryStatus, 2)  # Defined Above
+        , Element('performanceIndex', Unsigned8, 3, True)
         ]
 
 class NameValue(Sequence):

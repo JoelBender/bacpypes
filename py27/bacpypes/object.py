@@ -2340,11 +2340,11 @@ class NetworkPortObject(Object):
         , ReadableProperty('protocolLevel', ProtocolLevel)  #482
         , OptionalProperty('referencePort', Unsigned)  #483
         , ReadableProperty('networkNumber', Unsigned16)  #425
-        , ReadableProperty('networkNumberQuality', NetworkNumberQuality)  #427
+        , ReadableProperty('networkNumberQuality', NetworkNumberQuality)  #426
         , ReadableProperty('changesPending', Boolean)  #416
         , OptionalProperty('command', NetworkPortCommand)   #417
         , OptionalProperty('macAddress', OctetString)   #423
-        , ReadableProperty('apduLength', Unsigned)  #388
+        , ReadableProperty('apduLength', Unsigned)  #399
         , ReadableProperty('linkSpeed', Real)  #420
         , OptionalProperty('linkSpeeds', ArrayOf(Real))  #421
         , OptionalProperty('linkSpeedAutonegotiate', Boolean)  #422
@@ -2374,7 +2374,7 @@ class NetworkPortObject(Object):
         , OptionalProperty('ipv6DefaultGateway', OctetString)  #439
         , OptionalProperty('bacnetIPv6MulticastAddress', OctetString)  #440
         , OptionalProperty('ipv6DNSServer', OctetString)  #441
-        , OptionalProperty('ipv6AutoAddressingEnabled', Boolean)  #442
+        , OptionalProperty('ipv6AutoAddressingEnable', Boolean)  #442
         , OptionalProperty('ipv6DHCPLeaseTime', Unsigned)  #443
         , OptionalProperty('ipv6DHCPLeaseTimeRemaining', Unsigned)  #444
         , OptionalProperty('ipv6DHCPServer', OctetString)  #445

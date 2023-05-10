@@ -185,8 +185,8 @@ def flatten(x, prefix="$"):
         yield (prefix, x)
 
 
-@recurring_function(APPINTERVAL)
 @bacpypes_debugging
+# @recurring_function(APPINTERVAL)
 def update_weather_data():
     """Read the current weather data from the API and set the object values."""
     if _debug:
