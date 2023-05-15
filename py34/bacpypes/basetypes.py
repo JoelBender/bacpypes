@@ -2233,6 +2233,9 @@ class DateTime(Sequence):
         , Element('time', Time)
         ]
 
+    def __str__(self):
+        return "%s(date=%s, time=%s)" % (self.__class__.__name__, self.date, self.time)
+
 class DateRange(Sequence):
     sequenceElements = \
         [ Element('startDate', Date)
