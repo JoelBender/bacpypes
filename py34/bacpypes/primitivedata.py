@@ -1255,6 +1255,7 @@ class Enumerated(Atomic):
         """Return True if arg is valid value for the class.  If the string
         value is wrong for the enumeration, the encoding will fail.
         """
+        cls(arg)
         return (isinstance(arg, int) and (arg >= 0)) or \
             isinstance(arg, str)
 
