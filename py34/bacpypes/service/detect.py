@@ -49,10 +49,10 @@ class DetectionMonitor:
 
         # trigger it
         if trigger:
+            self.algorithm._triggered = True
             deferred(self.algorithm._execute)
             if _debug: DetectionMonitor._debug("    - deferred: %r", self.algorithm._execute)
 
-            self.algorithm._triggered = True
 
 #
 #   monitor_filter
