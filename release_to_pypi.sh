@@ -10,9 +10,9 @@ rm -Rfv build/
 # python2.5 setup.py bdist_egg
 # rm -Rfv build/
 
-for version in 2.7 3.5 3.6 3.7 3.8; do
+for version in 3.5 3.6 3.7 3.8; do
     if [ -a "`which python$version`" ]; then
-        python$version setup.py bdist_egg
+        # python$version setup.py bdist_egg
         python$version setup.py bdist_wheel
         rm -Rfv build/
     fi
@@ -28,7 +28,7 @@ read -p "Upload to PyPI? [y/n/x] " yesno || exit 1
 
 if [ "$yesno" = "y" ] ;
 then
-    twine upload dist/*
+    twine upload --verbose dist/*
 elif [ "$yesno" = "n" ] ;
 then
     echo "Skipped..."
