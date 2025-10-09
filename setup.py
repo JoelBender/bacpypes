@@ -40,6 +40,9 @@ requirements = [
     # no external requirements
 ]
 
+if sys.version_info >= (3, 12):
+    requirements.append('pyasyncore')
+
 setup_requirements = [
     'pytest-runner',
     ]
